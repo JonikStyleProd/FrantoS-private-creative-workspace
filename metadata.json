@@ -1,0 +1,6 @@
+{
+  "name": "FrantoS — Private Creative Workspace",
+  "description": "A digital creative studio, living 3D archive, and private workspace for motion designers, 3D artists, UI/UX architects, and creative teams.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
