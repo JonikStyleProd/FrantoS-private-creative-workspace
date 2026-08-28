@@ -56,14 +56,20 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
     }
   }, [exhibit]);
 
-  // Escape key close
+  // Body scroll lock & Escape key close
   useEffect(() => {
     if (!exhibit) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [exhibit, onClose]);
 
   if (!exhibit) return null;
@@ -169,26 +175,29 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
       id="project-detail-modal-overlay"
       className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-xl flex items-center justify-center p-2 sm:p-4 md:p-6 animate-in fade-in duration-200"
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="project-modal-title"
     >
       <div 
         id="project-detail-modal-container"
-        className="relative w-full max-w-5xl rounded-3xl overflow-hidden bg-white dark:bg-[#0D0F14] border border-black/10 dark:border-white/15 text-[#111317] dark:text-white shadow-2xl my-auto max-h-[92vh] flex flex-col frantos-animated-frame"
+        className="relative w-full max-w-5xl rounded-3xl overflow-hidden bg-white dark:bg-[#0D0F14] border border-black/10 dark:border-white/15 text-[#111317] dark:text-white shadow-2xl my-auto max-h-[92dvh] sm:max-h-[88dvh] flex flex-col frantos-animated-frame"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header Bar */}
-        <div className="p-4 sm:p-6 border-b border-black/10 dark:border-white/10 flex items-center justify-between bg-[#F8F7F4]/90 dark:bg-black/40 backdrop-blur-md sticky top-0 z-30">
-          <div className="flex items-center gap-3">
+        <div className="p-3 sm:p-5 border-b border-black/10 dark:border-white/10 flex items-center justify-between bg-[#F8F7F4]/90 dark:bg-black/40 backdrop-blur-md sticky top-0 z-30 gap-2">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <img
               src={exhibit.author.avatar}
               alt={exhibit.author.name}
-              className="w-10 h-10 rounded-full object-cover ring-2 ring-cyan-500/40"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover ring-2 ring-cyan-500/40 flex-shrink-0"
             />
-            <div>
-              <h3 className="font-display font-bold text-base sm:text-lg tracking-tight text-[#111317] dark:text-[#F3F1EC]">
+            <div className="min-w-0">
+              <h3 id="project-modal-title" className="font-display font-bold text-sm sm:text-lg tracking-tight text-[#111317] dark:text-[#F3F1EC] truncate">
                 {exhibit.title}
               </h3>
-              <div className="flex items-center gap-2 text-xs text-[#4A505C] dark:text-zinc-400 font-mono">
-                <span>By {exhibit.author.name}</span>
+              <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-[#4A505C] dark:text-zinc-400 font-mono truncate">
+                <span className="truncate">By {exhibit.author.name}</span>
                 <span>•</span>
                 <span className="capitalize text-cyan-600 dark:text-cyan-400 font-semibold">{exhibit.discipline}</span>
                 <span>•</span>
@@ -197,14 +206,14 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             {isOwner && onEditExhibit && (
               <button
                 onClick={() => {
                   onClose();
                   onEditExhibit(exhibit);
                 }}
-                className="px-3 py-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 text-xs font-mono font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-2.5 sm:px-3 py-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 text-xs font-mono font-semibold flex items-center gap-1 transition-colors cursor-pointer min-h-[36px]"
               >
                 <Edit3 className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Edit</span>
@@ -214,10 +223,11 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
             {isOwner && onDeleteExhibit && (
               <button
                 onClick={handleDeletePost}
-                className="p-2 rounded-full border border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 text-xs transition-colors cursor-pointer"
+                className="min-w-[40px] min-h-[40px] p-2 rounded-full border border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 text-xs transition-colors cursor-pointer flex items-center justify-center"
                 title="Delete Exhibit"
+                aria-label="Delete exhibit"
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <Trash2 className="w-4 h-4" />
               </button>
             )}
 
@@ -230,7 +240,7 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
 
             <button
               onClick={() => onToggleSave(exhibit.id)}
-              className={`p-2.5 rounded-full border transition-all cursor-pointer ${
+              className={`min-w-[40px] min-h-[40px] p-2 rounded-full border transition-all cursor-pointer flex items-center justify-center ${
                 exhibit.isSaved
                   ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-700 dark:text-cyan-300'
                   : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white'
@@ -242,7 +252,7 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
 
             <button
               onClick={handleShare}
-              className="p-2.5 rounded-full border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/15 text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-all cursor-pointer"
+              className="min-w-[40px] min-h-[40px] p-2 rounded-full border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/15 text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-all cursor-pointer flex items-center justify-center"
               aria-label="Share project"
             >
               {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Share2 className="w-4 h-4" />}
@@ -250,7 +260,7 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
 
             <button
               onClick={onClose}
-              className="p-2.5 rounded-full border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/20 text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-all ml-2 cursor-pointer"
+              className="min-w-[40px] min-h-[40px] p-2 rounded-full border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/20 text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-all ml-1 cursor-pointer flex items-center justify-center"
               aria-label="Close modal"
             >
               <X className="w-5 h-5" />

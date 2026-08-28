@@ -10,6 +10,7 @@ import {
 import { CREATOR_PROFILES, CREATIVE_DISCIPLINES } from './data/mockData';
 import { frantosDB } from './services/supabaseClient';
 import { Header } from './components/common/Header';
+import { PublishControl } from './components/common/PublishControl';
 import { Footer } from './components/common/Footer';
 import { CreativeCore3D } from './components/core/CreativeCore3D';
 import { ProjectExhibitCard } from './components/feed/ProjectExhibitCard';
@@ -26,6 +27,7 @@ import { MoodboardCanvas } from './components/moodboard/MoodboardCanvas';
 import { CreativeWeatherWidget } from './components/weather/CreativeWeatherWidget';
 import { CreatorProfileModal } from './components/profile/CreatorProfileModal';
 import { AuthModal } from './components/auth/AuthModal';
+import { SearchOverlayModal } from './components/search/SearchOverlayModal';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { RotateCcw, Plus, Sparkles } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -69,6 +71,7 @@ export function App() {
   const [isNewStoryOpen, setIsNewStoryOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
 
   // Toast / Action notification
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -284,45 +287,88 @@ export function App() {
           onSelectTab={handleSelectTab}
           isDarkTheme={isDarkTheme}
           onToggleTheme={handleToggleTheme}
-          activeDiscipline={activeDiscipline}
-          onSelectDiscipline={setActiveDiscipline}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
           activeProfile={activeProfile}
           onSelectProfile={setActiveProfile}
-          onOpenNewStory={() => setIsNewStoryOpen(true)}
           onOpenProfileModal={() => setIsProfileModalOpen(true)}
           onOpenAuthModal={() => setIsAuthModalOpen(true)}
+          onOpenSearchModal={() => setIsSearchModalOpen(true)}
+          onSelectSavedWorks={() => {
+            setActiveTab('feed');
+            setFilterStatus('saved');
+            showToast('Showing saved works collection');
+          }}
+          onOpenMessages={() => {
+            showToast('Studio Dispatch Channel: 0 unread messages');
+            setActiveTab('workspace');
+          }}
         />
 
-        {/* Demo Mode & Spatial Telemetry Sub-Banner */}
-        <div className="w-full bg-black/[0.03] dark:bg-white/5 border-b border-black/5 dark:border-white/5 py-1.5 px-4">
-          <div className="max-w-7xl mx-auto flex items-center justify-between text-[11px] font-mono text-[#4A505C] dark:text-zinc-400">
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-ping" />
-              <span className="font-semibold">FRANTOS VAULT // PERSISTENT DEMO MODE</span>
-              <span className="hidden sm:inline text-zinc-400 dark:text-zinc-600">•</span>
-              <span className="hidden sm:inline">STUDIO CREATOR: {activeProfile.name.toUpperCase()}</span>
+        {/* FRANTOS VAULT Status & Telemetry Sub-Banner */}
+        <div 
+          id="frantos-vault-status-row"
+          className="w-full bg-black/[0.03] dark:bg-white/5 border-b border-black/5 dark:border-white/5 py-2 px-3 sm:px-6 md:px-8"
+        >
+          <div className="max-w-7xl mx-auto flex items-center justify-between text-[11px] font-mono text-[#4A505C] dark:text-zinc-400 gap-3 min-w-0">
+            <div className="flex items-center gap-2 min-w-0 flex-wrap">
+              <span className="w-2 h-2 rounded-full bg-cyan-500 animate-ping flex-shrink-0" />
+              <span className="font-semibold tracking-wider text-[#111317] dark:text-zinc-200 truncate">
+                FRANTOS VAULT // PERSISTENT DEMO MODE
+              </span>
+              <span className="hidden md:inline text-zinc-400 dark:text-zinc-600">•</span>
+              <span className="hidden md:inline truncate">CREATOR: {activeProfile.name.toUpperCase()}</span>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5 sm:gap-3 flex-shrink-0">
+              <span className="hidden xs:inline-block px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono text-[10px] font-bold">
+                LOCAL STORAGE ACTIVE
+              </span>
+              <span className="hidden xs:inline text-zinc-400 dark:text-zinc-600">|</span>
               <button
-                onClick={() => {
-                  setEditingExhibit(null);
-                  setIsNewExhibitOpen(true);
-                }}
-                className="text-cyan-700 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-300 transition-colors flex items-center gap-1 font-semibold cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Publish Post / WIP</span>
-              </button>
-              <span className="text-zinc-400 dark:text-zinc-600">|</span>
-              <button
+                type="button"
                 onClick={() => setIsAuthModalOpen(true)}
-                className="text-[#4A505C] dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors cursor-pointer"
+                className="text-[#4A505C] dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors cursor-pointer text-[11px] font-semibold"
               >
                 <span>Connect Cloud</span>
               </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Secondary Action Row directly below FRANTOS VAULT row: Single Primary Publish Control */}
+        <div 
+          id="frantos-secondary-action-row"
+          className="w-full bg-white/75 dark:bg-[#0C0F14]/80 border-b border-black/5 dark:border-white/5 py-2.5 sm:py-3 px-3 sm:px-6 md:px-8 backdrop-blur-md sticky top-16 sm:top-20 z-30 transition-colors"
+        >
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 min-w-0">
+            {/* View Context & Discipline Info */}
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="font-mono text-xs uppercase tracking-wider text-[#4A505C] dark:text-zinc-400 font-semibold truncate hidden sm:inline">
+                Workspace View:
+              </span>
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-xs px-2.5 py-1 rounded-xl bg-black/5 dark:bg-white/10 font-mono text-[#111317] dark:text-white font-semibold truncate">
+                  {activeTab === 'feed' && 'Creative Feed Archive'}
+                  {activeTab === 'workspace' && 'Studio Workspace & Tasks'}
+                  {activeTab === 'moodboard' && 'Spatial Moodboard'}
+                  {activeTab === 'weather' && 'Creative Weather Studio'}
+                </span>
+                {activeDiscipline !== 'all' && (
+                  <span className="hidden md:inline-block text-[11px] px-2.5 py-1 rounded-xl bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 font-mono font-medium border border-cyan-500/20">
+                    {CREATIVE_DISCIPLINES.find((d) => d.id === activeDiscipline)?.label}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* The ONLY Visible Primary Publish Button Entry Point */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <PublishControl
+                onOpenPublishArtifact={() => {
+                  setEditingExhibit(null);
+                  setIsNewExhibitOpen(true);
+                }}
+                onOpenNewStory={() => setIsNewStoryOpen(true)}
+              />
             </div>
           </div>
         </div>
@@ -391,20 +437,9 @@ export function App() {
                     </h3>
                   </div>
 
-                  {/* Actions & Filters count */}
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => {
-                        setEditingExhibit(null);
-                        setIsNewExhibitOpen(true);
-                      }}
-                      className="px-4 py-2 rounded-full bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs font-mono flex items-center gap-1.5 shadow-md cursor-pointer transition-all"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>New Post / Exhibit</span>
-                    </button>
-
-                    {activeDiscipline !== 'all' && (
+                  {/* Clear discipline filter action */}
+                  {activeDiscipline !== 'all' && (
+                    <div className="flex items-center gap-3">
                       <button
                         onClick={() => setActiveDiscipline('all')}
                         className="px-3 py-1.5 rounded-full text-xs font-mono bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 text-[#111317] dark:text-white flex items-center gap-1.5 transition-colors cursor-pointer border border-black/10 dark:border-transparent"
@@ -412,8 +447,8 @@ export function App() {
                         <RotateCcw className="w-3 h-3" />
                         <span>Clear Discipline</span>
                       </button>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* FEED FILTERS & SORTING TOOLBAR */}
@@ -566,6 +601,33 @@ export function App() {
             onClose={() => setIsAuthModalOpen(false)}
             activeProfile={activeProfile}
             onSelectProfile={setActiveProfile}
+          />
+        )}
+
+        {isSearchModalOpen && (
+          <SearchOverlayModal
+            isOpen={isSearchModalOpen}
+            onClose={() => setIsSearchModalOpen(false)}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            exhibits={exhibits}
+            onSelectExhibit={(ex) => {
+              setSelectedExhibit(ex);
+              setIsSearchModalOpen(false);
+            }}
+            onSelectDiscipline={(d) => {
+              setActiveDiscipline(d);
+              setActiveTab('feed');
+              setIsSearchModalOpen(false);
+            }}
+            onSelectProfile={(p) => {
+              setActiveProfile(p);
+              setIsSearchModalOpen(false);
+            }}
+            onSelectTab={(tab) => {
+              setActiveTab(tab);
+              setIsSearchModalOpen(false);
+            }}
           />
         )}
 

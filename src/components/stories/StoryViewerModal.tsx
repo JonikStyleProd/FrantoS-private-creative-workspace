@@ -70,8 +70,12 @@ export const StoryViewerModal: React.FC<StoryViewerModalProps> = ({
     };
   }, [progress, story, currentIndex, stories, onSelectStory, onClose]);
 
-  // Keyboard accessibility
+  // Body scroll lock & Keyboard accessibility
   useEffect(() => {
+    if (!story) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
@@ -85,8 +89,11 @@ export const StoryViewerModal: React.FC<StoryViewerModalProps> = ({
       }
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentIndex, stories, onClose]);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [currentIndex, stories, onClose, story]);
 
   if (!story) return null;
 
@@ -129,11 +136,14 @@ export const StoryViewerModal: React.FC<StoryViewerModalProps> = ({
   return (
     <div 
       id="story-viewer-modal"
-      className="fixed inset-0 z-50 bg-black/90 backdrop-blur-2xl flex items-center justify-center p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 bg-black/90 backdrop-blur-2xl flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-200"
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Story by ${story.author.name}: ${story.title}`}
     >
       <div 
-        className="relative w-full max-w-md h-[82vh] max-h-[720px] rounded-3xl overflow-hidden bg-[#0A0D12] border border-white/20 shadow-2xl flex flex-col justify-between frantos-animated-frame"
+        className="relative w-full max-w-md h-[90dvh] max-h-[720px] rounded-3xl overflow-hidden bg-[#0A0D12] border border-white/20 shadow-2xl flex flex-col justify-between frantos-animated-frame"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Progress Bar */}

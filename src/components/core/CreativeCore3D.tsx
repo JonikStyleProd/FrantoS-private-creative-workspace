@@ -124,13 +124,30 @@ export const CreativeCore3D: React.FC<CreativeCore3DProps> = ({
     if (!container) return;
 
     let animationFrameId: number;
+    let resizeObserver: ResizeObserver | null = null;
     const width = container.clientWidth || 800;
     const height = container.clientHeight || 500;
 
-    // 1. Scene & Camera
+    // 1. Scene, Constellation Root Group & Camera
     const scene = new THREE.Scene();
+    const constellationGroup = new THREE.Group();
+    scene.add(constellationGroup);
+
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
-    camera.position.set(0, 0, 7.5);
+    // Responsive camera position: pull back on mobile portrait to ensure all 6 objects fit
+    const updateCameraDistance = (w: number, h: number) => {
+      const aspect = w / h;
+      let dist = 7.5;
+      if (w < 480 || aspect < 0.75) {
+        dist = 10.8;
+      } else if (w < 768 || aspect < 1.1) {
+        dist = 9.2;
+      }
+      camera.position.set(0, 0, dist);
+      camera.aspect = aspect;
+      camera.updateProjectionMatrix();
+    };
+    updateCameraDistance(width, height);
 
     // 2. Renderer
     const renderer = new THREE.WebGLRenderer({
@@ -194,12 +211,32 @@ export const CreativeCore3D: React.FC<CreativeCore3DProps> = ({
     const particleSystem = new THREE.Points(particleGeometry, particleMaterial);
     scene.add(particleSystem);
 
-    // 5. Construct Six Premium 3D Artefacts
+    // 5. Helper function to create invisible spherical hit collider for 100% reliable raycasting
+    const attachCollider = (group: THREE.Group, id: CreativeDiscipline, radius = 1.3) => {
+      const colliderGeo = new THREE.SphereGeometry(radius, 12, 12);
+      const colliderMat = new THREE.MeshBasicMaterial({
+        visible: false,
+        transparent: true,
+        opacity: 0,
+      });
+      const collider = new THREE.Mesh(colliderGeo, colliderMat);
+      collider.userData = { disciplineId: id, isCollider: true };
+      group.add(collider);
+
+      // Also recursively assign userData to all child meshes for deep raycasting safety
+      group.traverse((child) => {
+        child.userData = { ...child.userData, disciplineId: id };
+      });
+    };
+
+    // 6. Construct Six Premium 3D Artefacts
     const disciplineMeshes: {
       id: CreativeDiscipline;
       group: THREE.Group;
       innerMesh: THREE.Object3D;
       config: DisciplineObjectConfig;
+      dragOffset: THREE.Vector3;
+      dragRotation: THREE.Euler;
     }[] = [];
 
     // Artefact 1: Motion (Fluid Kinetic Ribbon & Translucent Orbital Ring)
@@ -234,9 +271,16 @@ export const CreativeCore3D: React.FC<CreativeCore3DProps> = ({
 
       group.position.set(...objectConfigs[0].initialPos);
       group.rotation.set(...objectConfigs[0].initialRot);
-      group.userData = { disciplineId: 'motion' };
-      scene.add(group);
-      disciplineMeshes.push({ id: 'motion', group, innerMesh: knotMesh, config: objectConfigs[0] });
+      attachCollider(group, 'motion', 1.35);
+      constellationGroup.add(group);
+      disciplineMeshes.push({
+        id: 'motion',
+        group,
+        innerMesh: knotMesh,
+        config: objectConfigs[0],
+        dragOffset: new THREE.Vector3(),
+        dragRotation: new THREE.Euler(),
+      });
     }
 
     // Artefact 2: 3D (Refractive Prismatic Crystal & Chrome Wire Lattice)
@@ -258,7 +302,6 @@ export const CreativeCore3D: React.FC<CreativeCore3DProps> = ({
       const crystalMesh = new THREE.Mesh(crystalGeo, crystalMat);
       group.add(crystalMesh);
 
-      // Inner glowing core octahedron
       const innerGeo = new THREE.OctahedronGeometry(0.42, 0);
       const innerMat = new THREE.MeshStandardMaterial({
         color: 0x38bdf8,
@@ -270,7 +313,6 @@ export const CreativeCore3D: React.FC<CreativeCore3DProps> = ({
       const innerMesh = new THREE.Mesh(innerGeo, innerMat);
       group.add(innerMesh);
 
-      // Outer delicate wireframe cage
       const wireGeo = new THREE.IcosahedronGeometry(1.08, 0);
       const wireMat = new THREE.MeshBasicMaterial({
         color: 0x38bdf8,
@@ -283,15 +325,21 @@ export const CreativeCore3D: React.FC<CreativeCore3DProps> = ({
 
       group.position.set(...objectConfigs[1].initialPos);
       group.rotation.set(...objectConfigs[1].initialRot);
-      group.userData = { disciplineId: '3d' };
-      scene.add(group);
-      disciplineMeshes.push({ id: '3d', group, innerMesh: crystalMesh, config: objectConfigs[1] });
+      attachCollider(group, '3d', 1.4);
+      constellationGroup.add(group);
+      disciplineMeshes.push({
+        id: '3d',
+        group,
+        innerMesh: crystalMesh,
+        config: objectConfigs[1],
+        dragOffset: new THREE.Vector3(),
+        dragRotation: new THREE.Euler(),
+      });
     }
 
     // Artefact 3: Brand (Layered Dimensional Brushed Brass & Embossed Card)
     {
       const group = new THREE.Group();
-      // Main brushed gold/brass plaque
       const plaqueGeo = new THREE.BoxGeometry(1.15, 1.45, 0.08);
       const plaqueMat = new THREE.MeshStandardMaterial({
         color: 0xeab308,
@@ -301,7 +349,6 @@ export const CreativeCore3D: React.FC<CreativeCore3DProps> = ({
       const plaqueMesh = new THREE.Mesh(plaqueGeo, plaqueMat);
       group.add(plaqueMesh);
 
-      // Layered folded accent card
       const foldGeo = new THREE.BoxGeometry(0.85, 0.85, 0.05);
       const foldMat = new THREE.MeshStandardMaterial({
         color: isDarkTheme ? 0xfef08a : 0xfef9c3,
@@ -313,7 +360,6 @@ export const CreativeCore3D: React.FC<CreativeCore3DProps> = ({
       foldMesh.rotation.z = 0.22;
       group.add(foldMesh);
 
-      // Precision central brass ring badge
       const badgeGeo = new THREE.TorusGeometry(0.28, 0.04, 16, 32);
       const badgeMat = new THREE.MeshStandardMaterial({
         color: 0xffffff,
@@ -326,9 +372,16 @@ export const CreativeCore3D: React.FC<CreativeCore3DProps> = ({
 
       group.position.set(...objectConfigs[2].initialPos);
       group.rotation.set(...objectConfigs[2].initialRot);
-      group.userData = { disciplineId: 'brand' };
-      scene.add(group);
-      disciplineMeshes.push({ id: 'brand', group, innerMesh: plaqueMesh, config: objectConfigs[2] });
+      attachCollider(group, 'brand', 1.35);
+      constellationGroup.add(group);
+      disciplineMeshes.push({
+        id: 'brand',
+        group,
+        innerMesh: plaqueMesh,
+        config: objectConfigs[2],
+        dragOffset: new THREE.Vector3(),
+        dragRotation: new THREE.Euler(),
+      });
     }
 
     // Artefact 4: UI/UX (Floating Frosted Acrylic Slabs & Micro Luminous Elements)
@@ -349,7 +402,6 @@ export const CreativeCore3D: React.FC<CreativeCore3DProps> = ({
       const slabMesh = new THREE.Mesh(slabGeo, slabMat);
       group.add(slabMesh);
 
-      // Micro toggle bar
       const barGeo = new THREE.BoxGeometry(0.92, 0.22, 0.08);
       const barMat = new THREE.MeshStandardMaterial({
         color: 0xc4b5fd,
@@ -360,7 +412,6 @@ export const CreativeCore3D: React.FC<CreativeCore3DProps> = ({
       barMesh.position.set(0, -0.22, 0.06);
       group.add(barMesh);
 
-      // Luminous status pill dot
       const dotGeo = new THREE.SphereGeometry(0.06, 16, 16);
       const dotMat = new THREE.MeshStandardMaterial({
         color: 0xa855f7,
@@ -373,9 +424,16 @@ export const CreativeCore3D: React.FC<CreativeCore3DProps> = ({
 
       group.position.set(...objectConfigs[3].initialPos);
       group.rotation.set(...objectConfigs[3].initialRot);
-      group.userData = { disciplineId: 'ui' };
-      scene.add(group);
-      disciplineMeshes.push({ id: 'ui', group, innerMesh: slabMesh, config: objectConfigs[3] });
+      attachCollider(group, 'ui', 1.35);
+      constellationGroup.add(group);
+      disciplineMeshes.push({
+        id: 'ui',
+        group,
+        innerMesh: slabMesh,
+        config: objectConfigs[3],
+        dragOffset: new THREE.Vector3(),
+        dragRotation: new THREE.Euler(),
+      });
     }
 
     // Artefact 5: Web (Modular Architectural Matrix & Glowing Edge Lines)
@@ -408,9 +466,16 @@ export const CreativeCore3D: React.FC<CreativeCore3DProps> = ({
 
       group.position.set(...objectConfigs[4].initialPos);
       group.rotation.set(...objectConfigs[4].initialRot);
-      group.userData = { disciplineId: 'web' };
-      scene.add(group);
-      disciplineMeshes.push({ id: 'web', group, innerMesh: group, config: objectConfigs[4] });
+      attachCollider(group, 'web', 1.35);
+      constellationGroup.add(group);
+      disciplineMeshes.push({
+        id: 'web',
+        group,
+        innerMesh: group,
+        config: objectConfigs[4],
+        dragOffset: new THREE.Vector3(),
+        dragRotation: new THREE.Euler(),
+      });
     }
 
     // Artefact 6: Sound (Acoustic Gyroscopic Bronze Rings & Pulsating Harmonic Core)
@@ -430,7 +495,6 @@ export const CreativeCore3D: React.FC<CreativeCore3DProps> = ({
         group.add(ringMesh);
       });
 
-      // Harmonic central bronze core
       const sphereGeo = new THREE.SphereGeometry(0.24, 32, 32);
       const sphereMat = new THREE.MeshStandardMaterial({
         color: 0xfdba74,
@@ -444,53 +508,148 @@ export const CreativeCore3D: React.FC<CreativeCore3DProps> = ({
 
       group.position.set(...objectConfigs[5].initialPos);
       group.rotation.set(...objectConfigs[5].initialRot);
-      group.userData = { disciplineId: 'sound' };
-      scene.add(group);
-      disciplineMeshes.push({ id: 'sound', group, innerMesh: group, config: objectConfigs[5] });
+      attachCollider(group, 'sound', 1.35);
+      constellationGroup.add(group);
+      disciplineMeshes.push({
+        id: 'sound',
+        group,
+        innerMesh: group,
+        config: objectConfigs[5],
+        dragOffset: new THREE.Vector3(),
+        dragRotation: new THREE.Euler(),
+      });
     }
 
-    // 6. Interactive Raycasting & Pointer Tracking
+    // 7. Interactive Raycasting & Pointer Separation (Hover vs Click vs Drag)
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
-    let currentHovered: CreativeDiscipline | null = null;
 
-    const onPointerMove = (event: MouseEvent) => {
+    // Pointer state tracking
+    let isPointerDown = false;
+    let pointerDownPos = { x: 0, y: 0 };
+    let pointerDownTime = 0;
+    let isDragging = false;
+    let targetDisciplineOnDown: CreativeDiscipline | null = null;
+    const DRAG_THRESHOLD_PX = 6;
+
+    const getRaycastDiscipline = (clientX: number, clientY: number): CreativeDiscipline | null => {
       const rect = container.getBoundingClientRect();
-      pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
 
       raycaster.setFromCamera(pointer, camera);
       const intersects = raycaster.intersectObjects(scene.children, true);
 
-      let foundId: CreativeDiscipline | null = null;
       if (intersects.length > 0) {
-        let currentObj: THREE.Object3D | null = intersects[0].object;
-        while (currentObj) {
-          if (currentObj.userData && currentObj.userData.disciplineId) {
-            foundId = currentObj.userData.disciplineId as CreativeDiscipline;
-            break;
+        for (const hit of intersects) {
+          let currentObj: THREE.Object3D | null = hit.object;
+          while (currentObj) {
+            if (currentObj.userData && currentObj.userData.disciplineId) {
+              return currentObj.userData.disciplineId as CreativeDiscipline;
+            }
+            currentObj = currentObj.parent;
           }
-          currentObj = currentObj.parent;
+        }
+      }
+      return null;
+    };
+
+    const onPointerDown = (event: PointerEvent) => {
+      isPointerDown = true;
+      isDragging = false;
+      pointerDownPos = { x: event.clientX, y: event.clientY };
+      pointerDownTime = performance.now();
+      targetDisciplineOnDown = getRaycastDiscipline(event.clientX, event.clientY);
+
+      try {
+        container.setPointerCapture(event.pointerId);
+      } catch {
+        // Fallback for environments where pointerCapture is restricted
+      }
+    };
+
+    const onPointerMove = (event: PointerEvent) => {
+      const deltaX = event.clientX - pointerDownPos.x;
+      const deltaY = event.clientY - pointerDownPos.y;
+      const dist = Math.hypot(deltaX, deltaY);
+
+      if (isPointerDown) {
+        if (!isDragging && dist > DRAG_THRESHOLD_PX) {
+          isDragging = true;
+        }
+
+        if (isDragging) {
+          // If dragging an object, apply rotational momentum to the targeted discipline group
+          if (targetDisciplineOnDown) {
+            const foundItem = disciplineMeshes.find((m) => m.id === targetDisciplineOnDown);
+            if (foundItem) {
+              foundItem.group.rotation.y += deltaX * 0.005;
+              foundItem.group.rotation.x += deltaY * 0.005;
+            }
+          } else {
+            // If dragging background, rotate the entire constellation subtly
+            constellationGroup.rotation.y += deltaX * 0.002;
+            constellationGroup.rotation.x += deltaY * 0.002;
+          }
+          pointerDownPos = { x: event.clientX, y: event.clientY };
+        }
+      } else {
+        // Pure hover handling when pointer is not pressed
+        const hovered = getRaycastDiscipline(event.clientX, event.clientY);
+        setHoveredDiscipline(hovered);
+      }
+    };
+
+    const onPointerUp = (event: PointerEvent) => {
+      try {
+        container.releasePointerCapture(event.pointerId);
+      } catch {
+        // Ignored safely
+      }
+
+      const elapsed = performance.now() - pointerDownTime;
+      const deltaX = event.clientX - pointerDownPos.x;
+      const deltaY = event.clientY - pointerDownPos.y;
+      const dist = Math.hypot(deltaX, deltaY);
+
+      // If moved within small threshold and quick duration -> Treat strictly as CLICK/TAP
+      if (!isDragging && dist <= DRAG_THRESHOLD_PX && elapsed < 600) {
+        const clickedId = targetDisciplineOnDown || getRaycastDiscipline(event.clientX, event.clientY);
+        if (clickedId) {
+          const currentActive = activeDisciplineRef.current;
+          onSelectDisciplineRef.current(currentActive === clickedId ? 'all' : clickedId);
         }
       }
 
-      if (foundId !== currentHovered) {
-        currentHovered = foundId;
-        setHoveredDiscipline(foundId);
+      isPointerDown = false;
+      isDragging = false;
+      targetDisciplineOnDown = null;
+    };
+
+    const onPointerCancel = (event: PointerEvent) => {
+      try {
+        container.releasePointerCapture(event.pointerId);
+      } catch {
+        // Ignored safely
+      }
+      isPointerDown = false;
+      isDragging = false;
+      targetDisciplineOnDown = null;
+    };
+
+    const onPointerLeave = () => {
+      if (!isPointerDown) {
+        setHoveredDiscipline(null);
       }
     };
 
-    const onClick = () => {
-      if (currentHovered) {
-        const currentActive = activeDisciplineRef.current;
-        onSelectDisciplineRef.current(currentActive === currentHovered ? 'all' : currentHovered);
-      }
-    };
+    container.addEventListener('pointerdown', onPointerDown);
+    container.addEventListener('pointermove', onPointerMove);
+    container.addEventListener('pointerup', onPointerUp);
+    container.addEventListener('pointercancel', onPointerCancel);
+    container.addEventListener('pointerleave', onPointerLeave);
 
-    container.addEventListener('mousemove', onPointerMove);
-    container.addEventListener('click', onClick);
-
-    // 7. Animation Loop
+    // 8. Animation Loop
     const clock = new THREE.Clock();
 
     const animate = () => {
@@ -504,6 +663,12 @@ export const CreativeCore3D: React.FC<CreativeCore3DProps> = ({
       if (!reducedMotion) {
         particleSystem.rotation.y = elapsedTime * 0.025;
         particleSystem.rotation.x = Math.sin(elapsedTime * 0.02) * 0.04;
+      }
+
+      // Constellation spring back towards center rotation if released
+      if (!isDragging) {
+        constellationGroup.rotation.x += (0 - constellationGroup.rotation.x) * 0.04;
+        constellationGroup.rotation.y += (0 - constellationGroup.rotation.y) * 0.04;
       }
 
       // Animate each discipline object with individual motion & spring responses
@@ -536,8 +701,8 @@ export const CreativeCore3D: React.FC<CreativeCore3DProps> = ({
         item.group.position.y += (targetY - item.group.position.y) * 0.08;
         item.group.position.z += (targetZ - item.group.position.z) * 0.08;
 
-        // Rotation choreography (disabled when reduced motion is requested)
-        if (!reducedMotion) {
+        // Rotation choreography (disabled when reduced motion is requested or when user is actively dragging that item)
+        if (!reducedMotion && !(isDragging && targetDisciplineOnDown === item.id)) {
           if (item.id === 'motion') {
             item.group.rotation.x += 0.008;
             item.group.rotation.y += 0.012;
@@ -566,21 +731,31 @@ export const CreativeCore3D: React.FC<CreativeCore3DProps> = ({
 
     animate();
 
-    // 8. Resize Handler
+    // 9. Resize Handling via ResizeObserver for precise container alignment
     const handleResize = () => {
       if (!container) return;
-      const newWidth = container.clientWidth;
-      const newHeight = container.clientHeight;
-      camera.aspect = newWidth / newHeight;
-      camera.updateProjectionMatrix();
+      const newWidth = container.clientWidth || 800;
+      const newHeight = container.clientHeight || 500;
+      updateCameraDistance(newWidth, newHeight);
       renderer.setSize(newWidth, newHeight);
     };
+
+    resizeObserver = new ResizeObserver(() => {
+      handleResize();
+    });
+    resizeObserver.observe(container);
     window.addEventListener('resize', handleResize);
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      container.removeEventListener('mousemove', onPointerMove);
-      container.removeEventListener('click', onClick);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+      container.removeEventListener('pointerdown', onPointerDown);
+      container.removeEventListener('pointermove', onPointerMove);
+      container.removeEventListener('pointerup', onPointerUp);
+      container.removeEventListener('pointercancel', onPointerCancel);
+      container.removeEventListener('pointerleave', onPointerLeave);
       cancelAnimationFrame(animationFrameId);
       renderer.dispose();
       particleGeometry.dispose();
@@ -641,12 +816,37 @@ export const CreativeCore3D: React.FC<CreativeCore3DProps> = ({
       {/* 3D Spatial Canvas Stage */}
       <div 
         id="creative-core-3d-stage"
-        className="relative w-full h-[460px] md:h-[580px] rounded-3xl overflow-hidden border border-black/10 dark:border-white/10 bg-gradient-to-b from-[#FAF8F5] via-[#F4F1EA] to-[#EAE6DD] dark:from-[#090B0E]/90 dark:via-[#0B0F17]/95 dark:to-[#090B0E] shadow-xl dark:shadow-2xl transition-all"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          const disciplineIds: CreativeDiscipline[] = ['motion', '3d', 'brand', 'ui', 'web', 'sound'];
+          if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+            e.preventDefault();
+            const currIdx = hoveredDiscipline ? disciplineIds.indexOf(hoveredDiscipline) : (activeDiscipline !== 'all' ? disciplineIds.indexOf(activeDiscipline) : -1);
+            const nextIdx = (currIdx + 1) % disciplineIds.length;
+            setHoveredDiscipline(disciplineIds[nextIdx]);
+          } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            const currIdx = hoveredDiscipline ? disciplineIds.indexOf(hoveredDiscipline) : (activeDiscipline !== 'all' ? disciplineIds.indexOf(activeDiscipline) : 0);
+            const prevIdx = (currIdx - 1 + disciplineIds.length) % disciplineIds.length;
+            setHoveredDiscipline(disciplineIds[prevIdx]);
+          } else if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            if (hoveredDiscipline) {
+              onSelectDiscipline(activeDiscipline === hoveredDiscipline ? 'all' : hoveredDiscipline);
+            }
+          } else if (e.key === 'Escape') {
+            onSelectDiscipline('all');
+            setHoveredDiscipline(null);
+          }
+        }}
+        className="relative w-full h-[360px] xs:h-[420px] sm:h-[480px] md:h-[580px] rounded-3xl overflow-hidden border border-black/10 dark:border-white/10 bg-gradient-to-b from-[#FAF8F5] via-[#F4F1EA] to-[#EAE6DD] dark:from-[#090B0E]/90 dark:via-[#0B0F17]/95 dark:to-[#090B0E] shadow-xl dark:shadow-2xl transition-all focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+        role="region"
+        aria-label="3D Creative Core Canvas. Tap or drag artifacts to interact. Use Arrow keys to navigate, Space or Enter to select."
       >
         {/* Interactive Three.js Mount Container (Native browser cursor) */}
         <div 
           ref={mountRef} 
-          className="w-full h-full cursor-pointer relative z-10"
+          className="w-full h-full cursor-pointer relative z-10 touch-none select-none"
           role="img"
           aria-label="Interactive 3D representation of six creative disciplines"
         />
@@ -668,24 +868,24 @@ export const CreativeCore3D: React.FC<CreativeCore3DProps> = ({
         {(hoveredConfig || activeConfig) && (
           <div 
             id={tooltipId}
-            className="absolute bottom-6 left-6 right-6 md:right-auto md:max-w-md z-30 pointer-events-none transition-all duration-300"
+            className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6 md:right-auto md:max-w-md z-30 pointer-events-none transition-all duration-300"
           >
-            <div className="p-4 rounded-2xl bg-white/95 dark:bg-[#11141A]/95 backdrop-blur-xl border border-black/10 dark:border-white/15 shadow-xl text-[#111317] dark:text-[#F3F1EC]">
-              <div className="flex items-center justify-between gap-3 mb-1.5">
-                <div className="flex items-center gap-2">
+            <div className="p-3 sm:p-4 rounded-2xl bg-white/95 dark:bg-[#11141A]/95 backdrop-blur-xl border border-black/10 dark:border-white/15 shadow-xl text-[#111317] dark:text-[#F3F1EC]">
+              <div className="flex items-center justify-between gap-2 sm:gap-3 mb-1 sm:mb-1.5">
+                <div className="flex items-center gap-2 min-w-0">
                   <span 
-                    className="w-2.5 h-2.5 rounded-full" 
+                    className="w-2.5 h-2.5 rounded-full flex-shrink-0" 
                     style={{ backgroundColor: (hoveredConfig || activeConfig)?.colorHex ? `#${(hoveredConfig || activeConfig)?.colorHex.toString(16).padStart(6, '0')}` : '#06B6D4' }} 
                   />
-                  <h4 className="font-display font-bold text-base tracking-tight">
+                  <h4 className="font-display font-bold text-sm sm:text-base tracking-tight truncate">
                     {(hoveredConfig || activeConfig)?.name}
                   </h4>
                 </div>
-                <span className="font-mono text-[10px] uppercase px-2 py-0.5 rounded-md bg-black/5 dark:bg-white/10 text-zinc-700 dark:text-zinc-300">
-                  {(hoveredConfig || activeConfig)?.materialType}
+                <span className="font-mono text-[9px] sm:text-[10px] uppercase px-1.5 sm:px-2 py-0.5 rounded-md bg-black/5 dark:bg-white/10 text-zinc-700 dark:text-zinc-300 flex-shrink-0">
+                  {(hoveredConfig || activeConfig)?.materialType.split('&')[0]}
                 </span>
               </div>
-              <p className="text-xs text-[#4A505C] dark:text-[#A0A6B2] leading-relaxed">
+              <p className="text-[11px] sm:text-xs text-[#4A505C] dark:text-[#A0A6B2] leading-relaxed line-clamp-2 sm:line-clamp-none">
                 {(hoveredConfig || activeConfig)?.subtitle}
               </p>
             </div>
@@ -696,7 +896,7 @@ export const CreativeCore3D: React.FC<CreativeCore3DProps> = ({
       {/* Accessible Interactive Discipline Selector Navigation Pills */}
       <nav 
         aria-label="Filter exhibits by creative discipline" 
-        className="mt-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5"
+        className="mt-4 sm:mt-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2.5"
       >
         {CREATIVE_DISCIPLINES.map((disc) => {
           const isSelected = activeDiscipline === disc.id;
@@ -705,21 +905,21 @@ export const CreativeCore3D: React.FC<CreativeCore3DProps> = ({
               key={disc.id}
               id={`discipline-pill-${disc.id}`}
               onClick={() => onSelectDiscipline(isSelected ? 'all' : (disc.id as CreativeDiscipline))}
-              className={`group px-3.5 py-3 rounded-2xl text-left transition-all border flex flex-col justify-between cursor-pointer ${
+              className={`group min-h-[52px] px-3 py-2.5 sm:px-3.5 sm:py-3 rounded-2xl text-left transition-all border flex flex-col justify-between cursor-pointer ${
                 isSelected
                   ? 'bg-black/10 dark:bg-white/15 border-black/20 dark:border-white/30 shadow-md'
                   : 'bg-white/80 dark:bg-white/5 border-black/10 dark:border-white/5 hover:border-black/20 dark:hover:border-white/20'
               }`}
               aria-pressed={isSelected}
             >
-              <div className="flex items-center justify-between w-full mb-1">
+              <div className="flex items-center justify-between w-full mb-0.5 sm:mb-1">
                 <span 
                   className="w-2 h-2 rounded-full" 
                   style={{ backgroundColor: disc.color }} 
                 />
                 {isSelected && <Check className="w-3.5 h-3.5 text-[#111317] dark:text-white" />}
               </div>
-              <span className="text-xs font-display font-semibold tracking-tight text-[#111317] dark:text-[#F3F1EC]">
+              <span className="text-xs font-display font-semibold tracking-tight text-[#111317] dark:text-[#F3F1EC] truncate">
                 {disc.label}
               </span>
               <span className="text-[10px] text-[#4A505C] dark:text-[#6B7280] truncate">

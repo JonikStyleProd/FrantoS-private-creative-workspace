@@ -33,11 +33,17 @@ export const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
 
   React.useEffect(() => {
     if (!isOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
@@ -70,15 +76,18 @@ export const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
   return (
     <div 
       id="creator-profile-modal-overlay"
-      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in"
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl flex items-center justify-center p-2 sm:p-4 animate-in fade-in"
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="creator-profile-title"
     >
       <div 
-        className="relative w-full max-w-2xl rounded-3xl overflow-hidden bg-white dark:bg-[#0D0F15] border border-black/10 dark:border-white/15 text-[#111317] dark:text-white shadow-2xl my-auto max-h-[90vh] overflow-y-auto frantos-animated-frame"
+        className="relative w-full max-w-2xl rounded-3xl overflow-hidden bg-white dark:bg-[#0D0F15] border border-black/10 dark:border-white/15 text-[#111317] dark:text-white shadow-2xl my-auto max-h-[92dvh] sm:max-h-[88dvh] overflow-y-auto frantos-animated-frame"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Cover Banner */}
-        <div className="relative h-44 sm:h-52 bg-zinc-900 overflow-hidden group">
+        <div className="relative h-40 sm:h-52 bg-zinc-900 overflow-hidden group">
           <img
             src={coverImage}
             alt="Cover"
@@ -86,19 +95,20 @@ export const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
           />
           <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-[#0D0F15] via-black/30 to-transparent" />
           
-          <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+          <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 flex items-center gap-2">
             <button
               type="button"
               onClick={() => setIsEditing(!isEditing)}
-              className="p-2 rounded-full bg-black/60 hover:bg-black/80 text-cyan-300 backdrop-blur-md transition-transform cursor-pointer"
+              className="min-w-[40px] min-h-[40px] p-2 rounded-full bg-black/60 hover:bg-black/80 text-cyan-300 backdrop-blur-md transition-transform cursor-pointer flex items-center justify-center"
               title="Edit Profile"
+              aria-label="Edit Profile"
             >
               <Edit3 className="w-4 h-4" />
             </button>
 
             <button
               onClick={onClose}
-              className="p-2 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md transition-transform cursor-pointer"
+              className="min-w-[40px] min-h-[40px] p-2 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md transition-transform cursor-pointer flex items-center justify-center"
               aria-label="Close profile"
             >
               <X className="w-5 h-5" />

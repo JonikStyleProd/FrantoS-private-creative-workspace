@@ -1,35 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { 
-  Search, 
-  Sun, 
-  Moon, 
   Compass, 
   Layers, 
   FolderKanban, 
   CloudSun, 
-  User, 
-  Plus, 
-  Check, 
-  SlidersHorizontal,
-  X
+  Menu,
+  X,
+  Bookmark,
+  MessageSquare,
+  Flame
 } from 'lucide-react';
-import { CreativeDiscipline, CreatorProfile } from '../../types';
-import { CREATOR_PROFILES } from '../../data/mockData';
+import { CreatorProfile } from '../../types';
+import { AccountMenu } from './AccountMenu';
 
 interface HeaderProps {
   activeTab: 'feed' | 'workspace' | 'moodboard' | 'weather';
   onSelectTab: (tab: 'feed' | 'workspace' | 'moodboard' | 'weather') => void;
   isDarkTheme: boolean;
   onToggleTheme: () => void;
-  activeDiscipline: CreativeDiscipline | 'all';
-  onSelectDiscipline: (discipline: CreativeDiscipline | 'all') => void;
-  searchQuery: string;
-  onSearchChange: (q: string) => void;
   activeProfile: CreatorProfile;
   onSelectProfile: (profile: CreatorProfile) => void;
-  onOpenNewStory: () => void;
   onOpenProfileModal: () => void;
   onOpenAuthModal: () => void;
+  onOpenSearchModal: () => void;
+  onSelectSavedWorks?: () => void;
+  onOpenMessages?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -37,272 +33,373 @@ export const Header: React.FC<HeaderProps> = ({
   onSelectTab,
   isDarkTheme,
   onToggleTheme,
-  searchQuery,
-  onSearchChange,
   activeProfile,
   onSelectProfile,
-  onOpenNewStory,
   onOpenProfileModal,
   onOpenAuthModal,
+  onOpenSearchModal,
+  onSelectSavedWorks,
+  onOpenMessages,
 }) => {
-  const [showPersonaMenu, setShowPersonaMenu] = useState(false);
+  const [showAccountMenu, setShowAccountMenu] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
 
-  return (
-    <header 
-      id="frantos-main-header"
-      className="sticky top-0 z-40 w-full backdrop-blur-xl border-b border-black/10 dark:border-white/10 bg-[#F8F7F4]/90 dark:bg-[#090B0E]/80 transition-colors"
+  const accountButtonRef = useRef<HTMLDivElement>(null);
+  const mobileDrawerRef = useRef<HTMLDivElement>(null);
+
+  // Background scroll lock, Escape key, outside click & Android Back navigation
+  useEffect(() => {
+    if (!showMobileNav) return;
+
+    const originalOverflow = document.body.style.overflow;
+    const originalPaddingRight = document.body.style.paddingRight;
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowMobileNav(false);
+      }
+    };
+
+    const handlePopState = () => {
+      setShowMobileNav(false);
+    };
+
+    window.history.pushState({ modal: 'studio-mobile-nav' }, '');
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.style.paddingRight = originalPaddingRight;
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [showMobileNav]);
+
+  const mobileNavOverlayNode = showMobileNav ? (
+    <div 
+      id="mobile-nav-overlay-root"
+      className="md:hidden fixed inset-0 z-50 flex justify-end"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Studio Navigation"
     >
-      <div className="max-w-7xl mx-auto px-4 md:px-8 h-20 flex items-center justify-between gap-4">
-        
-        {/* Brand Wordmark Lockup */}
-        <div className="flex items-center gap-6">
-          <button 
-            id="brand-logo-btn"
-            onClick={() => onSelectTab('feed')}
-            className="text-left group focus:outline-none cursor-pointer"
-            aria-label="FrantoS Home"
+      {/* 1. Viewport-covering Backdrop (Fixed, Full Viewport) */}
+      <div 
+        id="mobile-nav-backdrop"
+        className="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity animate-in fade-in duration-200"
+        onClick={() => setShowMobileNav(false)}
+        aria-hidden="true"
+      />
+
+      {/* 2. Fixed Slide-out Drawer (Bound to viewport edge, responsive width) */}
+      <aside
+        ref={mobileDrawerRef}
+        id="mobile-nav-drawer"
+        className="relative z-10 w-[82vw] max-w-[340px] h-[100dvh] bg-[#F8F7F4] dark:bg-[#11141A] text-[#111317] dark:text-[#F3F1EC] border-l border-black/15 dark:border-white/15 shadow-2xl flex flex-col box-border pt-[env(safe-area-inset-top,0px)] pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] animate-in slide-in-from-right duration-200"
+      >
+        {/* Drawer Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-black/10 dark:border-white/10 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-cyan-500" />
+            <span className="font-display font-bold text-sm tracking-wide text-[#111317] dark:text-white">
+              Studio Navigation
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowMobileNav(false)}
+            className="min-w-[36px] min-h-[36px] p-2 rounded-full bg-black/5 dark:bg-white/10 text-zinc-600 dark:text-zinc-300 hover:text-black dark:hover:text-white flex items-center justify-center cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
+            aria-label="Close Studio Navigation"
           >
-            <div className="flex items-center gap-2">
-              <span className="font-display font-black text-2xl tracking-[0.25em] text-[#111317] dark:text-[#F3F1EC] group-hover:text-cyan-500 transition-colors">
-                FRANTOS
-              </span>
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10 text-zinc-700 dark:text-zinc-400 font-semibold">
-                PRO 2026
-              </span>
-            </div>
-            <div className="text-[9px] font-mono tracking-widest uppercase text-[#4A505C] dark:text-zinc-500 mt-0.5">
-              Private Creative Workspace
-            </div>
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Navigation List */}
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1.5 min-h-0">
+          {/* 1. Creative Feed */}
+          <button
+            type="button"
+            onClick={() => {
+              onSelectTab('feed');
+              setShowMobileNav(false);
+            }}
+            className={`w-full p-3 rounded-2xl text-xs font-semibold flex items-center gap-3 min-h-[46px] cursor-pointer transition-colors text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 ${
+              activeTab === 'feed'
+                ? 'bg-cyan-500/15 border border-cyan-500/30 text-cyan-800 dark:text-cyan-200 font-bold shadow-xs'
+                : 'bg-black/[0.03] dark:bg-white/[0.03] text-[#4A505C] dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/5'
+            }`}
+          >
+            <Compass className="w-4 h-4 text-cyan-600 dark:text-cyan-400 flex-shrink-0" />
+            <span>Creative Feed</span>
           </button>
 
-          {/* Primary Navigation Tabs (Desktop) */}
-          <nav aria-label="Main studio workspace navigation" className="hidden lg:flex items-center gap-1 pl-4 border-l border-black/10 dark:border-white/10">
+          {/* 2. Discover */}
+          <button
+            type="button"
+            onClick={() => {
+              onSelectTab('feed');
+              setShowMobileNav(false);
+            }}
+            className="w-full p-3 rounded-2xl text-xs font-semibold flex items-center gap-3 min-h-[46px] cursor-pointer transition-colors text-left bg-black/[0.03] dark:bg-white/[0.03] text-[#4A505C] dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
+          >
+            <Flame className="w-4 h-4 text-amber-500 flex-shrink-0" />
+            <span>Discover</span>
+          </button>
+
+          {/* 3. Studio Workspace */}
+          <button
+            type="button"
+            onClick={() => {
+              onSelectTab('workspace');
+              setShowMobileNav(false);
+            }}
+            className={`w-full p-3 rounded-2xl text-xs font-semibold flex items-center gap-3 min-h-[46px] cursor-pointer transition-colors text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 ${
+              activeTab === 'workspace'
+                ? 'bg-cyan-500/15 border border-cyan-500/30 text-cyan-800 dark:text-cyan-200 font-bold shadow-xs'
+                : 'bg-black/[0.03] dark:bg-white/[0.03] text-[#4A505C] dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/5'
+            }`}
+          >
+            <FolderKanban className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+            <span>Studio Workspace</span>
+          </button>
+
+          {/* 4. Spatial Moodboard */}
+          <button
+            type="button"
+            onClick={() => {
+              onSelectTab('moodboard');
+              setShowMobileNav(false);
+            }}
+            className={`w-full p-3 rounded-2xl text-xs font-semibold flex items-center gap-3 min-h-[46px] cursor-pointer transition-colors text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 ${
+              activeTab === 'moodboard'
+                ? 'bg-cyan-500/15 border border-cyan-500/30 text-cyan-800 dark:text-cyan-200 font-bold shadow-xs'
+                : 'bg-black/[0.03] dark:bg-white/[0.03] text-[#4A505C] dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/5'
+            }`}
+          >
+            <Layers className="w-4 h-4 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+            <span>Spatial Moodboard</span>
+          </button>
+
+          {/* 5. Creative Weather */}
+          <button
+            type="button"
+            onClick={() => {
+              onSelectTab('weather');
+              setShowMobileNav(false);
+            }}
+            className={`w-full p-3 rounded-2xl text-xs font-semibold flex items-center gap-3 min-h-[46px] cursor-pointer transition-colors text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 ${
+              activeTab === 'weather'
+                ? 'bg-cyan-500/15 border border-cyan-500/30 text-cyan-800 dark:text-cyan-200 font-bold shadow-xs'
+                : 'bg-black/[0.03] dark:bg-white/[0.03] text-[#4A505C] dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/5'
+            }`}
+          >
+            <CloudSun className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+            <span>Creative Weather</span>
+          </button>
+
+          {/* 6. Saved Works */}
+          <button
+            type="button"
+            onClick={() => {
+              if (onSelectSavedWorks) onSelectSavedWorks();
+              setShowMobileNav(false);
+            }}
+            className="w-full p-3 rounded-2xl text-xs font-semibold flex items-center gap-3 min-h-[46px] cursor-pointer transition-colors text-left bg-black/[0.03] dark:bg-white/[0.03] text-[#4A505C] dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
+          >
+            <Bookmark className="w-4 h-4 text-indigo-500 flex-shrink-0" />
+            <span>Saved Works</span>
+          </button>
+
+          {/* 7. Messages */}
+          <button
+            type="button"
+            onClick={() => {
+              if (onOpenMessages) onOpenMessages();
+              setShowMobileNav(false);
+            }}
+            className="w-full p-3 rounded-2xl text-xs font-semibold flex items-center gap-3 min-h-[46px] cursor-pointer transition-colors text-left bg-black/[0.03] dark:bg-white/[0.03] text-[#4A505C] dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
+          >
+            <MessageSquare className="w-4 h-4 text-cyan-500 flex-shrink-0" />
+            <span>Messages</span>
+          </button>
+        </div>
+
+        {/* Drawer Footer info */}
+        <div className="px-5 pt-3 border-t border-black/10 dark:border-white/10 flex items-center justify-between text-[11px] font-mono text-zinc-500 dark:text-zinc-400 flex-shrink-0">
+          <span>FRANTOS v2.4</span>
+          <span className="text-cyan-600 dark:text-cyan-400 font-semibold">ONLINE</span>
+        </div>
+      </aside>
+    </div>
+  ) : null;
+
+  return (
+    <>
+      <header 
+        id="frantos-main-header"
+        className="sticky top-0 z-40 w-full max-w-full backdrop-blur-xl border-b border-black/10 dark:border-white/10 bg-[#F8F7F4]/95 dark:bg-[#090B0E]/90 transition-colors"
+      >
+        <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 md:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-6 min-w-0">
+          
+          {/* =========================================================================
+              ZONE 1: FRANTOS LOGO (FLEX-SHRINK-0, RESPONSIVE, NEVER OVERLAPS)
+              ========================================================================= */}
+          <div className="flex items-center gap-2 sm:gap-6 flex-shrink-0 min-w-0">
+            <button 
+              id="brand-logo-btn"
+              type="button"
+              onClick={() => onSelectTab('feed')}
+              className="text-left group focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 rounded-lg cursor-pointer flex-shrink-0"
+              aria-label="FrantoS Home"
+            >
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <span className="font-display font-black text-lg sm:text-2xl tracking-[0.16em] sm:tracking-[0.24em] text-[#111317] dark:text-[#F3F1EC] group-hover:text-cyan-500 transition-colors select-none">
+                  FRANTOS
+                </span>
+                <span className="text-[9px] sm:text-[10px] font-mono px-1 sm:px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10 text-zinc-700 dark:text-zinc-400 font-bold select-none">
+                  PRO
+                </span>
+              </div>
+              <div className="text-[8px] sm:text-[9px] font-mono tracking-widest uppercase text-[#4A505C] dark:text-zinc-500 hidden xs:block">
+                Private Workspace
+              </div>
+            </button>
+          </div>
+
+          {/* =========================================================================
+              ZONE 2: PRIMARY NAVIGATION (DESKTOP / LAPTOP / TABLET-WIDE)
+              ========================================================================= */}
+          <nav 
+            aria-label="Main studio workspace navigation" 
+            className="hidden md:flex items-center gap-1 sm:gap-1.5 pl-3 md:pl-4 border-l border-black/10 dark:border-white/10 flex-shrink min-w-0"
+          >
             <button
               id="nav-tab-feed"
+              type="button"
               onClick={() => onSelectTab('feed')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-medium tracking-tight transition-all flex items-center gap-2 cursor-pointer ${
+              className={`px-2.5 lg:px-3.5 py-2 rounded-xl text-xs font-medium tracking-tight transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 flex-shrink-0 ${
                 activeTab === 'feed'
-                  ? 'bg-black/10 dark:bg-white/15 text-[#111317] dark:text-white font-semibold shadow-sm'
-                  : 'text-[#4A505C] dark:text-zinc-400 hover:text-[#111317] dark:hover:text-white'
+                  ? 'bg-black/10 dark:bg-white/15 text-[#111317] dark:text-white font-semibold shadow-xs'
+                  : 'text-[#4A505C] dark:text-zinc-400 hover:text-[#111317] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5'
               }`}
             >
-              <Compass className="w-3.5 h-3.5" />
-              <span>Creative Feed</span>
+              <Compass className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="truncate">Creative Feed</span>
             </button>
 
             <button
               id="nav-tab-workspace"
+              type="button"
               onClick={() => onSelectTab('workspace')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-medium tracking-tight transition-all flex items-center gap-2 cursor-pointer ${
+              className={`px-2.5 lg:px-3.5 py-2 rounded-xl text-xs font-medium tracking-tight transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 flex-shrink-0 ${
                 activeTab === 'workspace'
-                  ? 'bg-black/10 dark:bg-white/15 text-[#111317] dark:text-white font-semibold shadow-sm'
-                  : 'text-[#4A505C] dark:text-zinc-400 hover:text-[#111317] dark:hover:text-white'
+                  ? 'bg-black/10 dark:bg-white/15 text-[#111317] dark:text-white font-semibold shadow-xs'
+                  : 'text-[#4A505C] dark:text-zinc-400 hover:text-[#111317] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5'
               }`}
             >
-              <FolderKanban className="w-3.5 h-3.5" />
-              <span>Studio Workspace</span>
+              <FolderKanban className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="truncate">Studio Workspace</span>
             </button>
 
             <button
               id="nav-tab-moodboard"
+              type="button"
               onClick={() => onSelectTab('moodboard')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-medium tracking-tight transition-all flex items-center gap-2 cursor-pointer ${
+              className={`px-2.5 lg:px-3.5 py-2 rounded-xl text-xs font-medium tracking-tight transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 flex-shrink-0 ${
                 activeTab === 'moodboard'
-                  ? 'bg-black/10 dark:bg-white/15 text-[#111317] dark:text-white font-semibold shadow-sm'
-                  : 'text-[#4A505C] dark:text-zinc-400 hover:text-[#111317] dark:hover:text-white'
+                  ? 'bg-black/10 dark:bg-white/15 text-[#111317] dark:text-white font-semibold shadow-xs'
+                  : 'text-[#4A505C] dark:text-zinc-400 hover:text-[#111317] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5'
               }`}
             >
-              <Layers className="w-3.5 h-3.5" />
-              <span>Spatial Moodboard</span>
+              <Layers className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="truncate">Spatial Moodboard</span>
             </button>
 
             <button
               id="nav-tab-weather"
+              type="button"
               onClick={() => onSelectTab('weather')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-medium tracking-tight transition-all flex items-center gap-2 cursor-pointer ${
+              className={`px-2.5 lg:px-3.5 py-2 rounded-xl text-xs font-medium tracking-tight transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 flex-shrink-0 ${
                 activeTab === 'weather'
-                  ? 'bg-black/10 dark:bg-white/15 text-[#111317] dark:text-white font-semibold shadow-sm'
-                  : 'text-[#4A505C] dark:text-zinc-400 hover:text-[#111317] dark:hover:text-white'
+                  ? 'bg-black/10 dark:bg-white/15 text-[#111317] dark:text-white font-semibold shadow-xs'
+                  : 'text-[#4A505C] dark:text-zinc-400 hover:text-[#111317] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5'
               }`}
             >
-              <CloudSun className="w-3.5 h-3.5" />
-              <span>Creative Weather</span>
+              <CloudSun className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="truncate">Creative Weather</span>
             </button>
           </nav>
-        </div>
 
-        {/* Global Search & Action Controls */}
-        <div className="flex items-center gap-3">
-          
-          {/* Live Search Input */}
-          <div className="relative hidden md:block w-48 lg:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
-            <input
-              id="input-global-search"
-              type="text"
-              placeholder="Search exhibits, WIPs..."
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full pl-9 pr-7 py-1.5 rounded-full text-xs bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-[#111317] dark:text-[#F3F1EC] placeholder-zinc-500 focus:outline-none focus:border-cyan-500 transition-colors font-sans"
-            />
-            {searchQuery && (
-              <button 
-                onClick={() => onSearchChange('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-[#111317] dark:hover:text-white"
-                aria-label="Clear search"
+          {/* =========================================================================
+              ZONE 3: PROFILE / AVATAR BUTTON & MOBILE NAVIGATION TOGGLE
+              ========================================================================= */}
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            
+            {/* Profile / Avatar Control (Toggles unified Account Menu only) */}
+            <div className="relative" ref={accountButtonRef}>
+              <button
+                id="btn-persona-avatar-toggle"
+                type="button"
+                onClick={() => {
+                  setShowMobileNav(false);
+                  setShowAccountMenu((prev) => !prev);
+                }}
+                className="min-h-[40px] flex items-center gap-2 p-1 sm:px-2 rounded-full border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/15 transition-all cursor-pointer justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 group flex-shrink-0"
+                aria-label={`Open creator profile and account menu for ${activeProfile.name}`}
+                aria-expanded={showAccountMenu}
+                aria-haspopup="dialog"
               >
-                <X className="w-3 h-3" />
+                <img
+                  src={activeProfile.avatar}
+                  alt={activeProfile.name}
+                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-full aspect-square object-cover flex-shrink-0 ring-1 ring-black/10 dark:ring-white/20 group-hover:ring-cyan-500 transition-all"
+                />
+                <span className="hidden sm:inline-block text-xs font-semibold text-[#111317] dark:text-[#F3F1EC] max-w-[110px] truncate">
+                  {activeProfile.name.split(' ')[0]}
+                </span>
               </button>
-            )}
-          </div>
 
-          {/* New Moment Button */}
-          <button
-            id="btn-new-story"
-            onClick={onOpenNewStory}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-700 dark:text-cyan-300 transition-all shadow-sm cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Post Moment</span>
-          </button>
-
-          {/* Theme Toggle Button */}
-          <button
-            id="btn-theme-toggle"
-            onClick={onToggleTheme}
-            className="p-2 rounded-full border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/15 text-zinc-700 dark:text-zinc-300 transition-all cursor-pointer"
-            aria-label={isDarkTheme ? 'Switch to light mode' : 'Switch to dark mode'}
-          >
-            {isDarkTheme ? <Sun className="w-4 h-4 text-amber-300" /> : <Moon className="w-4 h-4 text-indigo-600" />}
-          </button>
-
-          {/* Demo Persona & Profile Switcher */}
-          <div className="relative">
-            <button
-              id="btn-persona-menu"
-              onClick={() => setShowPersonaMenu(!showPersonaMenu)}
-              className="flex items-center gap-2 p-1 pr-2.5 rounded-full border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/15 transition-all cursor-pointer"
-              aria-label="Active creator persona"
-            >
-              <img
-                src={activeProfile.avatar}
-                alt={activeProfile.name}
-                className="w-7 h-7 rounded-full object-cover ring-1 ring-black/10 dark:ring-white/20"
+              {/* UNIFIED ACCOUNT MENU (Desktop dropdown & Mobile bottom sheet) */}
+              <AccountMenu
+                isOpen={showAccountMenu}
+                onClose={() => setShowAccountMenu(false)}
+                activeProfile={activeProfile}
+                onSelectProfile={onSelectProfile}
+                onOpenProfileModal={onOpenProfileModal}
+                onOpenSearchModal={onOpenSearchModal}
+                isDarkTheme={isDarkTheme}
+                onToggleTheme={onToggleTheme}
+                onOpenAuthModal={onOpenAuthModal}
               />
-              <span className="hidden sm:block text-xs font-medium text-[#111317] dark:text-[#F3F1EC]">
-                {activeProfile.name.split(' ')[0]}
-              </span>
-            </button>
+            </div>
 
-            {/* Persona Dropdown Menu */}
-            {showPersonaMenu && (
-              <div 
-                id="persona-dropdown-menu"
-                className="absolute right-0 mt-2 w-64 p-2 rounded-2xl bg-white/95 dark:bg-[#11141A]/95 backdrop-blur-xl border border-black/10 dark:border-white/15 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150 text-[#111317] dark:text-[#F3F1EC]"
-              >
-                <div className="p-2 border-b border-black/10 dark:border-white/10 mb-1">
-                  <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                    Active Demo Persona
-                  </p>
-                  <p className="text-xs font-semibold text-[#111317] dark:text-[#F3F1EC] mt-0.5">
-                    {activeProfile.name}
-                  </p>
-                  <p className="text-[11px] text-[#4A505C] dark:text-zinc-400">{activeProfile.role}</p>
-                </div>
-
-                <div className="space-y-1">
-                  {CREATOR_PROFILES.map((prof) => (
-                    <button
-                      key={prof.id}
-                      onClick={() => {
-                        onSelectProfile(prof);
-                        setShowPersonaMenu(false);
-                      }}
-                      className={`w-full flex items-center justify-between p-2 rounded-xl text-left text-xs transition-colors cursor-pointer ${
-                        activeProfile.id === prof.id
-                          ? 'bg-black/10 dark:bg-white/15 text-[#111317] dark:text-white font-semibold'
-                          : 'hover:bg-black/5 dark:hover:bg-white/5 text-zinc-700 dark:text-zinc-300'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <img src={prof.avatar} alt={prof.name} className="w-5 h-5 rounded-full object-cover" />
-                        <span>{prof.name}</span>
-                      </div>
-                      {activeProfile.id === prof.id && <Check className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="mt-2 pt-2 border-t border-black/10 dark:border-white/10 flex flex-col gap-1">
-                  <button
-                    onClick={() => {
-                      onOpenProfileModal();
-                      setShowPersonaMenu(false);
-                    }}
-                    className="w-full text-left px-2 py-1.5 rounded-lg text-xs text-zinc-700 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/10 flex items-center gap-2 cursor-pointer"
-                  >
-                    <User className="w-3.5 h-3.5" />
-                    <span>View Full Studio Profile</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      onOpenAuthModal();
-                      setShowPersonaMenu(false);
-                    }}
-                    className="w-full text-left px-2 py-1.5 rounded-lg text-xs text-cyan-600 dark:text-cyan-400 hover:bg-cyan-500/10 flex items-center gap-2 font-mono cursor-pointer"
-                  >
-                    <SlidersHorizontal className="w-3.5 h-3.5" />
-                    <span>Supabase Auth & Session</span>
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Mobile Navigation Menu Toggle */}
-          <button
-            id="btn-mobile-nav"
-            onClick={() => setShowMobileNav(!showMobileNav)}
-            className="lg:hidden p-2 rounded-xl border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 text-[#111317] dark:text-white"
-            aria-label="Toggle navigation menu"
-          >
-            <Compass className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile Drawer Navigation */}
-      {showMobileNav && (
-        <div className="lg:hidden border-t border-black/10 dark:border-white/10 px-4 py-3 bg-[#F8F7F4]/98 dark:bg-[#090B0E]/95 space-y-2">
-          <div className="grid grid-cols-2 gap-2">
+            {/* Mobile Navigation Menu Toggle (Toggles site navigation overlay only) */}
             <button
-              onClick={() => { onSelectTab('feed'); setShowMobileNav(false); }}
-              className={`p-2.5 rounded-xl text-xs text-left ${activeTab === 'feed' ? 'bg-black/10 dark:bg-white/15 text-[#111317] dark:text-white font-semibold' : 'text-zinc-600 dark:text-zinc-400'}`}
+              id="btn-mobile-nav"
+              type="button"
+              onClick={() => {
+                setShowAccountMenu(false);
+                setShowMobileNav((prev) => !prev);
+              }}
+              className="md:hidden min-w-[40px] min-h-[40px] p-2 rounded-full border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/15 text-[#111317] dark:text-white flex items-center justify-center cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 flex-shrink-0"
+              aria-label={showMobileNav ? 'Close site navigation' : 'Open site navigation'}
+              aria-expanded={showMobileNav}
             >
-              Creative Feed
-            </button>
-            <button
-              onClick={() => { onSelectTab('workspace'); setShowMobileNav(false); }}
-              className={`p-2.5 rounded-xl text-xs text-left ${activeTab === 'workspace' ? 'bg-black/10 dark:bg-white/15 text-[#111317] dark:text-white font-semibold' : 'text-zinc-600 dark:text-zinc-400'}`}
-            >
-              Studio Workspace
-            </button>
-            <button
-              onClick={() => { onSelectTab('moodboard'); setShowMobileNav(false); }}
-              className={`p-2.5 rounded-xl text-xs text-left ${activeTab === 'moodboard' ? 'bg-black/10 dark:bg-white/15 text-[#111317] dark:text-white font-semibold' : 'text-zinc-600 dark:text-zinc-400'}`}
-            >
-              Spatial Moodboard
-            </button>
-            <button
-              onClick={() => { onSelectTab('weather'); setShowMobileNav(false); }}
-              className={`p-2.5 rounded-xl text-xs text-left ${activeTab === 'weather' ? 'bg-black/10 dark:bg-white/15 text-[#111317] dark:text-white font-semibold' : 'text-zinc-600 dark:text-zinc-400'}`}
-            >
-              Creative Weather
+              {showMobileNav ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
-      )}
-    </header>
+      </header>
+
+      {/* FIXED MOBILE NAVIGATION OVERLAY (PORTALED TO BODY) */}
+      {typeof document !== 'undefined' && mobileNavOverlayNode ? createPortal(mobileNavOverlayNode, document.body) : null}
+    </>
   );
 };
