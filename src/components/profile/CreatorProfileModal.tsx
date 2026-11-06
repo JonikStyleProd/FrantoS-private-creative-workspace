@@ -4,6 +4,7 @@ import { X, MapPin, Send, Edit3, Check, Sparkles, Camera } from 'lucide-react';
 import { CREATIVE_DISCIPLINES } from '../../data/mockData';
 import { ImageUploader } from '../common/ImageUploader';
 import { frantosDB } from '../../services/supabaseClient';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface CreatorProfileModalProps {
   profile: CreatorProfile;
@@ -18,6 +19,7 @@ export const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
   onClose,
   onUpdateProfile,
 }) => {
+  const { t, language } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(profile.name);
   const [role, setRole] = useState(profile.role);
@@ -100,8 +102,8 @@ export const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
               type="button"
               onClick={() => setIsEditing(!isEditing)}
               className="min-w-[40px] min-h-[40px] p-2 rounded-full bg-black/60 hover:bg-black/80 text-cyan-300 backdrop-blur-md transition-transform cursor-pointer flex items-center justify-center"
-              title="Edit Profile"
-              aria-label="Edit Profile"
+              title={language === 'ru' ? 'Редактировать профиль' : 'Edit Profile'}
+              aria-label={language === 'ru' ? 'Редактировать профиль' : 'Edit Profile'}
             >
               <Edit3 className="w-4 h-4" />
             </button>
@@ -109,7 +111,7 @@ export const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
             <button
               onClick={onClose}
               className="min-w-[40px] min-h-[40px] p-2 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md transition-transform cursor-pointer flex items-center justify-center"
-              aria-label="Close profile"
+              aria-label={t.common.close}
             >
               <X className="w-5 h-5" />
             </button>
@@ -122,7 +124,7 @@ export const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
               className="absolute bottom-4 right-4 px-3 py-1.5 rounded-full bg-black/70 hover:bg-black text-white text-xs font-mono backdrop-blur-md border border-white/20 flex items-center gap-1.5 cursor-pointer"
             >
               <Camera className="w-3.5 h-3.5" />
-              <span>Change Cover Image</span>
+              <span>{language === 'ru' ? 'Сменить обложку' : 'Change Cover Image'}</span>
             </button>
           )}
         </div>
@@ -139,7 +141,7 @@ export const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
                   setCoverImage(url);
                   setShowCoverUpload(false);
                 }}
-                label="Upload Profile Banner Image"
+                label={language === 'ru' ? 'Загрузить баннер профиля' : 'Upload Profile Banner Image'}
                 aspectRatio="wide"
                 showAltInput={false}
               />
@@ -162,7 +164,7 @@ export const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
                     className="absolute inset-0 rounded-3xl bg-black/60 flex flex-col items-center justify-center text-white text-[10px] font-mono opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                   >
                     <Camera className="w-4 h-4 mb-1" />
-                    <span>Upload</span>
+                    <span>{language === 'ru' ? 'Сменить' : 'Upload'}</span>
                   </button>
                 )}
               </div>
@@ -172,7 +174,7 @@ export const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
                   {name}
                 </h3>
                 <p className="text-xs font-mono text-cyan-600 dark:text-cyan-400 font-semibold">{handle}</p>
-                <div className="flex items-center gap-1.5 text-xs text-[#4A505C] dark:text-zinc-400 mt-0.5 font-medium">
+                <div className="flex items-center gap-1.5 text-xs text-[#4A505F] dark:text-zinc-400 mt-0.5 font-medium">
                   <MapPin className="w-3.5 h-3.5" />
                   <span>{location}</span>
                 </div>
@@ -195,7 +197,7 @@ export const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
                   setAvatar(url);
                   setShowAvatarUpload(false);
                 }}
-                label="Upload Creator Avatar"
+                label={language === 'ru' ? 'Загрузить аватар автора' : 'Upload Creator Avatar'}
                 aspectRatio="square"
                 showAltInput={false}
               />
@@ -207,7 +209,9 @@ export const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
             <form onSubmit={handleSaveProfile} className="space-y-4 pt-2">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-mono text-[#4A505C] dark:text-zinc-400 mb-1">Display Name</label>
+                  <label className="block text-xs font-mono text-[#4A505C] dark:text-zinc-400 mb-1">
+                    {language === 'ru' ? 'Имя и фамилия' : 'Display Name'}
+                  </label>
                   <input
                     type="text"
                     value={name}
@@ -216,7 +220,9 @@ export const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-mono text-[#4A505C] dark:text-zinc-400 mb-1">Handle</label>
+                  <label className="block text-xs font-mono text-[#4A505C] dark:text-zinc-400 mb-1">
+                    {language === 'ru' ? 'Никнейм / Псевдоним' : 'Handle'}
+                  </label>
                   <input
                     type="text"
                     value={handle}
@@ -225,7 +231,9 @@ export const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-mono text-[#4A505C] dark:text-zinc-400 mb-1">Studio Role</label>
+                  <label className="block text-xs font-mono text-[#4A505C] dark:text-zinc-400 mb-1">
+                    {language === 'ru' ? 'Роль в студии' : 'Studio Role'}
+                  </label>
                   <input
                     type="text"
                     value={role}
@@ -234,7 +242,9 @@ export const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-mono text-[#4A505C] dark:text-zinc-400 mb-1">Location</label>
+                  <label className="block text-xs font-mono text-[#4A505C] dark:text-zinc-400 mb-1">
+                    {language === 'ru' ? 'Локация' : 'Location'}
+                  </label>
                   <input
                     type="text"
                     value={location}
@@ -245,7 +255,9 @@ export const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-mono text-[#4A505C] dark:text-zinc-400 mb-1">Artist Bio</label>
+                <label className="block text-xs font-mono text-[#4A505C] dark:text-zinc-400 mb-1">
+                  {language === 'ru' ? 'О себе / Биография' : 'Artist Bio'}
+                </label>
                 <textarea
                   rows={3}
                   value={bio}
@@ -260,14 +272,14 @@ export const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
                   onClick={() => setIsEditing(false)}
                   className="px-4 py-2 rounded-xl text-xs font-mono text-zinc-500 hover:text-black dark:hover:text-white cursor-pointer"
                 >
-                  Cancel
+                  {t.modals.cancelBtn}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 rounded-full bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs font-mono flex items-center gap-1.5 cursor-pointer shadow-md"
                 >
                   <Check className="w-3.5 h-3.5" />
-                  <span>Save Profile</span>
+                  <span>{language === 'ru' ? 'Сохранить профиль' : 'Save Profile'}</span>
                 </button>
               </div>
             </form>
@@ -282,19 +294,27 @@ export const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
               <div className="grid grid-cols-4 gap-2 p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 text-center">
                 <div>
                   <div className="text-lg font-display font-bold text-[#111317] dark:text-white">{profile.stats.exhibitsCount}</div>
-                  <div className="text-[10px] font-mono text-[#4A505C] dark:text-zinc-400 uppercase font-semibold">Exhibits</div>
+                  <div className="text-[10px] font-mono text-[#4A505C] dark:text-zinc-400 uppercase font-semibold">
+                    {language === 'ru' ? 'Проекты' : 'Exhibits'}
+                  </div>
                 </div>
                 <div>
                   <div className="text-lg font-display font-bold text-cyan-600 dark:text-cyan-400">{profile.stats.savesCount}</div>
-                  <div className="text-[10px] font-mono text-[#4A505C] dark:text-zinc-400 uppercase font-semibold">Saves</div>
+                  <div className="text-[10px] font-mono text-[#4A505C] dark:text-zinc-400 uppercase font-semibold">
+                    {language === 'ru' ? 'Закладки' : 'Saves'}
+                  </div>
                 </div>
                 <div>
                   <div className="text-lg font-display font-bold text-[#111317] dark:text-white">{profile.stats.collabsCount}</div>
-                  <div className="text-[10px] font-mono text-[#4A505C] dark:text-zinc-400 uppercase font-semibold">Collabs</div>
+                  <div className="text-[10px] font-mono text-[#4A505C] dark:text-zinc-400 uppercase font-semibold">
+                    {language === 'ru' ? 'Коллаборации' : 'Collabs'}
+                  </div>
                 </div>
                 <div>
                   <div className="text-lg font-display font-bold text-amber-600 dark:text-amber-400">{profile.stats.awardsCount}</div>
-                  <div className="text-[10px] font-mono text-[#4A505C] dark:text-zinc-400 uppercase font-semibold">Awards</div>
+                  <div className="text-[10px] font-mono text-[#4A505C] dark:text-zinc-400 uppercase font-semibold">
+                    {language === 'ru' ? 'Награды' : 'Awards'}
+                  </div>
                 </div>
               </div>
 
@@ -302,7 +322,7 @@ export const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
               <div className="space-y-4">
                 <div>
                   <h4 className="text-xs font-mono uppercase tracking-widest text-[#4A505C] dark:text-zinc-400 mb-2 font-bold">
-                    Active Studio Disciplines
+                    {language === 'ru' ? 'Активные дисциплины' : 'Active Studio Disciplines'}
                   </h4>
                   <div className="flex flex-wrap gap-2">
                     {profile.disciplines.map((d) => {
@@ -326,15 +346,15 @@ export const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
 
                 <div>
                   <h4 className="text-xs font-mono uppercase tracking-widest text-[#4A505C] dark:text-zinc-400 mb-2 font-bold">
-                    Software & Engine Stack
+                    {t.modals.toolsUsedLabel}
                   </h4>
                   <div className="flex flex-wrap gap-2">
-                    {profile.tools.map((t, idx) => (
+                    {profile.tools.map((tool, idx) => (
                       <span
                         key={idx}
                         className="px-3 py-1 rounded-lg bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-xs font-mono text-zinc-800 dark:text-zinc-300 font-medium"
                       >
-                        {t}
+                        {tool}
                       </span>
                     ))}
                   </div>
@@ -347,7 +367,7 @@ export const CreatorProfileModal: React.FC<CreatorProfileModalProps> = ({
           {saveSuccess && (
             <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs font-mono text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
               <Check className="w-4 h-4" />
-              <span>Profile updated and preserved in Demo local storage!</span>
+              <span>{language === 'ru' ? 'Профиль обновлён и сохранён в локальном хранилище!' : 'Profile updated and preserved in Demo local storage!'}</span>
             </div>
           )}
         </div>

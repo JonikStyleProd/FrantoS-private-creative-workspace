@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { ProjectExhibit, CreatorProfile, CreativeDiscipline } from '../../types';
 import { CREATOR_PROFILES, CREATIVE_DISCIPLINES } from '../../data/mockData';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface SearchOverlayModalProps {
   isOpen: boolean;
@@ -40,6 +41,7 @@ export const SearchOverlayModal: React.FC<SearchOverlayModalProps> = ({
   onSelectProfile,
   onSelectTab,
 }) => {
+  const { t, language } = useLanguage();
   const [activeCategory, setActiveCategory] = useState<SearchCategory>('all');
   const [localQuery, setLocalQuery] = useState(searchQuery);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -159,7 +161,7 @@ export const SearchOverlayModal: React.FC<SearchOverlayModalProps> = ({
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label="Studio Global Search"
+      aria-label={t.modals.searchPlaceholder}
     >
       <div
         id="studio-search-overlay-container"
@@ -180,7 +182,7 @@ export const SearchOverlayModal: React.FC<SearchOverlayModalProps> = ({
                 type="text"
                 value={localQuery}
                 onChange={handleInputChange}
-                placeholder="Search exhibits, WIPs, creators, tools, disciplines..."
+                placeholder={language === 'ru' ? 'Поиск проектов, WIP, авторов, дисциплин...' : 'Search exhibits, WIPs, creators, tools, disciplines...'}
                 className="w-full bg-transparent text-sm sm:text-base font-medium text-[#111317] dark:text-[#F3F1EC] placeholder-zinc-500 focus:outline-none pr-8 py-1 font-sans"
               />
               {localQuery && (
@@ -188,7 +190,7 @@ export const SearchOverlayModal: React.FC<SearchOverlayModalProps> = ({
                   type="button"
                   onClick={handleClear}
                   className="absolute right-0 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-black dark:hover:text-white cursor-pointer"
-                  aria-label="Clear search query"
+                  aria-label={language === 'ru' ? 'Очистить запрос' : 'Clear search query'}
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -199,7 +201,7 @@ export const SearchOverlayModal: React.FC<SearchOverlayModalProps> = ({
               type="button"
               onClick={onClose}
               className="min-w-[36px] min-h-[36px] p-2 rounded-full border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/20 text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-all cursor-pointer flex items-center justify-center flex-shrink-0"
-              aria-label="Close search modal"
+              aria-label={language === 'ru' ? 'Закрыть поиск' : 'Close search modal'}
             >
               <X className="w-4 h-4" />
             </button>
@@ -208,12 +210,12 @@ export const SearchOverlayModal: React.FC<SearchOverlayModalProps> = ({
           {/* CATEGORY FILTER CHIPS */}
           <div className="flex items-center gap-1.5 overflow-x-auto pt-3 pb-0.5 no-scrollbar min-w-0">
             {[
-              { id: 'all', label: 'All Results' },
-              { id: 'projects', label: `Projects (${matchedProjectsOnly.length})` },
-              { id: 'wips', label: `WIPs (${matchedWipsOnly.length})` },
-              { id: 'creators', label: `Creators (${matchedCreators.length})` },
-              { id: 'disciplines', label: `Disciplines (${matchedDisciplines.length})` },
-              { id: 'tools', label: `Tools (${matchedTools.length})` },
+              { id: 'all', label: language === 'ru' ? 'Всё' : 'All Results' },
+              { id: 'projects', label: `${language === 'ru' ? 'Проекты' : 'Projects'} (${matchedProjectsOnly.length})` },
+              { id: 'wips', label: `${language === 'ru' ? 'В работе' : 'WIPs'} (${matchedWipsOnly.length})` },
+              { id: 'creators', label: `${language === 'ru' ? 'Авторы' : 'Creators'} (${matchedCreators.length})` },
+              { id: 'disciplines', label: `${language === 'ru' ? 'Дисциплины' : 'Disciplines'} (${matchedDisciplines.length})` },
+              { id: 'tools', label: `${language === 'ru' ? 'Инструменты' : 'Tools'} (${matchedTools.length})` },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -239,7 +241,7 @@ export const SearchOverlayModal: React.FC<SearchOverlayModalProps> = ({
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-semibold">
                 <Flame className="w-3.5 h-3.5 text-amber-500" />
-                <span>Suggested Searches & Disciplines</span>
+                <span>{language === 'ru' ? 'Популярные запросы и направления' : 'Suggested Searches & Disciplines'}</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {popularSuggestions.map((item) => (
@@ -266,7 +268,7 @@ export const SearchOverlayModal: React.FC<SearchOverlayModalProps> = ({
               <div className="flex items-center justify-between text-xs font-mono uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-semibold">
                 <span className="flex items-center gap-1.5">
                   <User className="w-3.5 h-3.5 text-cyan-500" />
-                  Creators & Personas ({matchedCreators.length})
+                  {language === 'ru' ? 'Авторы и резиденты' : 'Creators & Personas'} ({matchedCreators.length})
                 </span>
               </div>
 
@@ -307,7 +309,7 @@ export const SearchOverlayModal: React.FC<SearchOverlayModalProps> = ({
               <div className="flex items-center justify-between text-xs font-mono uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-semibold">
                 <span className="flex items-center gap-1.5">
                   <Layers className="w-3.5 h-3.5 text-purple-500" />
-                  Creative Disciplines ({matchedDisciplines.length})
+                  {language === 'ru' ? 'Творческие дисциплины' : 'Creative Disciplines'} ({matchedDisciplines.length})
                 </span>
               </div>
 
@@ -344,7 +346,7 @@ export const SearchOverlayModal: React.FC<SearchOverlayModalProps> = ({
               <div className="flex items-center justify-between text-xs font-mono uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-semibold">
                 <span className="flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-cyan-500" />
-                  Projects & Exhibits ({matchedProjectsOnly.length})
+                  {language === 'ru' ? 'Проекты и экспонаты' : 'Projects & Exhibits'} ({matchedProjectsOnly.length})
                 </span>
               </div>
 
@@ -376,7 +378,7 @@ export const SearchOverlayModal: React.FC<SearchOverlayModalProps> = ({
                         </span>
                       </div>
                       <p className="text-[11px] text-[#4A505C] dark:text-zinc-400 line-clamp-1">
-                        By {ex.author.name} — {ex.description}
+                        {language === 'ru' ? 'Автор:' : 'By'} {ex.author.name} — {ex.description}
                       </p>
                     </div>
                     <ArrowRight className="w-4 h-4 text-zinc-400 group-hover:text-cyan-500 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
@@ -392,7 +394,7 @@ export const SearchOverlayModal: React.FC<SearchOverlayModalProps> = ({
               <div className="flex items-center justify-between text-xs font-mono uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-semibold">
                 <span className="flex items-center gap-1.5">
                   <Clock className="w-3.5 h-3.5 text-amber-500" />
-                  Work-in-Progress (WIP) Posts ({matchedWipsOnly.length})
+                  {language === 'ru' ? 'Проекты в работе (WIP)' : 'Work-in-Progress (WIP) Posts'} ({matchedWipsOnly.length})
                 </span>
               </div>
 
@@ -423,11 +425,11 @@ export const SearchOverlayModal: React.FC<SearchOverlayModalProps> = ({
                           {ex.title}
                         </span>
                         <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 uppercase font-semibold flex-shrink-0">
-                          WIP {ex.wipProgress || 65}%
+                          {language === 'ru' ? 'В работе' : 'WIP'} {ex.wipProgress || 65}%
                         </span>
                       </div>
                       <p className="text-[11px] text-[#4A505C] dark:text-zinc-400 line-clamp-1">
-                        By {ex.author.name} — {ex.description}
+                        {language === 'ru' ? 'Автор:' : 'By'} {ex.author.name} — {ex.description}
                       </p>
                     </div>
                     <ArrowRight className="w-4 h-4 text-zinc-400 group-hover:text-amber-500 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
@@ -443,7 +445,7 @@ export const SearchOverlayModal: React.FC<SearchOverlayModalProps> = ({
               <div className="flex items-center justify-between text-xs font-mono uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-semibold">
                 <span className="flex items-center gap-1.5">
                   <Wrench className="w-3.5 h-3.5 text-emerald-500" />
-                  Tools & Technologies ({matchedTools.length})
+                  {language === 'ru' ? 'Инструменты и технологии' : 'Tools & Technologies'} ({matchedTools.length})
                 </span>
               </div>
 
@@ -474,9 +476,11 @@ export const SearchOverlayModal: React.FC<SearchOverlayModalProps> = ({
                 <Search className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-sm font-bold text-[#111317] dark:text-[#F3F1EC]">No matching results found</p>
+                <p className="text-sm font-bold text-[#111317] dark:text-[#F3F1EC]">
+                  {language === 'ru' ? 'Ничего не найдено' : 'No matching results found'}
+                </p>
                 <p className="text-xs text-[#4A505C] dark:text-zinc-400 mt-1">
-                  Try searching for a different keyword, creator name, discipline, or tool.
+                  {language === 'ru' ? 'Попробуйте изменить запрос, имя автора, дисциплину или инструмент.' : 'Try searching for a different keyword, creator name, discipline, or tool.'}
                 </p>
               </div>
               <button
@@ -484,7 +488,7 @@ export const SearchOverlayModal: React.FC<SearchOverlayModalProps> = ({
                 onClick={handleClear}
                 className="px-4 py-2 rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 text-xs font-mono font-bold hover:bg-cyan-500/20 cursor-pointer"
               >
-                Reset Search
+                {language === 'ru' ? 'Сбросить поиск' : 'Reset Search'}
               </button>
             </div>
           )}
@@ -492,7 +496,7 @@ export const SearchOverlayModal: React.FC<SearchOverlayModalProps> = ({
 
         {/* FOOTER ACTION */}
         <div className="flex-shrink-0 p-3 sm:p-4 border-t border-black/10 dark:border-white/10 bg-[#F8F7F4]/95 dark:bg-[#0F1218]/95 backdrop-blur-md flex items-center justify-between text-[11px] font-mono text-[#4A505C] dark:text-zinc-400">
-          <span>Press ESC or tap outside to close</span>
+          <span>{language === 'ru' ? 'ESC или клик снаружи для закрытия' : 'Press ESC or tap outside to close'}</span>
           {localQuery && (
             <button
               type="button"
@@ -502,7 +506,7 @@ export const SearchOverlayModal: React.FC<SearchOverlayModalProps> = ({
               }}
               className="text-cyan-600 dark:text-cyan-400 hover:underline font-bold cursor-pointer"
             >
-              Filter Feed with "{localQuery}" →
+              {language === 'ru' ? `Искать в каталоге «${localQuery}» →` : `Filter Catalog with "${localQuery}" →`}
             </button>
           )}
         </div>

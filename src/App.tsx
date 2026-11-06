@@ -9,8 +9,7 @@ import {
 } from './types';
 import { CREATOR_PROFILES, CREATIVE_DISCIPLINES } from './data/mockData';
 import { frantosDB } from './services/supabaseClient';
-import { Header } from './components/common/Header';
-import { PublishControl } from './components/common/PublishControl';
+import { Header, AtelierTab } from './components/common/Header';
 import { Footer } from './components/common/Footer';
 import { CreativeCore3D } from './components/core/CreativeCore3D';
 import { ProjectExhibitCard } from './components/feed/ProjectExhibitCard';
@@ -29,15 +28,29 @@ import { CreatorProfileModal } from './components/profile/CreatorProfileModal';
 import { AuthModal } from './components/auth/AuthModal';
 import { SearchOverlayModal } from './components/search/SearchOverlayModal';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
-import { RotateCcw, Plus, Sparkles } from 'lucide-react';
+import { 
+  RotateCcw, 
+  Plus, 
+  Sparkles, 
+  Compass, 
+  FolderKanban, 
+  Grid, 
+  Layers, 
+  Activity, 
+  Send, 
+  X,
+  MoreHorizontal
+} from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { useLanguage } from './i18n/LanguageContext';
 
 export function App() {
-  // Theme state: dark mode default
+  const { t, language } = useLanguage();
+  // Theme state: dark mode default (ink graphite)
   const [isDarkTheme, setIsDarkTheme] = useState(true);
   
-  // Navigation tabs
-  const [activeTab, setActiveTab] = useState<'feed' | 'workspace' | 'moodboard' | 'weather'>('feed');
+  // Navigation tabs — Digital Atelier 2026 5 Primary Spaces
+  const [activeTab, setActiveTab] = useState<AtelierTab>('overview');
 
   // Discipline Filter
   const [activeDiscipline, setActiveDiscipline] = useState<CreativeDiscipline | 'all'>('all');
@@ -45,7 +58,7 @@ export function App() {
   // Search
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Feed Filter Toolbar States
+  // Catalog Filter Toolbar States
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [sortOption, setSortOption] = useState<SortOption>('recent');
   const [viewMode, setViewMode] = useState<'grid' | 'dense'>('grid');
@@ -63,7 +76,7 @@ export function App() {
   const [moodboardItems, setMoodboardItems] = useState<MoodboardItem[]>(() => frantosDB.getMoodboard());
   const [recentlyViewedIds, setRecentlyViewedIds] = useState<string[]>(() => frantosDB.getRecentlyViewed());
 
-  // Modals
+  // Modals & Panels
   const [selectedExhibit, setSelectedExhibit] = useState<ProjectExhibit | null>(null);
   const [editingExhibit, setEditingExhibit] = useState<ProjectExhibit | null>(null);
   const [isNewExhibitOpen, setIsNewExhibitOpen] = useState(false);
@@ -72,8 +85,10 @@ export function App() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [isMobilePublishSheetOpen, setIsMobilePublishSheetOpen] = useState(false);
+  const [isMoreSpacesSheetOpen, setIsMoreSpacesSheetOpen] = useState(false);
 
-  // Toast / Action notification
+  // Toast Action notification
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
@@ -93,20 +108,24 @@ export function App() {
     }
   }, [isDarkTheme]);
 
-  // Handle URL hash routing & browser Back/Forward buttons
+  // Handle URL hash routing & browser Back/Forward navigation
   useEffect(() => {
     const handleHashSync = () => {
       const hash = window.location.hash.replace('#/', '').replace('#', '').trim();
-      if (hash === 'workspace' || hash === 'moodboard' || hash === 'weather' || hash === 'feed') {
-        setActiveTab(hash);
-      } else if (!hash) {
-        setActiveTab('feed');
+      if (hash === 'catalog') {
+        setActiveTab('catalog');
+      } else if (hash === 'workspace') {
+        setActiveTab('workspace');
+      } else if (hash === 'moodboard') {
+        setActiveTab('moodboard');
+      } else if (hash === 'atmosphere' || hash === 'weather') {
+        setActiveTab('atmosphere');
+      } else if (hash === 'overview' || hash === 'feed') {
+        setActiveTab('overview');
       }
     };
 
-    // Initial check
     handleHashSync();
-
     window.addEventListener('popstate', handleHashSync);
     window.addEventListener('hashchange', handleHashSync);
     return () => {
@@ -115,11 +134,13 @@ export function App() {
     };
   }, []);
 
-  const handleSelectTab = (tab: 'feed' | 'workspace' | 'moodboard' | 'weather') => {
+  const handleSelectTab = (tab: AtelierTab) => {
     setActiveTab(tab);
     if (window.location.hash !== `#/${tab}`) {
       window.history.pushState(null, '', `#/${tab}`);
     }
+    // Scroll to top on tab change for clean focus
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleToggleTheme = () => {
@@ -152,13 +173,12 @@ export function App() {
       if (match) setSelectedExhibit(match);
     }
 
-    // Trigger subtle confetti on save
     try {
       confetti({
         particleCount: 25,
         spread: 45,
         origin: { y: 0.85 },
-        colors: ['#06B6D4', '#F43F5E', '#8B5CF6'],
+        colors: ['#386BF6', '#F5F3EF', '#10B981'],
       });
     } catch {}
   };
@@ -169,7 +189,7 @@ export function App() {
     if (selectedExhibit?.id === exhibit.id) {
       setSelectedExhibit(exhibit);
     }
-    showToast(`Exhibit "${exhibit.title}" published to Demo Vault`);
+    showToast(language === 'ru' ? `Проект «${exhibit.title}» опубликован в каталог студии` : `Project "${exhibit.title}" published to catalog`);
   };
 
   const handleDeleteExhibit = (id: string) => {
@@ -178,7 +198,7 @@ export function App() {
     if (selectedExhibit?.id === id) {
       setSelectedExhibit(null);
     }
-    showToast('Exhibit removed from feed');
+    showToast(language === 'ru' ? 'Проект удалён из архива' : 'Project removed from archive');
   };
 
   const handleEditExhibit = (exhibit: ProjectExhibit) => {
@@ -190,20 +210,20 @@ export function App() {
     const updated = [...moodboardItems, item];
     setMoodboardItems(updated);
     frantosDB.saveMoodboard(updated);
-    showToast(`Pinned "${item.title}" to Spatial Moodboard`);
+    showToast(language === 'ru' ? `«${item.title}» закреплён на холсте мудборда` : `"${item.title}" pinned to canvas`);
   };
 
   const handleSendToWorkspace = (task: WorkspaceTask) => {
     const updated = [task, ...tasks];
     setTasks(updated);
     frantosDB.saveTasks(updated);
-    showToast(`Created Workspace sprint task for "${task.title}"`);
+    showToast(language === 'ru' ? `Создана задача спринта: «${task.title}»` : `Sprint task created: "${task.title}"`);
   };
 
   const handleAddStory = (newStory: Story) => {
     const updated = frantosDB.addStory(newStory);
     setStories(updated);
-    showToast('Story moment broadcasted');
+    showToast(language === 'ru' ? 'Момент процесса опубликован' : 'Process moment broadcasted');
   };
 
   const handleToggleLikeStory = (storyId: string) => {
@@ -222,7 +242,7 @@ export function App() {
       const match = updated.find((s: Story) => s.id === storyId);
       if (match) setActiveStory(match);
     }
-    showToast('Story moment saved to collection');
+    showToast(language === 'ru' ? 'Момент сохранён в избранное' : 'Moment saved to vault');
   };
 
   const handleUpdateTasks = (newTasks: WorkspaceTask[]) => {
@@ -237,21 +257,21 @@ export function App() {
 
   const handleUpdateProfile = (updated: CreatorProfile) => {
     setActiveProfile(updated);
-    showToast('Profile updated');
+    showToast(language === 'ru' ? 'Профиль арт-директора обновлён' : 'Director profile updated');
   };
 
-  // Get list of recently viewed exhibit objects
+  // Recently inspected exhibit objects
   const recentlyViewedExhibits = recentlyViewedIds
     .map((id) => exhibits.find((ex) => ex.id === id))
     .filter((ex): ex is ProjectExhibit => Boolean(ex));
 
-  // Filter & Sort Exhibits
+  // Filter & Sort Exhibits for Catalog View
   const filteredExhibits = exhibits
     .filter((ex) => {
-      // Discipline
+      // Discipline filter
       const matchesDiscipline = activeDiscipline === 'all' || ex.discipline === activeDiscipline;
       
-      // Search
+      // Search query
       const matchesSearch = 
         !searchQuery.trim() ||
         ex.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -259,7 +279,7 @@ export function App() {
         ex.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase())) ||
         ex.author.name.toLowerCase().includes(searchQuery.toLowerCase());
 
-      // Status
+      // Pipeline status filter
       let matchesStatus = true;
       const isExhibitWip = ex.format === 'wip-process' || (ex.wipProgress !== undefined && ex.wipProgress < 100);
       if (filterStatus === 'wip') matchesStatus = isExhibitWip;
@@ -273,15 +293,14 @@ export function App() {
       if (sortOption === 'likes') return b.likesCount - a.likesCount;
       if (sortOption === 'saves') return b.savesCount - a.savesCount;
       if (sortOption === 'views') return (b.likesCount * 4 + b.savesCount * 6) - (a.likesCount * 4 + a.savesCount * 6);
-      // Default recent
       return 0;
     });
 
   return (
     <ErrorBoundary>
-      <div className={`min-h-screen ${isDarkTheme ? 'bg-[#090B0E] text-[#F3F1EC]' : 'bg-[#F8F7F4] text-[#111317]'} transition-colors duration-300 font-sans selection:bg-cyan-500/20 selection:text-cyan-600 dark:selection:text-cyan-200`}>
+      <div className={`min-h-screen bg-transparent ${isDarkTheme ? 'text-[#F5F3EF]' : 'text-[#121316]'} transition-colors duration-300 font-sans selection:bg-ultramarine/30 selection:text-white`}>
         
-        {/* Sticky Global Architectural Header */}
+        {/* Master Atelier Sticky Header */}
         <Header
           activeTab={activeTab}
           onSelectTab={handleSelectTab}
@@ -292,109 +311,48 @@ export function App() {
           onOpenProfileModal={() => setIsProfileModalOpen(true)}
           onOpenAuthModal={() => setIsAuthModalOpen(true)}
           onOpenSearchModal={() => setIsSearchModalOpen(true)}
-          onSelectSavedWorks={() => {
-            setActiveTab('feed');
-            setFilterStatus('saved');
-            showToast('Showing saved works collection');
+          onOpenPublishArtifact={() => {
+            setEditingExhibit(null);
+            setIsNewExhibitOpen(true);
           }}
-          onOpenMessages={() => {
-            showToast('Studio Dispatch Channel: 0 unread messages');
-            setActiveTab('workspace');
-          }}
+          onOpenNewStory={() => setIsNewStoryOpen(true)}
         />
 
-        {/* FRANTOS VAULT Status & Telemetry Sub-Banner */}
-        <div 
-          id="frantos-vault-status-row"
-          className="w-full bg-black/[0.03] dark:bg-white/5 border-b border-black/5 dark:border-white/5 py-2 px-3 sm:px-6 md:px-8"
-        >
-          <div className="max-w-7xl mx-auto flex items-center justify-between text-[11px] font-mono text-[#4A505C] dark:text-zinc-400 gap-3 min-w-0">
-            <div className="flex items-center gap-2 min-w-0 flex-wrap">
-              <span className="w-2 h-2 rounded-full bg-cyan-500 animate-ping flex-shrink-0" />
-              <span className="font-semibold tracking-wider text-[#111317] dark:text-zinc-200 truncate">
-                FRANTOS VAULT // PERSISTENT DEMO MODE
-              </span>
-              <span className="hidden md:inline text-zinc-400 dark:text-zinc-600">•</span>
-              <span className="hidden md:inline truncate">CREATOR: {activeProfile.name.toUpperCase()}</span>
-            </div>
-
-            <div className="flex items-center gap-2.5 sm:gap-3 flex-shrink-0">
-              <span className="hidden xs:inline-block px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono text-[10px] font-bold">
-                LOCAL STORAGE ACTIVE
-              </span>
-              <span className="hidden xs:inline text-zinc-400 dark:text-zinc-600">|</span>
-              <button
-                type="button"
-                onClick={() => setIsAuthModalOpen(true)}
-                className="text-[#4A505C] dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors cursor-pointer text-[11px] font-semibold"
-              >
-                <span>Connect Cloud</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Secondary Action Row directly below FRANTOS VAULT row: Single Primary Publish Control */}
-        <div 
-          id="frantos-secondary-action-row"
-          className="w-full bg-white/75 dark:bg-[#0C0F14]/80 border-b border-black/5 dark:border-white/5 py-2.5 sm:py-3 px-3 sm:px-6 md:px-8 backdrop-blur-md sticky top-16 sm:top-20 z-30 transition-colors"
-        >
-          <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 min-w-0">
-            {/* View Context & Discipline Info */}
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="font-mono text-xs uppercase tracking-wider text-[#4A505C] dark:text-zinc-400 font-semibold truncate hidden sm:inline">
-                Workspace View:
-              </span>
-              <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-xs px-2.5 py-1 rounded-xl bg-black/5 dark:bg-white/10 font-mono text-[#111317] dark:text-white font-semibold truncate">
-                  {activeTab === 'feed' && 'Creative Feed Archive'}
-                  {activeTab === 'workspace' && 'Studio Workspace & Tasks'}
-                  {activeTab === 'moodboard' && 'Spatial Moodboard'}
-                  {activeTab === 'weather' && 'Creative Weather Studio'}
-                </span>
-                {activeDiscipline !== 'all' && (
-                  <span className="hidden md:inline-block text-[11px] px-2.5 py-1 rounded-xl bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 font-mono font-medium border border-cyan-500/20">
-                    {CREATIVE_DISCIPLINES.find((d) => d.id === activeDiscipline)?.label}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* The ONLY Visible Primary Publish Button Entry Point */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <PublishControl
-                onOpenPublishArtifact={() => {
-                  setEditingExhibit(null);
-                  setIsNewExhibitOpen(true);
-                }}
-                onOpenNewStory={() => setIsNewStoryOpen(true)}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Main Application Views */}
-        <main className="w-full pb-16">
+        {/* Main Atelier Spaces (No secondary sub-bars — zero wasted vertical height) */}
+        <main className="w-full pb-24 md:pb-16 min-h-[calc(100vh-5rem)]">
           
-          {/* TAB 1: CREATIVE FEED & EXHIBITS */}
-          {activeTab === 'feed' && (
-            <div className="space-y-12">
+          {/* SPACE 1: ОБЗОР ПРОСТРАНСТВА (OVERVIEW) — Centerpiece artwork + 3D Orbit + Stories + Wips */}
+          {activeTab === 'overview' && (
+            <div className="space-y-4 animate-in fade-in duration-300">
               
-              {/* CORE VISUAL 3D ENGINE */}
+              {/* Atelier Hero Stage (Featured Project Centerpiece + Orbit) */}
               <CreativeCore3D
                 activeDiscipline={activeDiscipline}
                 onSelectDiscipline={setActiveDiscipline}
                 isDarkTheme={isDarkTheme}
+                exhibits={exhibits}
+                onSelectExhibit={handleSelectExhibit}
               />
 
-              {/* STORIES & PROCESS MOMENTS RAIL */}
+              {/* Process Moments & WIP Stories Rail */}
               <StoriesRail
                 stories={stories}
                 onSelectStory={setActiveStory}
                 onOpenNewStory={() => setIsNewStoryOpen(true)}
               />
 
-              {/* RECENTLY VIEWED STRIP */}
+              {/* Continue Working on Active Sprints */}
+              <ContinueWorkingSection
+                exhibits={exhibits}
+                onSelectExhibit={handleSelectExhibit}
+                onOpenWorkspace={() => handleSelectTab('workspace')}
+                onOpenNewWip={() => {
+                  setEditingExhibit(null);
+                  setIsNewExhibitOpen(true);
+                }}
+              />
+
+              {/* Recently Inspected History Strip */}
               <RecentlyViewedStrip
                 recentExhibits={recentlyViewedExhibits}
                 onSelectExhibit={handleSelectExhibit}
@@ -403,138 +361,128 @@ export function App() {
                   setRecentlyViewedIds([]);
                 }}
               />
-
-              {/* CONTINUE WORKING SECTION */}
-              <ContinueWorkingSection
-                exhibits={exhibits}
-                onSelectExhibit={handleSelectExhibit}
-                onOpenWorkspace={() => setActiveTab('workspace')}
-                onOpenNewWip={() => {
-                  setEditingExhibit(null);
-                  setIsNewExhibitOpen(true);
-                }}
-              />
-
-              {/* EXHIBITS STREAM SECTION */}
-              <section 
-                id="frantos-exhibits-stream"
-                className="max-w-7xl mx-auto px-4 md:px-8 pt-4"
-                aria-label="Creative Exhibits and Works in Progress"
-              >
-                {/* Section Header */}
-                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6 border-b border-black/10 dark:border-white/10 pb-4">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="w-2 h-2 rounded-full bg-cyan-500" />
-                      <span className="font-mono text-xs uppercase tracking-wider text-cyan-700 dark:text-cyan-400 font-bold">
-                        Living Archive // Exhibition Feed
-                      </span>
-                    </div>
-                    <h3 className="text-2xl sm:text-3xl font-display font-bold tracking-tight text-[#111317] dark:text-[#F3F1EC]">
-                      {activeDiscipline === 'all'
-                        ? 'All Creative Exhibits & Case Studies'
-                        : `${CREATIVE_DISCIPLINES.find((d) => d.id === activeDiscipline)?.label} Exhibits`}
-                    </h3>
-                  </div>
-
-                  {/* Clear discipline filter action */}
-                  {activeDiscipline !== 'all' && (
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => setActiveDiscipline('all')}
-                        className="px-3 py-1.5 rounded-full text-xs font-mono bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 text-[#111317] dark:text-white flex items-center gap-1.5 transition-colors cursor-pointer border border-black/10 dark:border-transparent"
-                      >
-                        <RotateCcw className="w-3 h-3" />
-                        <span>Clear Discipline</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* FEED FILTERS & SORTING TOOLBAR */}
-                <FeedFiltersToolbar
-                  activeStatus={filterStatus}
-                  onStatusChange={setFilterStatus}
-                  activeSort={sortOption}
-                  onSortChange={setSortOption}
-                  viewMode={viewMode}
-                  onViewModeChange={setViewMode}
-                  totalCount={filteredExhibits.length}
-                />
-
-                {/* Exhibits Masonry / Gallery Grid */}
-                <div className="space-y-8 mt-6">
-                  {/* Grid Display */}
-                  <div className={`grid gap-6 ${
-                    viewMode === 'dense'
-                      ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-                      : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
-                  }`}>
-                    {filteredExhibits.map((ex, index) => (
-                      <ProjectExhibitCard
-                        key={ex.id}
-                        exhibit={ex}
-                        onSelect={handleSelectExhibit}
-                        onToggleLike={handleToggleLike}
-                        onToggleSave={handleToggleSave}
-                        onPinToMoodboard={handlePinToMoodboard}
-                        onSendToWorkspace={handleSendToWorkspace}
-                        onEditExhibit={handleEditExhibit}
-                        onDeleteExhibit={handleDeleteExhibit}
-                        activeUserId={activeProfile.id}
-                      />
-                    ))}
-                  </div>
-
-                  {/* Empty state */}
-                  {filteredExhibits.length === 0 && (
-                    <div className="p-16 rounded-3xl border border-dashed border-black/15 dark:border-white/10 text-center space-y-3 bg-black/[0.02] dark:bg-white/[0.02]">
-                      <p className="text-[#4A505C] dark:text-zinc-400 font-mono text-sm">
-                        No creative exhibits matched your filter criteria.
-                      </p>
-                      <div className="flex justify-center gap-3 pt-2">
-                        <button
-                          onClick={() => {
-                            setActiveDiscipline('all');
-                            setFilterStatus('all');
-                            setSearchQuery('');
-                          }}
-                          className="px-4 py-2 rounded-full bg-cyan-500 hover:bg-cyan-400 text-black font-semibold text-xs font-mono cursor-pointer shadow-md"
-                        >
-                          Reset All Filters
-                        </button>
-                        <button
-                          onClick={() => {
-                            setEditingExhibit(null);
-                            setIsNewExhibitOpen(true);
-                          }}
-                          className="px-4 py-2 rounded-full bg-black/10 dark:bg-white/10 text-[#111317] dark:text-white font-mono text-xs cursor-pointer"
-                        >
-                          Publish First Exhibit
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </section>
             </div>
           )}
 
-          {/* TAB 2: STUDIO WORKSPACE */}
+          {/* SPACE 2: КАТАЛОГ ПРОЕКТОВ (CATALOG) — Visual Editorial Exhibition */}
+          {activeTab === 'catalog' && (
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-in fade-in duration-300 space-y-8">
+              
+              {/* Visual Catalogue Masthead */}
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-black/8 dark:border-white/8 pb-6">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="w-2 h-2 rounded-full bg-ultramarine" />
+                    <span className="font-mono text-xs uppercase tracking-widest text-ultramarine font-semibold">
+                      {t.catalog.mastheadBadge}
+                    </span>
+                  </div>
+                  <h2 className="text-2xl sm:text-3xl lg:text-4xl font-display font-black tracking-tight text-[#121316] dark:text-[#F5F3EF]">
+                    {activeDiscipline === 'all'
+                      ? t.catalog.titleAll
+                      : `${CREATIVE_DISCIPLINES.find((d) => d.id === activeDiscipline)?.label} ${t.catalog.titleDiscipline}`}
+                  </h2>
+                  <p className="text-xs sm:text-sm text-[#52555F] dark:text-[#A3A099] mt-1.5 max-w-xl">
+                    {t.catalog.subtitle}
+                  </p>
+                </div>
+
+                {/* Reset Discipline Action */}
+                {activeDiscipline !== 'all' && (
+                  <button
+                    onClick={() => setActiveDiscipline('all')}
+                    className="min-h-[44px] px-4 py-2 rounded-full text-xs font-mono bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 text-[#121316] dark:text-white flex items-center gap-2 transition-colors cursor-pointer border border-black/8 dark:border-transparent self-start md:self-auto touch-manipulation"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>{t.catalog.allDisciplines}</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Catalog Filter & Sort Toolbar */}
+              <FeedFiltersToolbar
+                activeStatus={filterStatus}
+                onStatusChange={setFilterStatus}
+                activeSort={sortOption}
+                onSortChange={setSortOption}
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+                totalCount={filteredExhibits.length}
+              />
+
+              {/* Unboxed Project Exhibit Plates (1-2 columns on mobile, 3-4 on desktop) */}
+              <div className="space-y-8">
+                <div className={`grid gap-8 ${
+                  viewMode === 'dense'
+                    ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+                    : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+                }`}>
+                  {filteredExhibits.map((ex) => (
+                    <ProjectExhibitCard
+                      key={ex.id}
+                      exhibit={ex}
+                      onSelect={handleSelectExhibit}
+                      onToggleLike={handleToggleLike}
+                      onToggleSave={handleToggleSave}
+                      onPinToMoodboard={handlePinToMoodboard}
+                      onSendToWorkspace={handleSendToWorkspace}
+                      onEditExhibit={handleEditExhibit}
+                      onDeleteExhibit={handleDeleteExhibit}
+                      activeUserId={activeProfile.id}
+                    />
+                  ))}
+                </div>
+
+                {/* Empty State */}
+                {filteredExhibits.length === 0 && (
+                  <div className="p-16 rounded-3xl border border-dashed border-black/15 dark:border-white/10 text-center space-y-4 bg-black/[0.02] dark:bg-white/[0.02]">
+                    <p className="text-[#52555F] dark:text-[#A3A099] font-mono text-sm">
+                      {t.catalog.emptyTitle}
+                    </p>
+                    <div className="flex flex-wrap justify-center gap-3 pt-2">
+                      <button
+                        onClick={() => {
+                          setActiveDiscipline('all');
+                          setFilterStatus('all');
+                          setSearchQuery('');
+                        }}
+                        className="min-h-[44px] px-5 py-2.5 rounded-full bg-ultramarine hover:bg-ultramarine/90 text-white font-semibold text-xs font-mono cursor-pointer shadow-md touch-manipulation"
+                      >
+                        {t.catalog.resetFilters}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingExhibit(null);
+                          setIsNewExhibitOpen(true);
+                        }}
+                        className="min-h-[44px] px-5 py-2.5 rounded-full bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 text-[#121316] dark:text-white font-mono text-xs cursor-pointer touch-manipulation transition-colors"
+                      >
+                        {t.catalog.publishFirst}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* SPACE 3: СТОЛ СПРИНТОВ (WORKSPACE) — Art Director's Kanban Desk */}
           {activeTab === 'workspace' && (
             <WorkspaceView tasks={tasks} onUpdateTasks={handleUpdateTasks} />
           )}
 
-          {/* TAB 3: SPATIAL MOODBOARD */}
+          {/* SPACE 4: МУДБОРД (MOODBOARD) — Viewport Canvas with Floating Tools */}
           {activeTab === 'moodboard' && (
             <MoodboardCanvas items={moodboardItems} onUpdateItems={handleUpdateMoodboard} />
           )}
 
-          {/* TAB 4: CREATIVE WEATHER */}
-          {activeTab === 'weather' && <CreativeWeatherWidget />}
+          {/* SPACE 5: АТМОСФЕРА (ATMOSPHERE) — Acoustic Field & Synthesizer */}
+          {activeTab === 'atmosphere' && (
+            <CreativeWeatherWidget />
+          )}
         </main>
 
-        {/* Global Architectural Studio Footer */}
+        {/* Global Studio Footer */}
         <Footer />
 
         {/* Global Modals */}
@@ -548,6 +496,7 @@ export function App() {
             onSendToWorkspace={handleSendToWorkspace}
             onEditExhibit={handleEditExhibit}
             onDeleteExhibit={handleDeleteExhibit}
+            activeProfile={activeProfile}
             activeUserId={activeProfile.id}
           />
         )}
@@ -617,7 +566,7 @@ export function App() {
             }}
             onSelectDiscipline={(d) => {
               setActiveDiscipline(d);
-              setActiveTab('feed');
+              handleSelectTab('catalog');
               setIsSearchModalOpen(false);
             }}
             onSelectProfile={(p) => {
@@ -625,21 +574,325 @@ export function App() {
               setIsSearchModalOpen(false);
             }}
             onSelectTab={(tab) => {
-              setActiveTab(tab);
+              if (tab === 'feed') handleSelectTab('overview');
+              else if (tab === 'workspace' || tab === 'moodboard') handleSelectTab(tab);
+              else if (tab === 'weather') handleSelectTab('atmosphere');
               setIsSearchModalOpen(false);
             }}
           />
         )}
 
+        {/* Stable Mobile Bottom Navigation Bar (Thumb friendly, all >= 44px) */}
+        <nav
+          id="mobile-bottom-navigation-bar"
+          aria-label={language === 'ru' ? 'Навигация студии' : 'Studio Navigation'}
+          className={`md:hidden fixed bottom-0 left-0 right-0 z-40 backdrop-blur-xl border-t pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] px-2.5 pt-2 shadow-2xl transition-colors select-none ${
+            isDarkTheme ? 'bg-[#090B10]/95 border-white/10' : 'bg-[#F8F7F4]/95 border-black/10'
+          }`}
+        >
+          <div className="flex items-center justify-around max-w-lg mx-auto">
+            {/* 1. Обзор */}
+            <button
+              type="button"
+              onClick={() => handleSelectTab('overview')}
+              className={`min-h-[44px] min-w-[50px] flex flex-col items-center justify-center gap-1 rounded-xl cursor-pointer transition-colors touch-manipulation ${
+                activeTab === 'overview'
+                  ? 'text-ultramarine font-bold'
+                  : isDarkTheme ? 'text-[#8E929E] hover:text-white' : 'text-[#6B7280] hover:text-[#121316]'
+              }`}
+              aria-label={t.mobileNav.overview}
+            >
+              <Compass className="w-5 h-5 flex-shrink-0" />
+              <span className="text-[10px] font-mono leading-none tracking-tight">{t.mobileNav.overview}</span>
+            </button>
+
+            {/* 2. Каталог */}
+            <button
+              type="button"
+              onClick={() => handleSelectTab('catalog')}
+              className={`min-h-[44px] min-w-[50px] flex flex-col items-center justify-center gap-1 rounded-xl cursor-pointer transition-colors touch-manipulation ${
+                activeTab === 'catalog'
+                  ? 'text-ultramarine font-bold'
+                  : isDarkTheme ? 'text-[#8E929E] hover:text-white' : 'text-[#6B7280] hover:text-[#121316]'
+              }`}
+              aria-label={t.mobileNav.catalog}
+            >
+              <Grid className="w-5 h-5 flex-shrink-0" />
+              <span className="text-[10px] font-mono leading-none tracking-tight">{t.mobileNav.catalog}</span>
+            </button>
+
+            {/* 3. Центральная кнопка создания (+) */}
+            <button
+              type="button"
+              onClick={() => setIsMobilePublishSheetOpen(true)}
+              className="min-h-[48px] min-w-[48px] w-12 h-12 rounded-full bg-ultramarine hover:bg-ultramarine/90 text-white flex items-center justify-center shadow-lg shadow-ultramarine/30 cursor-pointer -mt-5 active:scale-95 transition-transform touch-manipulation"
+              aria-label={t.mobileNav.createAria}
+              title={t.mobileNav.createAria}
+            >
+              <Plus className="w-6 h-6 stroke-[2.5]" />
+            </button>
+
+            {/* 4. Холст (Moodboard Canvas) */}
+            <button
+              type="button"
+              onClick={() => handleSelectTab('moodboard')}
+              className={`min-h-[44px] min-w-[50px] flex flex-col items-center justify-center gap-1 rounded-xl cursor-pointer transition-colors touch-manipulation ${
+                activeTab === 'moodboard'
+                  ? 'text-ultramarine font-bold'
+                  : isDarkTheme ? 'text-[#8E929E] hover:text-white' : 'text-[#6B7280] hover:text-[#121316]'
+              }`}
+              aria-label={t.mobileNav.canvas}
+            >
+              <Layers className="w-5 h-5 flex-shrink-0" />
+              <span className="text-[10px] font-mono leading-none tracking-tight">{t.mobileNav.canvas}</span>
+            </button>
+
+            {/* 5. Ещё (More / Sprints / Atmosphere) */}
+            <button
+              type="button"
+              onClick={() => setIsMoreSpacesSheetOpen(true)}
+              className={`min-h-[44px] min-w-[50px] flex flex-col items-center justify-center gap-1 rounded-xl cursor-pointer transition-colors touch-manipulation ${
+                activeTab === 'workspace' || activeTab === 'atmosphere'
+                  ? 'text-ultramarine font-bold'
+                  : isDarkTheme ? 'text-[#8E929E] hover:text-white' : 'text-[#6B7280] hover:text-[#121316]'
+              }`}
+              aria-label={t.mobileNav.more}
+            >
+              {activeTab === 'workspace' ? (
+                <FolderKanban className="w-5 h-5 flex-shrink-0 text-ultramarine" />
+              ) : activeTab === 'atmosphere' ? (
+                <Activity className="w-5 h-5 flex-shrink-0 text-ultramarine" />
+              ) : (
+                <MoreHorizontal className="w-5 h-5 flex-shrink-0" />
+              )}
+              <span className="text-[10px] font-mono leading-none tracking-tight">
+                {activeTab === 'workspace'
+                  ? t.mobileNav.sprints
+                  : activeTab === 'atmosphere'
+                  ? t.mobileNav.atmosphere
+                  : t.mobileNav.more}
+              </span>
+            </button>
+          </div>
+        </nav>
+
+        {/* Mobile Additional Spaces Bottom Sheet («Ещё») */}
+        {isMoreSpacesSheetOpen && (
+          <div
+            id="mobile-more-spaces-sheet-backdrop"
+            className="md:hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end justify-center animate-in fade-in duration-200"
+            role="dialog"
+            aria-modal="true"
+            aria-label={t.mobileNav.moreSpaces}
+            onClick={() => setIsMoreSpacesSheetOpen(false)}
+          >
+            <div
+              id="mobile-more-spaces-sheet-card"
+              className={`w-full max-w-full rounded-t-3xl border-t p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] shadow-2xl space-y-4 ${
+                isDarkTheme ? 'bg-[#0E1015] border-white/15 text-white' : 'bg-[#FFFFFF] border-black/15 text-[#121316]'
+              }`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-black/10 dark:border-white/10">
+                <span className="text-[11px] font-mono uppercase tracking-widest text-ultramarine font-bold">
+                  {t.mobileNav.moreSpaces}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsMoreSpacesSheetOpen(false)}
+                  className="w-10 h-10 rounded-full bg-black/5 dark:bg-white/10 text-[#121316]/80 dark:text-white/80 hover:text-black dark:hover:text-white flex items-center justify-center cursor-pointer touch-manipulation"
+                  aria-label={t.common.close}
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-2.5">
+                {/* 1. Спринты производства */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleSelectTab('workspace');
+                    setIsMoreSpacesSheetOpen(false);
+                  }}
+                  className={`w-full flex items-start gap-4 p-4 rounded-2xl border text-left active:scale-[0.99] transition-all min-h-[56px] cursor-pointer touch-manipulation ${
+                    activeTab === 'workspace'
+                      ? 'bg-ultramarine/15 border-ultramarine/40'
+                      : isDarkTheme ? 'bg-[#141720] border-white/10' : 'bg-[#F4F3F0] border-black/10'
+                  }`}
+                >
+                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                    activeTab === 'workspace'
+                      ? 'bg-ultramarine text-white'
+                      : 'bg-ultramarine/20 border border-ultramarine/40 text-ultramarine'
+                  }`}>
+                    <FolderKanban className="w-5 h-5 stroke-[2]" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold text-[#121316] dark:text-white flex items-center justify-between">
+                      <span>{t.nav.workspace}</span>
+                      {activeTab === 'workspace' && <span className="text-[10px] font-mono text-ultramarine font-bold uppercase tracking-wider">Active</span>}
+                    </div>
+                    <p className="text-xs text-[#52555F] dark:text-[#A3A099] mt-0.5">
+                      {language === 'ru' ? 'Канбан-доска стадий и производственный пайплайн' : 'Kanban desk and production sprint pipeline'}
+                    </p>
+                  </div>
+                </button>
+
+                {/* 2. Атмосфера и акустическое поле */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleSelectTab('atmosphere');
+                    setIsMoreSpacesSheetOpen(false);
+                  }}
+                  className={`w-full flex items-start gap-4 p-4 rounded-2xl border text-left active:scale-[0.99] transition-all min-h-[56px] cursor-pointer touch-manipulation ${
+                    activeTab === 'atmosphere'
+                      ? 'bg-indigo-500/15 border-indigo-500/40'
+                      : isDarkTheme ? 'bg-[#141720] border-white/10' : 'bg-[#F4F3F0] border-black/10'
+                  }`}
+                >
+                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                    activeTab === 'atmosphere'
+                      ? 'bg-indigo-500 text-white'
+                      : 'bg-indigo-500/20 border border-indigo-500/40 text-indigo-500 dark:text-indigo-400'
+                  }`}>
+                    <Activity className="w-5 h-5 stroke-[2]" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold text-[#121316] dark:text-white flex items-center justify-between">
+                      <span>{t.nav.atmosphere}</span>
+                      {activeTab === 'atmosphere' && <span className="text-[10px] font-mono text-indigo-400 font-bold uppercase tracking-wider">Active</span>}
+                    </div>
+                    <p className="text-xs text-[#52555F] dark:text-[#A3A099] mt-0.5">
+                      {language === 'ru' ? 'Бинауральный тон 528 Гц и биометрия фокуса' : '528Hz acoustic field and flow focus biometrics'}
+                    </p>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Mobile Publish Bottom Action Sheet (Central «+» button) */}
+        {isMobilePublishSheetOpen && (
+          <div
+            id="mobile-publish-sheet-backdrop"
+            className="md:hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end justify-center animate-in fade-in duration-200"
+            role="dialog"
+            aria-modal="true"
+            aria-label={t.mobileNav.sheetTitle}
+            onClick={() => setIsMobilePublishSheetOpen(false)}
+          >
+            <div
+              id="mobile-publish-sheet-card"
+              className={`w-full max-w-full rounded-t-3xl border-t p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] shadow-2xl space-y-4 ${
+                isDarkTheme ? 'bg-[#0E1015] border-white/15 text-white' : 'bg-[#FFFFFF] border-black/15 text-[#121316]'
+              }`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-black/10 dark:border-white/10">
+                <span className="text-[11px] font-mono uppercase tracking-widest text-ultramarine font-bold">
+                  {t.mobileNav.sheetTitle}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsMobilePublishSheetOpen(false)}
+                  className="w-10 h-10 rounded-full bg-black/5 dark:bg-white/10 text-[#121316]/80 dark:text-white/80 hover:text-black dark:hover:text-white flex items-center justify-center cursor-pointer touch-manipulation"
+                  aria-label={t.mobileNav.sheetClose}
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-2.5">
+                {/* 1. Опубликовать проект в каталог */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMobilePublishSheetOpen(false);
+                    setEditingExhibit(null);
+                    setIsNewExhibitOpen(true);
+                  }}
+                  className={`w-full flex items-start gap-4 p-4 rounded-2xl border text-left active:scale-[0.99] transition-all min-h-[56px] cursor-pointer touch-manipulation ${
+                    isDarkTheme ? 'bg-[#141720] border-white/10' : 'bg-[#F4F3F0] border-black/10'
+                  }`}
+                >
+                  <div className="w-11 h-11 rounded-xl bg-ultramarine/20 border border-ultramarine/40 text-ultramarine flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="w-5 h-5 stroke-[2]" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-[#121316] dark:text-white">
+                      {t.mobileNav.publishProject}
+                    </div>
+                    <p className="text-xs text-[#52555F] dark:text-[#A3A099] mt-0.5">
+                      {t.mobileNav.publishProjectDesc}
+                    </p>
+                  </div>
+                </button>
+
+                {/* 2. Транслировать момент процесса */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMobilePublishSheetOpen(false);
+                    setIsNewStoryOpen(true);
+                  }}
+                  className={`w-full flex items-start gap-4 p-4 rounded-2xl border text-left active:scale-[0.99] transition-all min-h-[56px] cursor-pointer touch-manipulation ${
+                    isDarkTheme ? 'bg-[#141720] border-white/10' : 'bg-[#F4F3F0] border-black/10'
+                  }`}
+                >
+                  <div className="w-11 h-11 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-500 dark:text-emerald-400 flex items-center justify-center flex-shrink-0">
+                    <Send className="w-5 h-5 stroke-[2]" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-[#121316] dark:text-white">
+                      {t.mobileNav.broadcastMoment}
+                    </div>
+                    <p className="text-xs text-[#52555F] dark:text-[#A3A099] mt-0.5">
+                      {t.mobileNav.broadcastMomentDesc}
+                    </p>
+                  </div>
+                </button>
+
+                {/* 3. Добавить на холст */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMobilePublishSheetOpen(false);
+                    handleSelectTab('moodboard');
+                  }}
+                  className={`w-full flex items-start gap-4 p-4 rounded-2xl border text-left active:scale-[0.99] transition-all min-h-[56px] cursor-pointer touch-manipulation ${
+                    isDarkTheme ? 'bg-[#141720] border-white/10' : 'bg-[#F4F3F0] border-black/10'
+                  }`}
+                >
+                  <div className="w-11 h-11 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-500 dark:text-amber-400 flex items-center justify-center flex-shrink-0">
+                    <Layers className="w-5 h-5 stroke-[2]" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-[#121316] dark:text-white">
+                      {language === 'ru' ? 'Закрепить образ на холст' : 'Pin Asset to Canvas'}
+                    </div>
+                    <p className="text-xs text-[#52555F] dark:text-[#A3A099] mt-0.5">
+                      {language === 'ru' ? 'Добавить референс, заметку или цветовую палитру' : 'Add reference, note, or color palette'}
+                    </p>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Dynamic Toast Feedback Bar */}
         {toastMessage && (
-          <div className="fixed bottom-6 right-6 z-50 px-4 py-2.5 rounded-2xl bg-[#0F1218] border border-cyan-500/40 text-white text-xs font-mono shadow-2xl flex items-center gap-2 animate-in slide-in-from-bottom-5 duration-200">
-            <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-            <span>{toastMessage}</span>
+          <div className="fixed bottom-20 md:bottom-6 right-4 sm:right-6 z-50 px-4 py-3 rounded-2xl bg-[#0E1015] border border-ultramarine/40 text-[#F5F3EF] text-xs font-mono shadow-2xl flex items-center gap-2.5 animate-in slide-in-from-bottom-5 duration-200">
+            <Sparkles className="w-4 h-4 text-ultramarine flex-shrink-0" />
+            <span className="truncate">{toastMessage}</span>
           </div>
         )}
       </div>
     </ErrorBoundary>
   );
 }
+
 export default App;

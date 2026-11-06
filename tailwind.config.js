@@ -31,11 +31,19 @@ export default {
           accent: {
             motion: '#F43F5E',
             '3d': '#06B6D4',
-            brand: '#EAB308',
+            brand: '#386BF6',
+            ultramarine: '#386BF6',
             ui: '#8B5CF6',
             web: '#10B981',
             sound: '#F97316',
           },
+        },
+        ultramarine: {
+          DEFAULT: '#386BF6',
+          hover: '#2554E8',
+          subtle: 'rgba(56, 107, 246, 0.12)',
+          dark: '#1D4ED8',
+          light: '#2563EB',
         },
       },
       fontFamily: {

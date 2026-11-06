@@ -1,19 +1,15 @@
 import React from 'react';
 import { 
-  CreativeDiscipline, 
-  ProjectStatusFilter 
-} from '../../types';
-import { 
   Sparkles, 
   Hammer, 
   Bookmark, 
   User, 
   Layers, 
   Grid, 
-  ListFilter, 
-  ArrowUpDown,
-  RotateCcw
+  LayoutGrid,
+  ArrowUpDown
 } from 'lucide-react';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 export type FilterStatus = 'all' | 'finished' | 'wip' | 'saved' | 'mine';
 export type SortOption = 'recent' | 'likes' | 'saves' | 'views';
@@ -37,88 +33,96 @@ export const FeedFiltersToolbar: React.FC<FeedFiltersToolbarProps> = ({
   onViewModeChange,
   totalCount,
 }) => {
+  const { t, formatNumber } = useLanguage();
+
   const statusOptions: { id: FilterStatus; label: string; icon: React.FC<{ className?: string }> }[] = [
-    { id: 'all', label: 'All Artifacts', icon: Layers },
-    { id: 'finished', label: 'Finished Case Studies', icon: Sparkles },
-    { id: 'wip', label: 'WIP & Sprints', icon: Hammer },
-    { id: 'saved', label: 'Saved Vault', icon: Bookmark },
-    { id: 'mine', label: 'My Creations', icon: User },
+    { id: 'all', label: t.catalog.filterAll, icon: Layers },
+    { id: 'finished', label: t.catalog.filterFinished, icon: Sparkles },
+    { id: 'wip', label: t.catalog.filterWip, icon: Hammer },
+    { id: 'saved', label: t.catalog.filterSaved, icon: Bookmark },
+    { id: 'mine', label: t.catalog.filterMine, icon: User },
   ];
 
   return (
     <div
-      id="feed-filters-toolbar"
-      className="w-full space-y-3"
+      id="catalog-filters-toolbar"
+      className="w-full space-y-3 pb-2 select-none"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
-        {/* Status Chips */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+        {/* Real Segmented Controller */}
+        <div className="inline-flex items-center p-1 rounded-full bg-black/5 dark:bg-white/5 border border-black/8 dark:border-white/8 overflow-x-auto no-scrollbar max-w-full">
           {statusOptions.map((opt) => {
             const Icon = opt.icon;
             const isActive = activeStatus === opt.id;
             return (
               <button
                 key={opt.id}
+                type="button"
                 onClick={() => onStatusChange(opt.id)}
-                className={`px-3 py-1.5 rounded-full text-xs font-mono font-medium transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                className={`min-h-[40px] px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-mono font-medium transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap touch-manipulation ${
                   isActive
-                    ? 'bg-cyan-500 text-black font-bold shadow-sm'
-                    : 'bg-black/5 dark:bg-white/5 text-[#4A505C] dark:text-zinc-300 hover:bg-black/10 dark:hover:bg-white/10'
+                    ? 'bg-ultramarine text-white font-bold shadow-sm shadow-ultramarine/25'
+                    : 'text-[#52555F] dark:text-[#A3A099] hover:text-[#121316] dark:hover:text-white'
                 }`}
+                aria-pressed={isActive}
               >
-                <Icon className="w-3.5 h-3.5" />
+                <Icon className="w-3.5 h-3.5 flex-shrink-0" />
                 <span>{opt.label}</span>
               </button>
             );
           })}
         </div>
 
-        {/* Right side: Sort + View Mode + Count */}
-        <div className="flex items-center gap-3">
+        {/* Right side: Sort + View Layout + Count */}
+        <div className="flex items-center gap-2.5 sm:gap-3 flex-shrink-0">
           {/* Sorting dropdown */}
           <div className="flex items-center gap-1.5 text-xs font-mono">
             <ArrowUpDown className="w-3.5 h-3.5 text-zinc-500" />
             <select
               value={activeSort}
               onChange={(e) => onSortChange(e.target.value as SortOption)}
-              className="px-3 py-1.5 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-xs font-mono text-[#111317] dark:text-[#F3F1EC] focus:outline-none focus:border-cyan-500 cursor-pointer"
+              className="min-h-[40px] px-3 py-1.5 rounded-full bg-white dark:bg-[#0E1015] border border-black/10 dark:border-white/10 text-xs font-mono text-[#121316] dark:text-[#F5F3EF] focus:outline-none focus:border-ultramarine cursor-pointer shadow-xs"
             >
-              <option value="recent" className="bg-white dark:bg-zinc-900">Sort: Recent First</option>
-              <option value="likes" className="bg-white dark:bg-zinc-900">Sort: Most Liked</option>
-              <option value="saves" className="bg-white dark:bg-zinc-900">Sort: Most Saved</option>
-              <option value="views" className="bg-white dark:bg-zinc-900">Sort: Most Viewed</option>
+              <option value="recent" className="bg-white dark:bg-zinc-900">{t.catalog.sortRecent}</option>
+              <option value="likes" className="bg-white dark:bg-zinc-900">{t.catalog.sortLikes}</option>
+              <option value="saves" className="bg-white dark:bg-zinc-900">{t.catalog.sortSaves}</option>
+              <option value="views" className="bg-white dark:bg-zinc-900">{t.catalog.sortViews}</option>
             </select>
           </div>
 
-          {/* View mode toggle */}
-          <div className="flex items-center p-0.5 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10">
+          {/* View Mode Toggle */}
+          <div className="hidden sm:flex items-center p-0.5 rounded-full bg-white dark:bg-[#0E1015] border border-black/10 dark:border-white/10 shadow-xs">
             <button
+              type="button"
               onClick={() => onViewModeChange('grid')}
-              className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+              className={`min-w-[36px] min-h-[36px] p-2 rounded-full transition-all cursor-pointer flex items-center justify-center ${
                 viewMode === 'grid'
-                  ? 'bg-white dark:bg-zinc-800 text-cyan-600 dark:text-cyan-400 shadow-xs'
+                  ? 'bg-ultramarine text-white font-bold shadow-xs'
                   : 'text-zinc-500 hover:text-black dark:hover:text-white'
               }`}
-              title="Editorial Grid View"
+              title={t.catalog.viewGrid}
+              aria-label={t.catalog.viewGrid}
             >
-              <Grid className="w-3.5 h-3.5" />
+              <Grid className="w-4 h-4" />
             </button>
             <button
+              type="button"
               onClick={() => onViewModeChange('dense')}
-              className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+              className={`min-w-[36px] min-h-[36px] p-2 rounded-full transition-all cursor-pointer flex items-center justify-center ${
                 viewMode === 'dense'
-                  ? 'bg-white dark:bg-zinc-800 text-cyan-600 dark:text-cyan-400 shadow-xs'
+                  ? 'bg-ultramarine text-white font-bold shadow-xs'
                   : 'text-zinc-500 hover:text-black dark:hover:text-white'
               }`}
-              title="Compact Gallery View"
+              title={t.catalog.viewDense}
+              aria-label={t.catalog.viewDense}
             >
-              <ListFilter className="w-3.5 h-3.5" />
+              <LayoutGrid className="w-4 h-4" />
             </button>
           </div>
 
-          {/* Count */}
-          <span className="font-mono text-xs text-[#4A505C] dark:text-zinc-400 hidden sm:inline">
-            {totalCount} Items
+          {/* Total works count */}
+          <span className="font-mono text-xs text-[#848792] dark:text-[#6B6861] hidden md:inline">
+            {t.catalog.countLabel} {formatNumber(totalCount)}
           </span>
         </div>
       </div>

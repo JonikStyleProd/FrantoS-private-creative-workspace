@@ -4,29 +4,87 @@
 
 @layer base {
   :root {
-    --bg-primary: #F8F7F4;
-    --bg-surface: #FFFFFF;
-    --text-primary: #111317;
-    --text-secondary: #4A505C;
+    --bg-primary: #F5F4F0;
+    --bg-surface: rgba(255, 255, 255, 0.94);
+    --bg-surface-solid: #FFFFFF;
+    --bg-elevated: #EDECE6;
+    --text-primary: #121316;
+    --text-secondary: #4B4F58;
+    --text-muted: #7A7E8A;
     --border-subtle: rgba(0, 0, 0, 0.08);
+    --border-strong: rgba(0, 0, 0, 0.16);
+    --accent-primary: #386BF6;
+    --accent-hover: #2251D8;
+    --accent-subtle: rgba(56, 107, 246, 0.1);
+    
+    /* Header background in Light Mode: high-density milky-white */
+    --header-bg: rgba(248, 247, 244, 0.94);
+    --header-border: rgba(0, 0, 0, 0.08);
+    --logo-color: #111317;
   }
 
   html.dark {
-    --bg-primary: #090B0E;
-    --bg-surface: #11141A;
-    --text-primary: #F3F1EC;
-    --text-secondary: #A0A6B2;
+    --bg-primary: #07080E;
+    --bg-surface: rgba(14, 16, 22, 0.9);
+    --bg-surface-solid: #0E1015;
+    --bg-elevated: #151822;
+    --text-primary: #F5F3EF;
+    --text-secondary: #A3A099;
+    --text-muted: #6B6861;
     --border-subtle: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.16);
+    --accent-primary: #386BF6;
+    --accent-hover: #4F7DF8;
+    --accent-subtle: rgba(56, 107, 246, 0.18);
+    
+    /* Header background in Dark Mode: high-density graphite */
+    --header-bg: rgba(9, 11, 16, 0.94);
+    --header-border: rgba(255, 255, 255, 0.08);
+    --logo-color: #F5F3EF;
   }
 
   body {
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-    background-color: var(--bg-primary);
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
     color: var(--text-primary);
-    transition: background-color 0.3s ease, color 0.3s ease;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: color 0.25s ease;
   }
 
-  /* Custom Scrollbar */
+  /* Multi-layer Gradient Background for Light Theme */
+  html.light, html.light body, body {
+    background-color: #f5f6fb;
+    background-image:
+      radial-gradient(ellipse at 5% 8%, rgba(150, 180, 255, 0.42), transparent 55%),
+      radial-gradient(ellipse at 95% 30%, rgba(210, 160, 245, 0.34), transparent 58%),
+      radial-gradient(ellipse at 30% 95%, rgba(140, 225, 220, 0.30), transparent 55%);
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    background-size: cover;
+  }
+
+  /* Multi-layer Gradient Background for Dark Theme */
+  html.dark, html.dark body {
+    background-color: #090d18;
+    background-image:
+      radial-gradient(ellipse at 8% 10%, rgba(70, 85, 220, 0.30), transparent 55%),
+      radial-gradient(ellipse at 90% 35%, rgba(145, 55, 215, 0.25), transparent 58%),
+      radial-gradient(ellipse at 35% 95%, rgba(0, 150, 165, 0.20), transparent 55%);
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    background-size: cover;
+  }
+
+  /* Accessible visible focus across all interactive elements */
+  :focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--accent-primary);
+  }
+
+  /* Custom Clean Scrollbar */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -37,54 +95,61 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgba(120, 120, 140, 0.25);
+    background: rgba(140, 140, 160, 0.2);
     border-radius: 9999px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(120, 120, 140, 0.45);
+    background: rgba(140, 140, 160, 0.35);
   }
 }
 
-/* Glassmorphism & Material Utilities */
-.glass-panel {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+/* Safe-area insets for modern mobile devices (iOS / Android) */
+@supports (padding: max(0px)) {
+  .pb-safe {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+  }
+  .pt-safe {
+    padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
+  }
+}
+
+/* Minimum 44x44px touch targets */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Surface Utility: clean unboxed studio plates with subtle border */
+.studio-surface {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+}
+
+.dark .studio-surface {
+  box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.35);
+}
+
+/* Glassmorphism & Architectural Surface Utilities */
+.studio-panel {
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
-.dark .glass-panel {
-  background: rgba(17, 20, 26, 0.7);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+.dark .studio-panel {
+  background: rgba(14, 16, 22, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.acrylic-card {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(245, 243, 238, 0.8) 100%);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-}
-
-.dark .acrylic-card {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Subtle Film Grain Overlay */
-.bg-grain {
-  background-image: radial-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 0);
-  background-size: 24px 24px;
-}
-
-.dark .bg-grain {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 0);
-  background-size: 24px 24px;
-}
-
-/* Hide scrollbar for clean rails */
+/* Clean rail scrollbar hiding */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -93,85 +158,26 @@
   scrollbar-width: none;
 }
 
-/* ============================================================
-   PREMIUM ANIMATED FRAMES FOR BLOCKS & CARDS
-   ============================================================ */
-
-.frantos-animated-frame {
-  position: relative;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+/* JonikStyle Production Logo Glow Filters */
+.js-logo-dark {
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.85))
+          drop-shadow(0 0 8px rgba(230, 240, 255, 0.60))
+          drop-shadow(0 0 18px rgba(190, 215, 255, 0.35));
+  transition: filter 0.25s ease;
 }
 
-.frantos-animated-frame::before {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(
-    135deg,
-    rgba(6, 182, 212, 0) 0%,
-    rgba(6, 182, 212, 0.15) 50%,
-    rgba(139, 92, 246, 0) 100%
-  );
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-  opacity: 0.4;
-  transition: opacity 0.4s ease, background 0.4s ease;
-  z-index: 1;
+.js-logo-dark:hover {
+  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.95))
+          drop-shadow(0 0 10px rgba(230, 240, 255, 0.75))
+          drop-shadow(0 0 22px rgba(190, 215, 255, 0.45));
 }
 
-.frantos-animated-frame:hover::before,
-.frantos-animated-frame:focus-within::before {
-  opacity: 1;
-  background: linear-gradient(
-    135deg,
-    rgba(6, 182, 212, 0.4) 0%,
-    rgba(14, 165, 233, 0.8) 50%,
-    rgba(139, 92, 246, 0.4) 100%
-  );
+.js-logo-light {
+  filter: none;
+  transition: filter 0.25s ease;
 }
 
-.dark .frantos-animated-frame:hover::before,
-.dark .frantos-animated-frame:focus-within::before {
-  background: linear-gradient(
-    135deg,
-    rgba(6, 182, 212, 0.6) 0%,
-    rgba(56, 189, 248, 0.9) 50%,
-    rgba(168, 85, 247, 0.6) 100%
-  );
-}
-
-/* Active Highlight Border Glow */
-.frantos-active-glow {
-  box-shadow: 0 0 20px -4px rgba(6, 182, 212, 0.25);
-}
-.dark .frantos-active-glow {
-  box-shadow: 0 0 28px -4px rgba(6, 182, 212, 0.35);
-}
-
-/* Subtle corner accent animations */
-.corner-accent {
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  border-color: rgba(6, 182, 212, 0.3);
-  transition: all 0.3s ease;
-  pointer-events: none;
-  z-index: 2;
-}
-.group:hover .corner-accent {
-  border-color: rgba(6, 182, 212, 0.9);
-  width: 12px;
-  height: 12px;
-}
-
-/* ============================================================
-   HEART MICRO-INTERACTIONS & PARTICLES
-   ============================================================ */
-
+/* Heart pop micro-interaction */
 @keyframes heartPop {
   0% { transform: scale(1); }
   35% { transform: scale(1.35) rotate(-6deg); }
@@ -180,54 +186,10 @@
 }
 
 .animate-heart-pop {
-  animation: heartPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  animation: heartPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-@keyframes heartFloatUp {
-  0% {
-    opacity: 1;
-    transform: translateY(0) scale(0.6) rotate(0deg);
-  }
-  50% {
-    opacity: 0.9;
-    transform: translateY(-20px) scale(1) rotate(12deg);
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-38px) scale(0.7) rotate(-15deg);
-  }
-}
-
-.animate-heart-float {
-  animation: heartFloatUp 0.8s ease-out forwards;
-}
-
-@keyframes heartBurstOverlay {
-  0% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.4);
-  }
-  40% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1.2);
-  }
-  75% {
-    opacity: 0.85;
-    transform: translate(-50%, -50%) scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(1.4);
-  }
-}
-
-.animate-heart-burst {
-  animation: heartBurstOverlay 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* ============================================================
-   REDUCED MOTION COMPLIANCE
-   ============================================================ */
+/* Reduced Motion Compliance */
 @media (prefers-reduced-motion: reduce) {
   *,
   ::before,
@@ -236,10 +198,5 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
-  }
-  .animate-heart-float,
-  .animate-heart-burst,
-  .animate-heart-pop {
-    animation: none !important;
   }
 }

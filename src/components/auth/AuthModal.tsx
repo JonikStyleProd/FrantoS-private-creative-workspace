@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Check, ShieldCheck } from 'lucide-react';
 import { CreatorProfile } from '../../types';
 import { CREATOR_PROFILES } from '../../data/mockData';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   activeProfile,
   onSelectProfile,
 }) => {
+  const { t, language } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [mode, setMode] = useState<'demo' | 'supabase'>('demo');
@@ -82,14 +84,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <div className="flex items-center gap-2 min-w-0">
             <ShieldCheck className="w-5 h-5 text-cyan-600 dark:text-cyan-400 flex-shrink-0" />
             <h3 id="auth-modal-title" className="font-display font-bold text-sm sm:text-base text-[#111317] dark:text-white truncate">
-              Studio Identity & Vault
+              {t.modals.authTitle}
             </h3>
           </div>
           <button 
             type="button"
             onClick={onClose} 
             className="min-w-[36px] min-h-[36px] p-2 rounded-full bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 text-zinc-600 dark:text-zinc-300 hover:text-black dark:hover:text-white cursor-pointer flex items-center justify-center flex-shrink-0 transition-colors"
-            aria-label="Close modal"
+            aria-label={t.common.close}
           >
             <X className="w-4 h-4" />
           </button>
@@ -104,7 +106,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               mode === 'demo' ? 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 font-bold shadow-xs' : 'text-[#4A505C] dark:text-zinc-400'
             }`}
           >
-            Demo Personas
+            {language === 'ru' ? 'Демо-персоны' : 'Demo Personas'}
           </button>
           <button
             type="button"
@@ -113,7 +115,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               mode === 'supabase' ? 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 font-bold shadow-xs' : 'text-[#4A505C] dark:text-zinc-400'
             }`}
           >
-            Supabase Config
+            {language === 'ru' ? 'Облако Supabase' : 'Supabase Config'}
           </button>
         </div>
 
@@ -122,7 +124,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           {mode === 'demo' ? (
             <div className="space-y-2">
               <p className="text-[11px] text-[#4A505C] dark:text-zinc-400 font-medium">
-                Select a verified studio persona:
+                {t.modals.authSwitchPersona}
               </p>
               <div className="space-y-1.5">
                 {CREATOR_PROFILES.map((prof) => {
@@ -161,12 +163,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           ) : (
             <form onSubmit={handleSimulateLogin} className="space-y-2.5">
               <div className="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-[10px] sm:text-[11px] font-mono text-cyan-800 dark:text-cyan-300 leading-relaxed font-semibold">
-                Supabase Architecture Ready: Cloud credentials sync directly with PostgreSQL.
+                {t.modals.authNotice}
               </div>
 
               <div>
                 <label className="block text-[10px] font-mono text-[#4A505C] dark:text-zinc-400 mb-1 font-semibold">
-                  Studio Email
+                  {language === 'ru' ? 'Рабочий Email' : 'Studio Email'}
                 </label>
                 <input
                   type="email"
@@ -179,7 +181,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
               <div>
                 <label className="block text-[10px] font-mono text-[#4A505C] dark:text-zinc-400 mb-1 font-semibold">
-                  Vault Key / Password
+                  {language === 'ru' ? 'Ключ хранилища / Пароль' : 'Vault Key / Password'}
                 </label>
                 <input
                   type="password"
@@ -200,7 +202,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 type="submit"
                 className="w-full py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs transition-colors cursor-pointer shadow-sm min-h-[40px] mt-1"
               >
-                Sign In to Private Workspace
+                {t.modals.authCloudBtn}
               </button>
             </form>
           )}

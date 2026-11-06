@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Sparkles, Send, ChevronDown } from 'lucide-react';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface PublishControlProps {
   onOpenPublishArtifact: () => void;
@@ -12,6 +13,7 @@ export const PublishControl: React.FC<PublishControlProps> = ({
   onOpenNewStory,
   className = '',
 }) => {
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const toggleBtnRef = useRef<HTMLButtonElement>(null);
@@ -82,30 +84,39 @@ export const PublishControl: React.FC<PublishControlProps> = ({
         aria-haspopup="menu"
         aria-expanded={isOpen}
         aria-controls="primary-publish-dropdown-menu"
-        aria-label="Publish creative work"
-        className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full font-mono text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2 select-none ${
+        aria-label={t.header.publishBtn}
+        className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full font-mono text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer shadow-md shadow-ultramarine/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-ultramarine focus-visible:ring-offset-2 select-none touch-manipulation ${
           isOpen
-            ? 'bg-cyan-400 text-black ring-2 ring-cyan-500 scale-[0.98]'
-            : 'bg-cyan-500 hover:bg-cyan-400 active:scale-95 text-black hover:shadow-cyan-500/20'
+            ? 'bg-ultramarine text-white ring-2 ring-ultramarine scale-[0.98]'
+            : 'bg-ultramarine hover:bg-blue-600 active:scale-95 text-white'
         }`}
       >
         <Plus className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-45' : ''}`} />
-        <span>Publish</span>
+        <span>{t.header.publishBtn}</span>
         <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
-      {/* Accessible 2-Option Menu */}
+      {/* Backdrop overlay on mobile to dismiss cleanly */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-transparent" 
+          onClick={() => setIsOpen(false)}
+          aria-hidden="true" 
+        />
+      )}
+
+      {/* Accessible 2-Option Menu - anchored to right-0 */}
       {isOpen && (
         <div
           id="primary-publish-dropdown-menu"
           role="menu"
-          aria-label="Publish options"
+          aria-label={t.header.publishBtn}
           onKeyDown={handleMenuKeyDown}
-          className="absolute left-0 sm:left-auto sm:right-0 top-full mt-2 w-72 sm:w-80 max-w-[calc(100vw-2rem)] p-2.5 rounded-2xl bg-white dark:bg-[#11141A] backdrop-blur-2xl border border-black/10 dark:border-white/15 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150 text-[#111317] dark:text-[#F3F1EC]"
+          className="absolute right-0 top-full mt-2 w-72 sm:w-80 max-w-[calc(100vw-1.5rem)] p-2.5 rounded-2xl bg-[#F8F7F4]/98 dark:bg-[#0E1015]/98 backdrop-blur-2xl border border-black/10 dark:border-white/15 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150 text-[#121316] dark:text-[#F5F3EF]"
         >
           <div className="p-2 border-b border-black/10 dark:border-white/10 mb-1.5">
-            <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-              Publishing Actions
+            <p className="text-[10px] font-mono uppercase tracking-wider text-[#7A7E8A] dark:text-[#A3A099]">
+              {t.header.publishBtn}
             </p>
           </div>
 
@@ -120,17 +131,17 @@ export const PublishControl: React.FC<PublishControlProps> = ({
                 setIsOpen(false);
                 onOpenPublishArtifact();
               }}
-              className="w-full flex items-start gap-3 p-3 rounded-xl text-left transition-colors hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 group min-h-[48px]"
+              className="w-full flex items-start gap-3 p-3 rounded-xl text-left transition-colors hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ultramarine group min-h-[48px] touch-manipulation"
             >
-              <div className="w-9 h-9 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-600 dark:text-cyan-400 flex items-center justify-center flex-shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+              <div className="w-9 h-9 rounded-xl bg-ultramarine/15 border border-ultramarine/30 text-ultramarine flex items-center justify-center flex-shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
                 <Sparkles className="w-4 h-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-xs sm:text-sm font-bold text-[#111317] dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
-                  Publish New Artifact
+                <div className="text-xs sm:text-sm font-bold text-[#121316] dark:text-white group-hover:text-ultramarine transition-colors">
+                  {t.header.publishArtifact}
                 </div>
-                <p className="text-[11px] text-[#4A505C] dark:text-zinc-400 leading-tight mt-0.5">
-                  Create project, case study, or WIP post for Feed
+                <p className="text-[11px] text-[#52555F] dark:text-[#A3A099] leading-tight mt-0.5">
+                  {t.header.publishArtifactDesc}
                 </p>
               </div>
             </button>
@@ -145,17 +156,17 @@ export const PublishControl: React.FC<PublishControlProps> = ({
                 setIsOpen(false);
                 onOpenNewStory();
               }}
-              className="w-full flex items-start gap-3 p-3 rounded-xl text-left transition-colors hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 group min-h-[48px]"
+              className="w-full flex items-start gap-3 p-3 rounded-xl text-left transition-colors hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 group min-h-[48px] touch-manipulation"
             >
               <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
                 <Send className="w-4 h-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-xs sm:text-sm font-bold text-[#111317] dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                  Broadcast Process Moment
+                <div className="text-xs sm:text-sm font-bold text-[#121316] dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                  {t.header.publishStory}
                 </div>
-                <p className="text-[11px] text-[#4A505C] dark:text-zinc-400 leading-tight mt-0.5">
-                  Create Story or short creative process moment
+                <p className="text-[11px] text-[#52555F] dark:text-[#A3A099] leading-tight mt-0.5">
+                  {t.header.publishStoryDesc}
                 </p>
               </div>
             </button>

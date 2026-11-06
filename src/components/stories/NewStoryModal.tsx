@@ -3,6 +3,7 @@ import { Story, StoryType, CreativeDiscipline, CreatorProfile } from '../../type
 import { X, Sparkles, Send, Check, AlertCircle } from 'lucide-react';
 import { CREATIVE_DISCIPLINES } from '../../data/mockData';
 import { ImageUploader } from '../common/ImageUploader';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface NewStoryModalProps {
   isOpen: boolean;
@@ -17,22 +18,21 @@ export const NewStoryModal: React.FC<NewStoryModalProps> = ({
   onAddStory,
   activeProfile,
 }) => {
+  const { t, language } = useLanguage();
   const [title, setTitle] = useState('');
   const [caption, setCaption] = useState('');
   const [discipline, setDiscipline] = useState<CreativeDiscipline>('3d');
   const [type, setType] = useState<StoryType>('wip');
-  const [imageUrl, setImageUrl] = useState(
-    'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80'
-  );
-  const [imageAlt, setImageAlt] = useState('Studio render snapshot');
+  const [imageUrl, setImageUrl] = useState('/images/imgblog2.jpg');
+  const [imageAlt, setImageAlt] = useState(language === 'ru' ? 'Снимок студийного рендера' : 'Studio render snapshot');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const sampleImages = [
-    'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=800&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800&auto=format&fit=crop&q=80',
+    '/images/imgblog1.jpg',
+    '/images/imgblog2.jpg',
+    '/images/imgblog3.jpg',
+    '/images/imgblog4.jpg',
   ];
 
   // Lock background scroll, handle Escape and Android Back
@@ -45,18 +45,10 @@ export const NewStoryModal: React.FC<NewStoryModalProps> = ({
       if (e.key === 'Escape') onClose();
     };
 
-    const handlePopState = () => {
-      onClose();
-    };
-
-    window.history.pushState({ modal: 'broadcast-moment' }, '');
     window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('popstate', handlePopState);
-
     return () => {
       document.body.style.overflow = originalOverflow;
       window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('popstate', handlePopState);
     };
   }, [isOpen, onClose]);
 
@@ -67,11 +59,11 @@ export const NewStoryModal: React.FC<NewStoryModalProps> = ({
     if (isSubmitting) return;
 
     if (!title.trim()) {
-      setErrorMsg('Please enter a moment title.');
+      setErrorMsg(language === 'ru' ? 'Введите название момента процесса' : 'Please enter moment title');
       return;
     }
     if (!imageUrl.trim()) {
-      setErrorMsg('Please provide an image or choose a preset.');
+      setErrorMsg(language === 'ru' ? 'Выберите или загрузите изображение' : 'Please select or upload visual snapshot');
       return;
     }
 
@@ -81,18 +73,18 @@ export const NewStoryModal: React.FC<NewStoryModalProps> = ({
       id: `story-${Date.now()}`,
       author: {
         id: activeProfile?.id || 'profile-elena',
-        name: activeProfile?.name || 'Elena Rostova',
+        name: activeProfile?.name || 'Елена Ростова',
         handle: activeProfile?.handle || '@elena_spatial',
-        avatar: activeProfile?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-        role: activeProfile?.role || 'Creative Director & Spatial Designer',
+        avatar: activeProfile?.avatar || '/images/avatar1.jpg',
+        role: activeProfile?.role || 'Арт-директор и пространственный дизайнер',
       },
       discipline,
       type,
       title: title.trim(),
       previewImage: imageUrl,
       mediaUrl: imageUrl,
-      caption: caption.trim() || 'Studio process snapshot.',
-      timestamp: 'Just now',
+      caption: caption.trim() || (language === 'ru' ? 'Студийный снимок процесса.' : 'Studio process snapshot.'),
+      timestamp: t.common.justNow,
       unread: true,
       likesCount: 1,
       isLiked: false,
@@ -107,7 +99,7 @@ export const NewStoryModal: React.FC<NewStoryModalProps> = ({
   return (
     <div 
       id="new-story-modal-overlay"
-      className="fixed inset-0 z-50 overflow-hidden bg-black/80 backdrop-blur-xl flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 overflow-hidden bg-black/85 backdrop-blur-xl flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-200"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -115,43 +107,40 @@ export const NewStoryModal: React.FC<NewStoryModalProps> = ({
     >
       <div 
         id="new-story-modal-container"
-        className="relative w-full max-w-lg rounded-3xl overflow-hidden bg-white dark:bg-[#0F1218] border border-black/10 dark:border-white/15 text-[#111317] dark:text-white shadow-2xl my-auto max-h-[92dvh] sm:max-h-[88dvh] flex flex-col frantos-animated-frame min-w-0"
+        className="relative w-full max-w-lg rounded-3xl overflow-hidden bg-[#0A0C10] border border-white/10 text-[#F5F3EF] shadow-2xl my-auto max-h-[92dvh] sm:max-h-[88dvh] flex flex-col min-w-0"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* LAYER 1: FIXED MODAL HEADER */}
-        <div className="flex-shrink-0 p-3.5 sm:p-5 border-b border-black/10 dark:border-white/10 flex items-center justify-between bg-[#F8F7F4]/95 dark:bg-[#0F1218]/95 backdrop-blur-md sticky top-0 z-30 gap-2">
+        {/* FIXED MODAL HEADER */}
+        <div className="flex-shrink-0 px-4 sm:px-6 py-4 border-b border-white/8 flex items-center justify-between bg-[#0E1015]/95 backdrop-blur-md sticky top-0 z-30 gap-2">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 flex-shrink-0">
-              <Sparkles className="w-4 h-4" />
-            </div>
+            <span className="w-2.5 h-2.5 rounded-full bg-ultramarine animate-pulse flex-shrink-0" />
             <div className="min-w-0">
-              <h3 id="new-story-modal-title" className="font-display font-bold text-sm sm:text-base text-[#111317] dark:text-[#F3F1EC] truncate">
-                Broadcast Process Moment
+              <h3 id="new-story-modal-title" className="font-display font-bold text-sm sm:text-base text-[#F5F3EF] truncate">
+                {t.modals.newStoryTitle}
               </h3>
-              <p className="text-[10px] text-[#4A505C] dark:text-zinc-400 font-mono truncate">
-                Author: {activeProfile?.name || 'Elena Rostova'}
+              <p className="text-[10px] text-[#A3A099] font-mono truncate">
+                {language === 'ru' ? 'Автор:' : 'Author:'} {activeProfile?.name || 'Елена Ростова'}
               </p>
             </div>
           </div>
           <button 
             type="button"
             onClick={onClose} 
-            className="min-w-[40px] min-h-[40px] p-2 rounded-full border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/20 text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-all cursor-pointer flex items-center justify-center flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
-            aria-label="Close modal"
+            className="w-10 h-10 rounded-full border border-white/10 bg-white/5 hover:bg-white/15 text-[#A3A099] hover:text-white transition-all cursor-pointer flex items-center justify-center flex-shrink-0 touch-manipulation"
+            aria-label={t.common.close}
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* LAYER 2: SCROLLABLE FORM BODY */}
+        {/* SCROLLABLE FORM BODY */}
         <form 
           id="new-story-form"
           onSubmit={handleSubmit} 
           className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 w-full p-4 sm:p-6 space-y-4"
         >
-          {/* Error Alert */}
           {errorMsg && (
-            <div className="w-full p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs flex items-center gap-2">
+            <div className="w-full p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-mono flex items-center gap-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span className="flex-1 min-w-0">{errorMsg}</span>
             </div>
@@ -159,8 +148,8 @@ export const NewStoryModal: React.FC<NewStoryModalProps> = ({
 
           {/* Section 1: Process Visual Upload */}
           <div className="w-full min-w-0">
-            <label className="block text-xs font-mono text-[#4A505C] dark:text-zinc-400 mb-1.5 uppercase font-semibold">
-              Process Visual / Snapshot *
+            <label className="block text-xs font-mono text-[#A3A099] mb-1.5 uppercase font-semibold">
+              {t.modals.storySnapshotLabel}
             </label>
             <ImageUploader
               initialImageUrl={imageUrl}
@@ -172,7 +161,7 @@ export const NewStoryModal: React.FC<NewStoryModalProps> = ({
               onImageRemoved={() => {
                 setImageUrl(sampleImages[0]);
               }}
-              label="Select or drop snapshot"
+              label={language === 'ru' ? 'Загрузить или выбрать снимок' : 'Upload or select snapshot'}
               aspectRatio="video"
               showAltInput={false}
             />
@@ -180,8 +169,8 @@ export const NewStoryModal: React.FC<NewStoryModalProps> = ({
 
           {/* Preset Alternatives */}
           <div className="w-full min-w-0">
-            <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400 block mb-1.5">
-              Or select a studio render preset:
+            <span className="text-[10px] font-mono text-[#A3A099] block mb-1.5">
+              {language === 'ru' ? 'Или выбрать из студийных материалов:' : 'Or choose from studio presets:'}
             </span>
             <div className="grid grid-cols-4 gap-2 w-full min-w-0">
               {sampleImages.map((img, idx) => (
@@ -191,12 +180,12 @@ export const NewStoryModal: React.FC<NewStoryModalProps> = ({
                   onClick={() => setImageUrl(img)}
                   className={`relative w-full aspect-video rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
                     imageUrl === img 
-                      ? 'border-cyan-500 scale-105 shadow-md ring-1 ring-cyan-500' 
-                      : 'border-black/10 dark:border-white/10 opacity-70 hover:opacity-100'
+                      ? 'border-ultramarine scale-105 shadow-md' 
+                      : 'border-white/10 opacity-70 hover:opacity-100'
                   }`}
-                  aria-label={`Select preset image ${idx + 1}`}
+                  aria-label={`Preset ${idx + 1}`}
                 >
-                  <img src={img} alt="Preset visual" className="w-full h-full object-cover" />
+                  <img src={img} alt="Preset" className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>
@@ -204,8 +193,8 @@ export const NewStoryModal: React.FC<NewStoryModalProps> = ({
 
           {/* Discipline Selector */}
           <div className="w-full min-w-0">
-            <label className="block text-xs font-mono text-[#4A505C] dark:text-zinc-400 mb-1.5 uppercase font-semibold">
-              Creative Discipline
+            <label className="block text-xs font-mono text-[#A3A099] mb-1.5 uppercase font-semibold">
+              {t.modals.disciplineLabel}
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 w-full min-w-0">
               {CREATIVE_DISCIPLINES.map((d) => (
@@ -213,10 +202,10 @@ export const NewStoryModal: React.FC<NewStoryModalProps> = ({
                   key={d.id}
                   type="button"
                   onClick={() => setDiscipline(d.id as CreativeDiscipline)}
-                  className={`p-2 rounded-xl text-xs font-medium border transition-colors cursor-pointer min-h-[38px] flex items-center justify-center text-center ${
+                  className={`p-2.5 rounded-xl text-xs font-mono border transition-colors cursor-pointer min-h-[44px] flex items-center justify-center text-center touch-manipulation ${
                     discipline === d.id
-                      ? 'bg-cyan-500/20 border-cyan-500 text-cyan-700 dark:text-cyan-300 font-bold shadow-xs'
-                      : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/5 text-[#4A505C] dark:text-zinc-400 hover:bg-black/10 dark:hover:bg-white/10'
+                      ? 'bg-ultramarine text-white font-bold shadow-md shadow-ultramarine/25 border-ultramarine'
+                      : 'bg-white/5 border-white/8 text-[#A3A099] hover:text-white'
                   }`}
                 >
                   <span className="truncate">{d.label}</span>
@@ -227,70 +216,82 @@ export const NewStoryModal: React.FC<NewStoryModalProps> = ({
 
           {/* Moment Archetype */}
           <div className="w-full min-w-0">
-            <label className="block text-xs font-mono text-[#4A505C] dark:text-zinc-400 mb-1.5 uppercase font-semibold">
-              Moment Archetype
+            <label className="block text-xs font-mono text-[#A3A099] mb-1.5 uppercase font-semibold">
+              {t.modals.storyArchetypeLabel}
             </label>
             <select
               value={type}
               onChange={(e) => setType(e.target.value as StoryType)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-xs text-[#111317] dark:text-white focus:outline-none focus:border-cyan-500 font-medium cursor-pointer box-border"
+              className="w-full px-3.5 py-3 rounded-xl bg-[#12151C] border border-white/10 text-xs font-mono text-white focus:outline-none focus:border-ultramarine cursor-pointer min-h-[44px]"
             >
-              <option value="wip" className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white">Work in Progress (WIP)</option>
-              <option value="sketch" className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white">Concept Sketch</option>
-              <option value="process" className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white">Shader / Physics Process</option>
-              <option value="inspiration" className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white">Studio Inspiration</option>
-              <option value="studio_note" className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white">Studio Journal Note</option>
-              <option value="behind_the_scenes" className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white">Behind the Scenes</option>
+              <option value="wip" className="bg-[#12151C] text-white">
+                {language === 'ru' ? 'В процессе разработки (WIP)' : 'Active WIP Sprint'}
+              </option>
+              <option value="sketch" className="bg-[#12151C] text-white">
+                {language === 'ru' ? 'Концептуальный эскиз' : 'Concept Sketch'}
+              </option>
+              <option value="process" className="bg-[#12151C] text-white">
+                {language === 'ru' ? 'Шейдер / Физика процесса' : 'Shader / Process Physics'}
+              </option>
+              <option value="inspiration" className="bg-[#12151C] text-white">
+                {language === 'ru' ? 'Студийное вдохновение' : 'Studio Inspiration'}
+              </option>
+              <option value="studio_note" className="bg-[#12151C] text-white">
+                {language === 'ru' ? 'Заметка в рабочий журнал' : 'Logbook Note'}
+              </option>
+              <option value="behind_the_scenes" className="bg-[#12151C] text-white">
+                {language === 'ru' ? 'За кадром' : 'Behind the Scenes'}
+              </option>
             </select>
           </div>
 
           {/* Title */}
           <div className="w-full min-w-0">
-            <label className="block text-xs font-mono text-[#4A505C] dark:text-zinc-400 mb-1.5 uppercase font-semibold">
-              Moment Title *
+            <label className="block text-xs font-mono text-[#A3A099] mb-1.5 uppercase font-semibold">
+              {t.modals.storyTitleLabel}
             </label>
             <input
               type="text"
-              placeholder="e.g. Subsurface caustics test on silica crystal..."
+              placeholder={language === 'ru' ? 'Например: Тест подповерхностного рассеивания кварца...' : 'e.g. Subsurface silica refraction test...'}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
-              className="w-full px-3.5 py-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-xs text-[#111317] dark:text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500 font-sans box-border"
+              className="w-full px-3.5 py-3 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-ultramarine font-sans min-h-[44px]"
             />
           </div>
 
           {/* Caption */}
           <div className="w-full min-w-0">
-            <label className="block text-xs font-mono text-[#4A505C] dark:text-zinc-400 mb-1.5 uppercase font-semibold">
-              Notes & Parameters
+            <label className="block text-xs font-mono text-[#A3A099] mb-1.5 uppercase font-semibold">
+              {t.modals.storyNotesLabel}
             </label>
             <textarea
-              placeholder="Brief description of the material experiment or technical insight..."
+              placeholder={language === 'ru' ? 'Краткое описание эксперимента с материалом или техническое наблюдение...' : 'Brief note on material test or technical observation...'}
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
               rows={2}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-xs text-[#111317] dark:text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500 font-sans resize-none box-border"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-ultramarine font-sans resize-none"
             />
           </div>
         </form>
 
-        {/* LAYER 3: FIXED MODAL FOOTER */}
-        <div className="flex-shrink-0 p-3 sm:p-4 border-t border-black/10 dark:border-white/10 bg-[#F8F7F4]/95 dark:bg-[#0F1218]/95 backdrop-blur-md flex items-center justify-between sm:justify-end gap-3 z-20">
+        {/* FIXED MODAL FOOTER */}
+        <div className="flex-shrink-0 px-4 sm:px-6 py-3.5 border-t border-white/8 bg-[#0E1015]/95 backdrop-blur-md flex items-center justify-between sm:justify-end gap-3 z-20">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl text-xs font-mono text-[#4A505C] dark:text-zinc-400 hover:text-black dark:hover:text-white cursor-pointer min-h-[40px] flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
+            className="px-4 py-2 rounded-xl text-xs font-mono text-[#A3A099] hover:text-white cursor-pointer min-h-[44px] flex items-center justify-center transition-colors touch-manipulation"
           >
-            Cancel
+            {t.modals.cancelBtn}
           </button>
           <button
             type="submit"
             form="new-story-form"
             disabled={isSubmitting}
-            className="px-5 py-2.5 rounded-full bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed text-black font-bold text-xs font-mono flex items-center gap-2 transition-all shadow-md cursor-pointer min-h-[40px] justify-center flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
+            className="px-6 py-2.5 rounded-full bg-ultramarine hover:bg-ultramarine/90 disabled:opacity-50 text-white font-bold text-xs font-mono flex items-center gap-2 transition-all shadow-md cursor-pointer min-h-[44px] justify-center flex-shrink-0 touch-manipulation"
           >
             <Send className="w-3.5 h-3.5" />
-            <span>Broadcast Moment</span>
+            <span>{t.modals.storyPublishBtn}</span>
           </button>
         </div>
       </div>

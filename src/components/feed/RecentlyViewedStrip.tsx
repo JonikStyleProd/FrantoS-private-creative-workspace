@@ -1,6 +1,7 @@
 import React from 'react';
 import { ProjectExhibit } from '../../types';
 import { History, X } from 'lucide-react';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface RecentlyViewedStripProps {
   recentExhibits?: ProjectExhibit[];
@@ -17,7 +18,8 @@ export const RecentlyViewedStrip: React.FC<RecentlyViewedStripProps> = ({
   onSelectExhibit,
   onClearRecent,
 }) => {
-  // Support both direct list and ID lookup
+  const { t } = useLanguage();
+
   let items: ProjectExhibit[] = [];
   if (recentExhibits && recentExhibits.length > 0) {
     items = recentExhibits;
@@ -32,27 +34,28 @@ export const RecentlyViewedStrip: React.FC<RecentlyViewedStripProps> = ({
   return (
     <div
       id="recently-viewed-strip"
-      className="max-w-7xl mx-auto px-4 md:px-8 py-2 mb-2"
+      className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 mb-2"
     >
-      <div className="p-3.5 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-xs font-mono text-[#4A505C] dark:text-zinc-400">
-          <History className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
-          <span className="font-semibold uppercase tracking-wider">Recently Inspected</span>
+      <div className="p-3 sm:p-3.5 rounded-2xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/8 dark:border-white/8 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-xs font-mono text-[#52555F] dark:text-[#A3A099]">
+          <History className="w-3.5 h-3.5 text-ultramarine" />
+          <span className="font-semibold uppercase tracking-wider">{t.overview.recentlyInspected}</span>
         </div>
 
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 -mx-2 px-2 sm:mx-0 sm:px-0">
           {items.slice(0, 6).map((ex) => (
             <button
               key={ex.id}
+              type="button"
               onClick={() => onSelectExhibit(ex)}
-              className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-white dark:bg-[#12151C] border border-black/10 dark:border-white/10 text-left text-xs hover:border-cyan-500/50 transition-all flex-shrink-0 cursor-pointer shadow-xs group"
+              className="min-h-[44px] flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl bg-white dark:bg-[#12151C] border border-black/10 dark:border-white/10 text-left text-xs hover:border-ultramarine transition-all flex-shrink-0 cursor-pointer shadow-xs group touch-manipulation"
             >
               <img
                 src={ex.coverImage}
                 alt={ex.title}
-                className="w-5 h-5 rounded-md object-cover ring-1 ring-black/10 dark:ring-white/10"
+                className="w-6 h-6 rounded-md object-cover ring-1 ring-black/10 dark:ring-white/10 flex-shrink-0"
               />
-              <span className="truncate max-w-[120px] font-medium text-[#111317] dark:text-zinc-200 group-hover:text-cyan-600 dark:group-hover:text-cyan-400">
+              <span className="truncate max-w-[140px] font-medium text-[#121316] dark:text-[#F5F3EF] group-hover:text-ultramarine">
                 {ex.title}
               </span>
             </button>
@@ -60,11 +63,13 @@ export const RecentlyViewedStrip: React.FC<RecentlyViewedStripProps> = ({
 
           {onClearRecent && (
             <button
+              type="button"
               onClick={onClearRecent}
-              className="p-1.5 rounded-xl text-zinc-400 hover:text-rose-500 transition-colors cursor-pointer"
-              title="Clear recently viewed history"
+              className="min-w-[40px] min-h-[40px] p-2 rounded-xl text-[#A3A099] hover:text-rose-500 transition-colors cursor-pointer flex items-center justify-center flex-shrink-0 touch-manipulation"
+              title={t.overview.clearRecent}
+              aria-label={t.overview.clearRecent}
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-4 h-4" />
             </button>
           )}
         </div>
