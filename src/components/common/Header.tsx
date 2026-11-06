@@ -618,6 +618,7 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="relative flex-shrink-0">
             <button
               type="button"
+              data-account-trigger="true"
               onClick={() => toggleDropdown('account')}
               className="flex items-center gap-2 p-1 pl-1.5 pr-2.5 rounded-full border border-black/10 dark:border-white/10 hover:border-ultramarine/60 bg-black/5 dark:bg-white/5 transition-all cursor-pointer group"
               aria-label={`${t.header.accountMenuAria}: ${activeProfile.name}`}
