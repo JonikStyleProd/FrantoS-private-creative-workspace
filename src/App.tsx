@@ -688,8 +688,12 @@ export function App() {
           >
             <div
               id="mobile-more-spaces-sheet-card"
-              className={`w-full max-w-full rounded-t-3xl border-t p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] shadow-2xl space-y-4 ${
-                isDarkTheme ? 'bg-[#0E1015] border-white/15 text-white' : 'bg-[#FFFFFF] border-black/15 text-[#121316]'
+              style={{
+                backgroundColor: isDarkTheme ? '#151925' : '#FFFFFF',
+                opacity: 1,
+              }}
+              className={`atelier-dropdown-surface w-full max-w-full rounded-t-3xl border-t p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] shadow-2xl space-y-4 ${
+                isDarkTheme ? 'border-white/15 text-white' : 'border-black/15 text-[#121316]'
               }`}
               onClick={(e) => e.stopPropagation()}
             >
@@ -786,8 +790,12 @@ export function App() {
           >
             <div
               id="mobile-publish-sheet-card"
-              className={`w-full max-w-full rounded-t-3xl border-t p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] shadow-2xl space-y-4 ${
-                isDarkTheme ? 'bg-[#0E1015] border-white/15 text-white' : 'bg-[#FFFFFF] border-black/15 text-[#121316]'
+              style={{
+                backgroundColor: isDarkTheme ? '#151925' : '#FFFFFF',
+                opacity: 1,
+              }}
+              className={`atelier-dropdown-surface w-full max-w-full rounded-t-3xl border-t p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] shadow-2xl space-y-4 ${
+                isDarkTheme ? 'border-white/15 text-white' : 'border-black/15 text-[#121316]'
               }`}
               onClick={(e) => e.stopPropagation()}
             >

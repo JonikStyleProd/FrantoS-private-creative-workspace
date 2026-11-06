@@ -75,7 +75,7 @@ export const AccountMenu: React.FC<AccountMenuProps> = ({
         backgroundColor: isDark ? '#151925' : '#FFFFFF',
         opacity: 1,
       }}
-      className="hidden md:block absolute right-0 top-full mt-2.5 w-[310px] max-w-[calc(100vw-24px)] p-3 rounded-[16px] border border-black/10 dark:border-white/10 shadow-2xl z-50 text-[#121316] dark:text-[#F5F3EF] animate-in fade-in zoom-in-95 duration-150 box-border select-none"
+      className="atelier-dropdown-surface hidden md:block absolute right-0 top-full mt-2.5 w-[310px] max-w-[calc(100vw-24px)] p-3 rounded-[16px] border border-black/10 dark:border-white/10 shadow-2xl z-50 text-[#121316] dark:text-[#F5F3EF] animate-in fade-in zoom-in-95 duration-150 box-border select-none"
       onClick={(e) => e.stopPropagation()}
     >
       {/* 1. ВЫБОР ДЕМО-ПЕРСОНЫ ИЗ СУЩЕСТВУЮЩЕГО СПИСКА */}

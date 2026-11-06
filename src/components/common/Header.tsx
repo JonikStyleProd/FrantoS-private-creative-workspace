@@ -213,7 +213,7 @@ export const Header: React.FC<HeaderProps> = ({
       <header 
         ref={headerRef}
         id="frantos-atelier-header"
-        className="sticky top-0 z-40 w-full bg-white/80 dark:bg-[#090d18]/85 backdrop-blur-xl border-b border-black/8 dark:border-white/10 transition-colors select-none"
+        className="sticky top-0 z-50 w-full bg-white/95 dark:bg-[#090d18]/95 backdrop-blur-xl border-b border-black/8 dark:border-white/10 transition-colors select-none opacity-100"
       >
         {/* =====================================================================
             1. MOBILE HEADER BAR (< md: 768px):
@@ -367,7 +367,11 @@ export const Header: React.FC<HeaderProps> = ({
               {/* Spaces Dropdown Panel */}
               {openDropdown === 'spaces' && (
                 <div 
-                  className="absolute top-full left-0 mt-2 w-72 p-2 rounded-2xl bg-white/98 dark:bg-[#0E1017]/98 backdrop-blur-2xl border border-black/10 dark:border-white/15 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150"
+                  className="atelier-dropdown-surface absolute top-full left-0 mt-2.5 w-72 p-2 rounded-[16px] border border-black/10 dark:border-white/10 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150 select-none box-border"
+                  style={{
+                    backgroundColor: isDarkTheme ? '#151925' : '#FFFFFF',
+                    opacity: 1,
+                  }}
                   role="menu"
                 >
                   <div className="px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider text-[#7A7E8A] dark:text-[#8E8B83] font-semibold border-b border-black/6 dark:border-white/8 mb-1">
@@ -439,7 +443,11 @@ export const Header: React.FC<HeaderProps> = ({
               {/* Create Actions Dropdown Panel */}
               {openDropdown === 'create' && (
                 <div 
-                  className="absolute top-full left-0 mt-2 w-72 p-2 rounded-2xl bg-white/98 dark:bg-[#0E1017]/98 backdrop-blur-2xl border border-black/10 dark:border-white/15 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150"
+                  className="atelier-dropdown-surface absolute top-full left-0 mt-2.5 w-72 p-2 rounded-[16px] border border-black/10 dark:border-white/10 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150 select-none box-border"
+                  style={{
+                    backgroundColor: isDarkTheme ? '#151925' : '#FFFFFF',
+                    opacity: 1,
+                  }}
                   role="menu"
                 >
                   <div className="px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider text-[#7A7E8A] dark:text-[#8E8B83] font-semibold border-b border-black/6 dark:border-white/8 mb-1">
@@ -536,7 +544,11 @@ export const Header: React.FC<HeaderProps> = ({
               {/* Settings Dropdown Panel */}
               {openDropdown === 'settings' && (
                 <div 
-                  className="absolute top-full right-0 mt-2 w-64 p-3 rounded-2xl bg-white/98 dark:bg-[#0E1017]/98 backdrop-blur-2xl border border-black/10 dark:border-white/15 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150 space-y-3"
+                  className="atelier-dropdown-surface absolute top-full right-0 mt-2.5 w-64 p-3 rounded-[16px] border border-black/10 dark:border-white/10 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150 space-y-3 select-none box-border"
+                  style={{
+                    backgroundColor: isDarkTheme ? '#151925' : '#FFFFFF',
+                    opacity: 1,
+                  }}
                   role="menu"
                 >
                   {/* Language Section */}
@@ -687,8 +699,10 @@ export const Header: React.FC<HeaderProps> = ({
               boxSizing: 'border-box',
               top: `${headerBottom + 8}px`,
               maxHeight: `calc(100dvh - ${headerBottom + 8 + 16}px)`,
+              backgroundColor: isDarkTheme ? '#151925' : '#FFFFFF',
+              opacity: 1,
             }}
-            className="box-border p-3.5 sm:p-4 rounded-2xl border shadow-2xl overflow-y-auto overscroll-contain animate-in fade-in zoom-in-95 duration-150 focus:outline-none transition-colors space-y-3 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] bg-[#FCFCFA] dark:bg-[#0A0D15] border-black/12 dark:border-white/15 text-[#121316] dark:text-[#F5F3EF]"
+            className="atelier-dropdown-surface box-border p-3.5 sm:p-4 rounded-[16px] border border-black/10 dark:border-white/10 shadow-2xl overflow-y-auto overscroll-contain animate-in fade-in zoom-in-95 duration-150 focus:outline-none transition-colors space-y-3 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] text-[#121316] dark:text-[#F5F3EF]"
           >
             {/* 1. Active Art Director Profile Card */}
             <div className="p-3 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/8 dark:border-white/10 flex items-center justify-between gap-3">

@@ -7,6 +7,8 @@
     --bg-primary: #F5F4F0;
     --bg-surface: rgba(255, 255, 255, 0.94);
     --bg-surface-solid: #FFFFFF;
+    --bg-dropdown: #FFFFFF;
+    --border-dropdown: rgba(0, 0, 0, 0.10);
     --bg-elevated: #EDECE6;
     --text-primary: #121316;
     --text-secondary: #4B4F58;
@@ -26,7 +28,9 @@
   html.dark {
     --bg-primary: #07080E;
     --bg-surface: rgba(14, 16, 22, 0.9);
-    --bg-surface-solid: #0E1015;
+    --bg-surface-solid: #151925;
+    --bg-dropdown: #151925;
+    --border-dropdown: rgba(255, 255, 255, 0.10);
     --bg-elevated: #151822;
     --text-primary: #F5F3EF;
     --text-secondary: #A3A099;
@@ -147,6 +151,29 @@
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* 100% Solid Opaque Dropdown & Popover Surface (Atelier 2026 Core Specification) */
+.atelier-dropdown-surface {
+  background-color: #FFFFFF !important;
+  color: #121316 !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid rgba(0, 0, 0, 0.10) !important;
+  box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.14), 0 0 0 1px rgba(0, 0, 0, 0.05) !important;
+  border-radius: 16px !important;
+}
+
+html.dark .atelier-dropdown-surface,
+.dark .atelier-dropdown-surface {
+  background-color: #151925 !important;
+  color: #F5F3EF !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
 }
 
 /* Clean rail scrollbar hiding */
