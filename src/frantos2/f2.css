@@ -1,0 +1,143 @@
+@import '@fontsource/instrument-serif/400.css';
+@import '@fontsource/instrument-serif/400-italic.css';
+@import '@fontsource-variable/literata/index.css';
+@import '@fontsource-variable/inter-tight/index.css';
+@import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/jetbrains-mono/500.css';
+
+/*
+ * FrantoS 2.0 — design tokens
+ * Paper   : the publication (landing, panels)
+ * Graphite: the light table where frames are judged (stage, presentation)
+ * Signal  : halation red — selected frame, active tool, primary action. Nothing else.
+ */
+.f2 {
+  --paper: #eee8dd;
+  --paper-2: #e5ddcf;
+  --paper-3: #d9cfbe;
+  --ink: #15130f;
+  --ink-2: #57514a;
+  --rule: rgba(21, 19, 15, 0.14);
+  --graphite: #17181a;
+  --graphite-2: #212225;
+  --graphite-3: #2c2d31;
+  --fog: #aaa59b;
+  --line: rgba(255, 255, 255, 0.1);
+  --signal: #ff4b2b;
+  --signal-ink: #15130f;
+
+  --f-display: 'Instrument Serif', 'Literata Variable', Georgia, serif;
+  --f-ui: 'Inter Tight Variable', 'Inter Tight', system-ui, sans-serif;
+  --f-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  font-family: var(--f-ui);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.f2-display {
+  font-family: var(--f-display);
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  line-height: 0.92;
+}
+:lang(ru) .f2-display,
+.f2-display:lang(ru) {
+  /* Literata carries Cyrillic: tighten it to sit closer to Instrument Serif */
+  font-variation-settings: 'opsz' 72, 'wght' 380;
+  letter-spacing: -0.03em;
+}
+.f2-mono {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.f2 :focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* Paper grain — very subtle, keeps the warm background from feeling flat */
+.f2-paper {
+  background-color: var(--paper);
+  background-image: radial-gradient(rgba(21, 19, 15, 0.035) 1px, transparent 1px);
+  background-size: 3px 3px;
+}
+
+/* Primary action */
+.f2-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 48px;
+  padding: 0 1.4rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: -0.005em;
+  transition: transform 0.2s var(--ease-out), background-color 0.2s, box-shadow 0.2s;
+  white-space: nowrap;
+}
+.f2-btn-signal {
+  background: var(--signal);
+  color: var(--signal-ink);
+  box-shadow: 0 10px 30px -12px rgba(255, 75, 43, 0.7);
+}
+.f2-btn-signal:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 34px -12px rgba(255, 75, 43, 0.85);
+}
+.f2-btn-signal:active {
+  transform: translateY(0) scale(0.98);
+}
+.f2-btn-ghost {
+  border: 1px solid var(--rule);
+  color: var(--ink);
+}
+.f2-btn-ghost:hover {
+  background: rgba(21, 19, 15, 0.05);
+}
+.f2-btn-ghost-dark {
+  border: 1px solid var(--line);
+  color: #f3efe7;
+}
+.f2-btn-ghost-dark:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.f2-link {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  text-decoration-color: var(--rule);
+  transition: text-decoration-color 0.2s;
+}
+.f2-link:hover {
+  text-decoration-color: currentColor;
+}
+
+.f2-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(21, 19, 15, 0.25) transparent;
+}
+.f2-noscrollbar {
+  scrollbar-width: none;
+}
+.f2-noscrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .f2 *,
+  .f2 *::before,
+  .f2 *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

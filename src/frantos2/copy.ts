@@ -1,0 +1,138 @@
+import { useLanguage } from '../i18n/LanguageContext';
+
+const en = {
+  tagline: 'Private creative workspace',
+  heroTitle: ['Collect the fragments.', 'Shape the story.'],
+  heroLead:
+    'FrantoS is a private workspace where photographers and art directors turn loose frames into a story they can present.',
+  openDemo: 'Open demo workspace',
+  watchStory: 'Watch the finished story',
+  coverHint: 'Tap the cover to view the story',
+  frames: (n: number) => `${n} frames`,
+  story: 'Story',
+  storyTitle: 'After Hours / Tel Aviv',
+  storyDek: 'A city diary after closing time: shutters down, the kiosk light, a seafront under lamps.',
+  s1Kicker: '01 — From fragments',
+  s1Title: 'Choose the cover. Watch the story change.',
+  s1Lead: 'Pick one of three frames. Your choice travels with you into the demo project.',
+  s1Cta: 'Continue with this cover',
+  pick: 'Use as cover',
+  s2Kicker: '02 — The series',
+  s2Title: 'Seven frames, one night.',
+  s2Lead: 'Raw material in the workspace, a sequence in the story. Same grade, same studio.',
+  s3Title: 'Your version is a minute away.',
+  s3Lead: 'No sign-up. Your changes stay in this browser.',
+  legacy: 'Original atelier (v1)',
+  credit: 'Demo series generated for FrantoS. Not a real location record.',
+  // studio
+  back: 'FrantoS',
+  materials: 'Materials',
+  inStory: 'In story',
+  storyPanel: 'Story',
+  cover: 'Cover',
+  setCover: 'Set as cover',
+  isCover: 'Story cover',
+  addToStory: 'Add to story',
+  removeFromStory: 'Remove',
+  moveUp: 'Move earlier',
+  moveDown: 'Move later',
+  dragHint: 'Drag, or focus a frame and press Alt + ↑ / ↓',
+  dragHintTouch: 'Hold ⠿ to drag, or tap ↑ ↓ to reorder',
+  present: 'Present',
+  reset: 'Start demo over',
+  resetConfirm: 'Reset your demo copy?',
+  resetYes: 'Reset',
+  resetNo: 'Keep',
+  saving: 'Saving…',
+  saved: 'Saved in this browser',
+  seed: 'Demo copy · edit freely',
+  saveError: 'Could not save',
+  localNote: 'Local demo: changes are kept on this device only. Nothing is published.',
+  notInStory: 'Not in story yet',
+  position: (i: number, n: number) => `${i} of ${n}`,
+  lastFrame: 'A story needs at least one frame',
+  // presentation
+  exitEditor: 'Back to editor',
+  exitViewer: 'Close',
+  prev: 'Previous frame',
+  next: 'Next frame',
+  end: 'End of story',
+  editStory: 'Make your own version',
+  replay: 'Watch again',
+  swipe: 'Swipe or use ← →',
+};
+
+type Copy = typeof en;
+
+const ru: Copy = {
+  tagline: 'Приватное творческое пространство',
+  heroTitle: ['Собирайте фрагменты.', 'Складывайте историю.'],
+  heroLead:
+    'FrantoS — приватное пространство, где фотограф или арт-директор превращает разрозненные кадры в историю, которую можно показать.',
+  openDemo: 'Открыть демо-проект',
+  watchStory: 'Смотреть готовую историю',
+  coverHint: 'Нажмите на обложку, чтобы открыть историю',
+  frames: (n) => `${n} ${plural(n, 'кадр', 'кадра', 'кадров')}`,
+  story: 'История',
+  storyTitle: 'After Hours / Tel Aviv',
+  storyDek: 'Дневник города после закрытия: опущенные жалюзи, свет киоска, набережная под фонарями.',
+  s1Kicker: '01 — Из фрагментов',
+  s1Title: 'Выберите обложку — история изменится.',
+  s1Lead: 'Выберите один из трёх кадров. Ваш выбор перейдёт в демо-проект.',
+  s1Cta: 'Продолжить с этой обложкой',
+  pick: 'Сделать обложкой',
+  s2Kicker: '02 — Серия',
+  s2Title: 'Семь кадров, одна ночь.',
+  s2Lead: 'В рабочем пространстве — исходники, в истории — последовательность. Одна цветокоррекция, одна студия.',
+  s3Title: 'До вашей версии — одна минута.',
+  s3Lead: 'Без регистрации. Изменения остаются в этом браузере.',
+  legacy: 'Исходное ателье (v1)',
+  credit: 'Демо-серия создана для FrantoS и не является документальной съёмкой.',
+  back: 'FrantoS',
+  materials: 'Материалы',
+  inStory: 'В истории',
+  storyPanel: 'История',
+  cover: 'Обложка',
+  setCover: 'Сделать обложкой',
+  isCover: 'Обложка истории',
+  addToStory: 'Добавить в историю',
+  removeFromStory: 'Убрать',
+  moveUp: 'Раньше',
+  moveDown: 'Позже',
+  dragHint: 'Перетащите или выберите кадр и нажмите Alt + ↑ / ↓',
+  dragHintTouch: 'Удерживайте ⠿, чтобы перетащить, или жмите ↑ ↓',
+  present: 'Показать',
+  reset: 'Начать демо заново',
+  resetConfirm: 'Сбросить вашу демо-копию?',
+  resetYes: 'Сбросить',
+  resetNo: 'Оставить',
+  saving: 'Сохраняю…',
+  saved: 'Сохранено в браузере',
+  seed: 'Демо-копия · можно менять',
+  saveError: 'Не удалось сохранить',
+  localNote: 'Локальное демо: изменения хранятся только на этом устройстве. Ничего не публикуется.',
+  notInStory: 'Ещё не в истории',
+  position: (i, n) => `${i} из ${n}`,
+  lastFrame: 'В истории должен остаться хотя бы один кадр',
+  exitEditor: 'Вернуться в редактор',
+  exitViewer: 'Закрыть',
+  prev: 'Предыдущий кадр',
+  next: 'Следующий кадр',
+  end: 'Конец истории',
+  editStory: 'Собрать свою версию',
+  replay: 'Посмотреть ещё раз',
+  swipe: 'Свайп или ← →',
+};
+
+function plural(n: number, one: string, few: string, many: string) {
+  const m10 = n % 10;
+  const m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return one;
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
+  return many;
+}
+
+export function useCopy() {
+  const { language, toggleLanguage } = useLanguage();
+  return { c: language === 'ru' ? ru : en, lang: language, toggleLanguage };
+}

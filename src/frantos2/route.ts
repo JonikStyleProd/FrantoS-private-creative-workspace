@@ -1,0 +1,76 @@
+import { useSyncExternalStore } from 'react';
+
+/**
+ * Hash routes (no server rewrites needed on Vercel):
+ *   #/                       landing
+ *   #/story[/n]              finished story, viewer mode (n = slide)
+ *   #/studio                 demo project editor
+ *   #/studio/present[/n]     presentation launched from the editor
+ *   #/overview, #/catalog …  legacy atelier (FrantoS v1), unchanged
+ */
+export type Route =
+  | { name: 'landing' }
+  | { name: 'story'; slide: number }
+  | { name: 'studio' }
+  | { name: 'present'; slide: number }
+  | { name: 'legacy' };
+
+const LEGACY = new Set(['overview', 'feed', 'catalog', 'workspace', 'moodboard', 'atmosphere', 'weather', 'atelier']);
+
+export function parse(hash: string): Route {
+  const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean);
+  const [a, b, c] = parts;
+  if (!a) return { name: 'landing' };
+  if (a === 'story') return { name: 'story', slide: num(b) };
+  if (a === 'studio') {
+    if (b === 'present') return { name: 'present', slide: num(c) };
+    return { name: 'studio' };
+  }
+  if (LEGACY.has(a)) return { name: 'legacy' };
+  return { name: 'landing' };
+}
+
+const num = (s?: string) => {
+  const n = parseInt(s ?? '', 10);
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+};
+
+let current = typeof window === 'undefined' ? '' : window.location.hash;
+const listeners = new Set<() => void>();
+const sync = () => {
+  if (window.location.hash !== current) {
+    current = window.location.hash;
+    listeners.forEach((l) => l());
+  }
+};
+if (typeof window !== 'undefined') {
+  window.addEventListener('hashchange', sync);
+  window.addEventListener('popstate', sync);
+}
+
+export function useHash() {
+  return useSyncExternalStore(
+    (l) => {
+      listeners.add(l);
+      return () => listeners.delete(l);
+    },
+    () => current,
+    () => ''
+  );
+}
+
+/** Navigate. `replace` keeps history clean for slide-by-slide changes. */
+export function go(path: string, opts: { replace?: boolean } = {}) {
+  const hash = path === '/' ? '#/' : `#${path}`;
+  const depth = (window.history.state?.f2depth ?? 0) as number;
+  if (opts.replace) window.history.replaceState({ f2depth: depth }, '', hash);
+  else window.history.pushState({ f2depth: depth + 1 }, '', hash);
+  sync();
+}
+
+/** Leave the current screen: real browser "back" when we came from inside the app, otherwise go to fallback. */
+export function leave(fallback: string) {
+  const depth = (window.history.state?.f2depth ?? 0) as number;
+  if (depth > 0) window.history.back();
+  else go(fallback, { replace: true });
+}

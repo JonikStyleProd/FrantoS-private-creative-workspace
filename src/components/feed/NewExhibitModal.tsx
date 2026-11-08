@@ -47,7 +47,7 @@ export const NewExhibitModal: React.FC<NewExhibitModalProps> = ({
   const [subtitle, setSubtitle] = useState('');
   const [discipline, setDiscipline] = useState<CreativeDiscipline>('3d');
   const [format, setFormat] = useState<ProjectFormat>('large-featured');
-  const [coverImage, setCoverImage] = useState('/images/imgblog1.jpg');
+  const [coverImage, setCoverImage] = useState('/series/after-hours/kiosk-sm.webp');
   const [coverAlt, setCoverAlt] = useState('');
   const [description, setDescription] = useState('');
   const [processNotes, setProcessNotes] = useState('');
@@ -83,7 +83,7 @@ export const NewExhibitModal: React.FC<NewExhibitModalProps> = ({
       setSubtitle('');
       setDiscipline('3d');
       setFormat('large-featured');
-      setCoverImage('/images/imgblog1.jpg');
+      setCoverImage('/series/after-hours/kiosk-sm.webp');
       setCoverAlt('');
       setDescription('');
       setProcessNotes('');
@@ -299,7 +299,7 @@ export const NewExhibitModal: React.FC<NewExhibitModalProps> = ({
                 {/* Visual Cover */}
                 <div className="relative aspect-[16/10] sm:aspect-video rounded-2xl overflow-hidden bg-black/60 border border-white/5">
                   <img
-                    src={coverImage || '/images/imgblog1.jpg'}
+                    src={coverImage || '/series/after-hours/kiosk-sm.webp'}
                     alt={coverAlt || title || (language === 'ru' ? 'Превью проекта' : 'Project Preview')}
                     className="w-full h-full object-cover"
                   />
@@ -373,7 +373,7 @@ export const NewExhibitModal: React.FC<NewExhibitModalProps> = ({
                         if (alt) setCoverAlt(alt);
                       }}
                       onImageRemoved={() => {
-                        setCoverImage('/images/imgblog1.jpg');
+                        setCoverImage('/series/after-hours/kiosk-sm.webp');
                         setCoverAlt('');
                       }}
                       aspectRatio="video"
@@ -387,7 +387,7 @@ export const NewExhibitModal: React.FC<NewExhibitModalProps> = ({
                       {t.modals.coverPresetLabel}
                     </label>
                     <div className="grid grid-cols-4 gap-2">
-                      {['/images/imgblog1.jpg', '/images/imgblog2.jpg', '/images/imgblog3.jpg', '/images/imgblog4.jpg'].map((img, idx) => (
+                      {['/series/after-hours/kiosk-sm.webp', '/series/after-hours/promenade-sm.webp', '/series/after-hours/reflections-sm.webp', '/series/after-hours/dawn-sm.webp'].map((img, idx) => (
                         <button
                           key={idx}
                           type="button"

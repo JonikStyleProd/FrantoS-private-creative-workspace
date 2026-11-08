@@ -23,16 +23,16 @@ export const NewStoryModal: React.FC<NewStoryModalProps> = ({
   const [caption, setCaption] = useState('');
   const [discipline, setDiscipline] = useState<CreativeDiscipline>('3d');
   const [type, setType] = useState<StoryType>('wip');
-  const [imageUrl, setImageUrl] = useState('/images/imgblog2.jpg');
+  const [imageUrl, setImageUrl] = useState('/series/after-hours/promenade-sm.webp');
   const [imageAlt, setImageAlt] = useState(language === 'ru' ? 'Снимок студийного рендера' : 'Studio render snapshot');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const sampleImages = [
-    '/images/imgblog1.jpg',
-    '/images/imgblog2.jpg',
-    '/images/imgblog3.jpg',
-    '/images/imgblog4.jpg',
+    '/series/after-hours/kiosk-sm.webp',
+    '/series/after-hours/promenade-sm.webp',
+    '/series/after-hours/reflections-sm.webp',
+    '/series/after-hours/dawn-sm.webp',
   ];
 
   // Lock background scroll, handle Escape and Android Back

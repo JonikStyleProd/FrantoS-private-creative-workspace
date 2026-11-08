@@ -18,6 +18,30 @@
 
 ---
 
+## FrantoS 2.0 — interactive demo (branch `frantos-2.0`)
+
+One link for a client: open it on a phone or desktop, understand the idea, and build your own version of a visual story in 60–90 seconds, with no sign-up.
+
+| Route | What it is |
+| :--- | :--- |
+| `/#/` | Public landing: hero with the story cover, a live "choose the cover" step, the series contact sheet |
+| `/#/story` | Finished story, viewer mode (opens from the hero cover) |
+| `/#/studio` | Demo project editor: materials → story, reorder, cover, save state, reset |
+| `/#/studio/present/0` | Presentation launched from the editor |
+| `/#/overview`, `/#/catalog`, `/#/workspace`, `/#/moodboard`, `/#/atmosphere` | Original atelier (v1), unchanged, lazy-loaded |
+
+**Demo series:** *After Hours / Tel Aviv*, seven AI-generated frames with one shared grade (`public/series/after-hours`). They replace the third-party sports press photos that previously lived in `public/images/imgblog*.jpg`.
+
+**Art direction:** warm paper for the publication, graphite for the light table, one signal colour (halation red `#FF4B2B`) for the selected frame, the active tool and the primary action. Instrument Serif (display; Literata for Cyrillic), Inter Tight (UI), JetBrains Mono (frame numbers, times). Fonts are self-hosted via Fontsource. The recurring motif is contact-sheet crop marks.
+
+**Motion:** one cover object (`layoutId="cover"`) travels hero → editor cover tile → presentation title slide and back. Panels step aside for the presentation. Reordering animates in place. `prefers-reduced-motion` keeps every route with static states (`MotionConfig reducedMotion="user"`).
+
+**Storage:** the visitor's demo copy is stored only in this browser under `localStorage["frantos2_demo_story_v1"]`. "Start demo over" clears only that key. Nothing is published, and the UI says so.
+
+Code lives in `src/frantos2/`.
+
+---
+
 ## 📋 Table of Contents
 
 - [Overview](#overview)

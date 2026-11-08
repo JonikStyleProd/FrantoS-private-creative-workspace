@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { App } from './App';
+import { Root } from './frantos2/Root';
 import { LanguageProvider } from './i18n/LanguageContext';
 import './index.css';
 
@@ -10,7 +10,7 @@ if (rootElement) {
   ReactDOM.createRoot(rootElement).render(
     <React.StrictMode>
       <LanguageProvider>
-        <App />
+        <Root />
       </LanguageProvider>
     </React.StrictMode>
   );
