@@ -141,3 +141,32 @@
     animation-duration: 0.01ms !important;
   }
 }
+
+/* timeline scrubber */
+.f2-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.18);
+  outline: none;
+}
+.f2-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #f3efe7;
+  cursor: pointer;
+}
+.f2-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 0;
+  border-radius: 50%;
+  background: #f3efe7;
+}
+.f2-range:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 4px;
+}

@@ -22,7 +22,7 @@ export function Present({ mode, slide }: { mode: 'viewer' | 'editor'; slide: num
   const i = Math.min(Math.max(slide, 0), last);
   const [dir, setDir] = useState(1);
   const base = mode === 'viewer' ? '/story' : '/studio/present';
-  const exitTo = mode === 'viewer' ? '/' : '/studio';
+  const exitTo = mode === 'viewer' ? '/after-hours' : '/studio';
 
   const to = useCallback(
     (j: number) => {

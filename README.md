@@ -18,27 +18,25 @@
 
 ---
 
-## FrantoS 2.0 — interactive demo (branch `frantos-2.0`)
+## FrantoS 2.0 — Behind the work (branch `frantos-2.0`)
 
-One link for a client: open it on a phone or desktop, understand the idea, and build your own version of a visual story in 60–90 seconds, with no sign-up.
+A private workspace for designers, motion & 3D artists and small studios. The demo project **FORM / 01** is built around one procedural 3D object (`src/frantos2/form/formScene.ts`). The same scene renders the clay study, v1 (lacquer, hard key), v2 (satin, soft key), the poster object and the 8 s turntable loop, and it runs live in the landing hero on desktop.
 
 | Route | What it is |
 | :--- | :--- |
-| `/#/` | Public landing: hero with the story cover, a live "choose the cover" step, the series contact sheet |
-| `/#/story` | Finished story, viewer mode (opens from the hero cover) |
-| `/#/studio` | Demo project editor: materials → story, reorder, cover, save state, reset |
-| `/#/studio/present/0` | Presentation launched from the editor |
-| `/#/overview`, `/#/catalog`, `/#/workspace`, `/#/moodboard`, `/#/atmosphere` | Original atelier (v1), unchanged, lazy-loaded |
+| `/#/` | Landing: poster with a lifted corner → layers (clay → references → review note → project screen); scenes Collect / Refine / Present |
+| `/#/app` | Workspace home: continue where you left off, notes that need attention, active work, Create |
+| `/#/p/:id` · `/materials` · `/moodboard` · `/review/:work` · `/stories` | Project: overview (orbit / grid), materials + context inspector, moodboard, review, Stories |
+| `/#/p/:id/review/:work?v=&cmp=&c=` | Deep link to a version, an A/B comparison and a specific note |
+| `/#/p/:id/present/:n`, `/#/p/:id/stories/play/:n` | Clean presentation / Story playback |
+| `/#/after-hours`, `/#/studio`, `/#/story` | First-stage photo story demo (still works) |
+| `/#/overview` … | Original atelier v1, lazy-loaded |
 
-**Demo series:** *After Hours / Tel Aviv*, seven AI-generated frames with one shared grade (`public/series/after-hours`). They replace the third-party sports press photos that previously lived in `public/images/imgblog*.jpg`.
+**Review:** A/B divider (the camera never moves), notes pinned in the work's own 0–1 coordinates, timecode notes on motion with seek-on-click, per-version notes, resolve / reopen, replies, approve. From a version: Story frame, presentation, portfolio pick, all without re-uploading.
 
-**Art direction:** warm paper for the publication, graphite for the light table, one signal colour (halation red `#FF4B2B`) for the selected frame, the active tool and the primary action. Instrument Serif (display; Literata for Cyrillic), Inter Tight (UI), JetBrains Mono (frame numbers, times). Fonts are self-hosted via Fontsource. The recurring motif is contact-sheet crop marks.
+**Storage:** local-first. Metadata in IndexedDB `frantos-ws-v1`, files as blobs `blob:<id>`. Undo for deletes and moves (toast or ⌘/Ctrl+Z); orphaned blobs are cleaned up on the next start. There is no server, so there are no invites, share links or publishing, and the UI says so.
 
-**Motion:** one cover object (`layoutId="cover"`) travels hero → editor cover tile → presentation title slide and back. Panels step aside for the presentation. Reordering animates in place. `prefers-reduced-motion` keeps every route with static states (`MotionConfig reducedMotion="user"`).
-
-**Storage:** the visitor's demo copy is stored only in this browser under `localStorage["frantos2_demo_story_v1"]`. "Start demo over" clears only that key. Nothing is published, and the UI says so.
-
-Code lives in `src/frantos2/`.
+**Asset tools:** `tools/render-form.html` and `tools/render-poster.html` (open via `npm run dev`) re-render the object and the poster.
 
 ---
 

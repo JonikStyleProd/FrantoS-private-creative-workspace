@@ -13,14 +13,31 @@ export type Route =
   | { name: 'story'; slide: number }
   | { name: 'studio' }
   | { name: 'present'; slide: number }
-  | { name: 'legacy' };
+  | { name: 'legacy' }
+  | { name: 'app' }
+  | { name: 'afterhours' }
+  | { name: 'project'; id: string; tab: ProjectTab; sub?: string; q: URLSearchParams }
+  | { name: 'pshow'; id: string; mode: 'presentation' | 'story'; slide: number };
+
+export type ProjectTab = 'overview' | 'materials' | 'moodboard' | 'review' | 'stories';
+const TABS: ProjectTab[] = ['overview', 'materials', 'moodboard', 'review', 'stories'];
 
 const LEGACY = new Set(['overview', 'feed', 'catalog', 'workspace', 'moodboard', 'atmosphere', 'weather', 'atelier']);
 
 export function parse(hash: string): Route {
-  const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean);
-  const [a, b, c] = parts;
+  const raw = hash.replace(/^#\/?/, '');
+  const [path, query = ''] = raw.split('?');
+  const parts = path.split('/').filter(Boolean).map(decodeURIComponent);
+  const [a, b, c, d] = parts;
   if (!a) return { name: 'landing' };
+  if (a === 'app') return { name: 'app' };
+  if (a === 'after-hours') return { name: 'afterhours' };
+  if (a === 'p' && b) {
+    if (c === 'present') return { name: 'pshow', id: b, mode: 'presentation', slide: num(d) };
+    if (c === 'stories' && d === 'play') return { name: 'pshow', id: b, mode: 'story', slide: num(parts[4]) };
+    const tab = (TABS as string[]).includes(c ?? '') ? (c as ProjectTab) : 'overview';
+    return { name: 'project', id: b, tab, sub: d, q: new URLSearchParams(query) };
+  }
   if (a === 'story') return { name: 'story', slide: num(b) };
   if (a === 'studio') {
     if (b === 'present') return { name: 'present', slide: num(c) };
