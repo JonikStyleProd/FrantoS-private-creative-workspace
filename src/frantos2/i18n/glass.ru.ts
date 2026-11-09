@@ -690,4 +690,13 @@ export const glassRu: Record<string, string> = {
   "Lite graphics": "Облегчённая графика",
   "Fold the panel away": "Свернуть панель",
   "Show the panel": "Показать панель",
+  "Finish": "Отделка",
+  "Recolour": "Перекрасить",
+  "Solid": "Сплошной",
+  "Strength": "Сила",
+  "Gloss": "Глянец",
+  "Metal": "Металл",
+  "The model’s own texture. Choose Recolour or Solid to change its colour.": "Собственная текстура модели. Чтобы сменить цвет, выберите «Перекрасить» или «Сплошной».",
+  "As modelled": "Как в модели",
+  "GLB model": "GLB-модель",
 };

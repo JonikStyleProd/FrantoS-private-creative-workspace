@@ -145,6 +145,12 @@ export interface MaterialVariant {
   softness: number;
   roughness: number;
   gloss: number;
+  /** imported models only: keep the model's own look, recolour its texture, or paint one solid colour (topColor) */
+  finish?: 'original' | 'tint' | 'solid';
+  /** imported models: how strongly the recolour replaces the texture's colour, 0–1 */
+  tint?: number;
+  /** imported models: metalness, 0–1 */
+  metal?: number;
 }
 
 export type LightPreset = 'softbox' | 'window' | 'spot' | 'rim' | 'morning' | 'sunset' | 'gallery' | 'hdri';

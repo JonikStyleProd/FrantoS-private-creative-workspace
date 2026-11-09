@@ -499,7 +499,7 @@ function Timeline({ p, o }: { p: Project; o: StudioObject }) {
                 </button>
               </div>
             ) : (
-              <label className="lg-btn lg-btn-ghost min-h-[36px] w-full cursor-pointer text-[12.5px]">
+              <label className="lg-btn lg-btn-ghost relative min-h-[36px] w-full cursor-pointer overflow-hidden text-[12.5px]">
                 <Plus size={14} /> {t('Add a sound')}
                 <input type="file" accept="audio/*" className="sr-only" onChange={(e) => pickAudio(e.target.files?.[0])} />
               </label>

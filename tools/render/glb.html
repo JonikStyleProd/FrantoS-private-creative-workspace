@@ -4,7 +4,7 @@ localStorage.setItem('frantos-quality','full');
 const { createObjectScene } = await import('/src/frantos2/studio/scene.ts');
 const s = createObjectScene(document.getElementById('c'), { interactive: false, pixelRatio: 1 });
 window.shot = async (url, az = 30, bg = '#e7e3d8', zoom = 1) => {
-  await s.setObject({ id:'x', title:'x', source:{kind:'model', assetId:'a'}, variants:[{id:'v',name:'v',base:'clay',baseColor:'#ccc',topColor:'#ccc',blend:1,softness:0.1,roughness:0.5,gloss:0}], variantId:'v', light:{preset:'softbox',angle:-30,intensity:1}, camera:{lens:85}, background:{kind:'studio',color:bg}, turntable:{seconds:12}, createdAt:0, updatedAt:0 }, url, 'full');
+  await s.setObject({ id:'x', title:'x', source:{kind:'model', assetId:'a'}, variants:[{id:'v',name:'v',base:'clay',baseColor:'#ccc',topColor:'#ccc',blend:1,softness:0.1,roughness:0.5,gloss:0,...(window.__v||{})}], variantId:'v', light:{preset:'softbox',angle:-30,intensity:1}, camera:{lens:85}, background:{kind:'studio',color:bg}, turntable:{seconds:12}, createdAt:0, updatedAt:0 }, url, 'full');
   s.setLight({preset:'softbox',angle:-30,intensity:1}); s.setPose({az, el:15, zoom});
   const b = await s.render(640, 640, { background: bg, type:'image/webp', quality: 0.86 });
   return await new Promise(r => { const f = new FileReader(); f.onload = () => r(f.result); f.readAsDataURL(b); });

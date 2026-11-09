@@ -273,9 +273,9 @@ function Editor({ p, asset, from, onReopen, list, narrow, sheet, setSheet }: { p
         <p className="text-[11.5px] text-white/60">{t('Drag the picture to move it inside the frame.')}</p>
       </Section>
       <Section title={t('Look')} icon={<Sparkles size={16} />}>
-        <div className="grid grid-cols-4 gap-1.5">
+        <div className="flex flex-wrap gap-1.5">
           {LOOKS.map((l) => (
-            <button key={l.id} type="button" onClick={() => (setLook(l.id), setAdj(l.adjust))} aria-pressed={look === l.id} className={`min-h-[36px] rounded-[10px] px-1 text-[11.5px] font-bold ${look === l.id ? 'bg-white text-[#11151a]' : 'bg-white/10 hover:bg-white/15'}`}>
+            <button key={l.id} type="button" onClick={() => (setLook(l.id), setAdj(l.adjust))} aria-pressed={look === l.id} className={`min-h-[36px] flex-auto whitespace-nowrap rounded-[10px] px-3 text-[12px] font-bold ${look === l.id ? 'bg-white text-[#11151a]' : 'bg-white/10 hover:bg-white/15'}`}>
               {t(l.name)}
             </button>
           ))}

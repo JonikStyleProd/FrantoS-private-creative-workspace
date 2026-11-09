@@ -690,4 +690,13 @@ export const glassHe: Record<string, string> = {
   "Lite graphics": "גרפיקה קלה",
   "Fold the panel away": "קיפול הלוח",
   "Show the panel": "הצגת הלוח",
+  "Finish": "גימור",
+  "Recolour": "צביעה מחדש",
+  "Solid": "אחיד",
+  "Strength": "עוצמה",
+  "Gloss": "ברק",
+  "Metal": "מתכת",
+  "The model’s own texture. Choose Recolour or Solid to change its colour.": "הטקסטורה של המודל. כדי לשנות צבע בחרו „צביעה מחדש” או „אחיד”.",
+  "As modelled": "כמו במודל",
+  "GLB model": "מודל GLB",
 };

@@ -200,14 +200,14 @@ function TopBar({ p, o, mode, onMode }: { p: Project; o?: StudioObject; mode: St
   const { t } = useI18n();
   return (
     <header className="absolute inset-x-3 top-3 z-30 flex items-center gap-2 sm:inset-x-4 sm:top-4">
-      <Pane className="flex min-w-0 items-center gap-1 rounded-full py-1 ps-1 max-sm:pe-1 sm:pe-4">
+      <Pane className="flex min-w-0 max-w-[340px] items-center gap-1 rounded-full py-1 ps-1 max-sm:pe-1 sm:pe-4">
         <button type="button" onClick={() => go(`/p/${p.id}`)} className="lg-btn lg-btn-plain lg-icon" aria-label={t('Back to the project')}>
           <ArrowLeft size={18} className="rtl:-scale-x-100" />
         </button>
-        <span dir="auto" className="truncate text-[15px] font-bold max-sm:hidden">
+        <span dir="auto" title={p.title} className="min-w-[72px] truncate text-[15px] font-bold max-sm:hidden">
           {p.title}
         </span>
-        <span className="ms-2 hidden text-[12.5px] text-white/65 lg:inline">{t('Studio')}</span>
+        <span className="ms-2 hidden whitespace-nowrap text-[12.5px] text-white/65 2xl:inline">{t('Studio')}</span>
       </Pane>
       <Pane as="nav" aria-label={t('Editor mode')} className="mx-auto flex items-center gap-0.5 rounded-full p-1">
         {MODES.map((m) => (
@@ -218,9 +218,9 @@ function TopBar({ p, o, mode, onMode }: { p: Project; o?: StudioObject; mode: St
             aria-pressed={m.id === mode}
             title={`${t(m.label)} (${m.key})`}
             aria-label={t(m.label)}
-            className={`relative flex min-h-[40px] min-w-[40px] items-center justify-center gap-1.5 rounded-full px-2.5 text-[13.5px] font-bold transition-colors lg:px-4 ${m.id === mode ? 'bg-white text-[#11151a]' : 'text-white/75 hover:bg-white/10'}`}
+            className={`relative flex min-h-[40px] min-w-[40px] items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-[13.5px] font-bold transition-colors xl:px-4 ${m.id === mode ? 'bg-white text-[#11151a]' : 'text-white/75 hover:bg-white/10'}`}
           >
-            <m.icon size={15} /> <span className="hidden lg:inline">{t(m.label)}</span>
+            <m.icon size={15} /> <span className="hidden xl:inline">{t(m.label)}</span>
           </button>
         ))}
       </Pane>
@@ -285,6 +285,8 @@ function ObjectEditor({ p, o, narrow, onImport, onAddVessel, onPick }: { p: Proj
   const recAbort = useRef<AbortController | null>(null);
   const [ideas, setIdeas] = useState<MaterialVariant[] | null>(null);
   const palette = projectPalette(p);
+  /** colour ideas; on an imported model they become recolours of its texture */
+  const ideasFor = () => variations(variant, palette).map((v) => (draft.source.kind === 'model' ? { ...v, finish: 'tint' as const, tint: 1, metal: variant.metal ?? 0 } : v));
 
   // outside changes (undo, sync) win when nothing is being edited here
   useEffect(() => {
@@ -297,7 +299,8 @@ function ObjectEditor({ p, o, narrow, onImport, onAddVessel, onPick }: { p: Proj
     let s: ObjectScene;
     try {
       s = createObjectScene(c);
-    } catch {
+    } catch (e) {
+      console.warn('FrantoS: 3D could not start', e);
       setError(t('3D needs WebGL, and this browser has it turned off.'));
       return;
     }
@@ -512,7 +515,7 @@ function ObjectEditor({ p, o, narrow, onImport, onAddVessel, onPick }: { p: Proj
     else if (c === 'reset-camera') sceneRef.current?.resetCamera();
     else if (c === 'variant-prev' || c === 'variant-next') edit({ variantId: vs[(i + (c === 'variant-next' ? 1 : -1) + vs.length) % vs.length].id }, 'Variant changed');
     else if (c === 'variant-dup') addVariantNow();
-    else if (c === 'variations') setIdeas(ideas ? null : variations(variant, palette));
+    else if (c === 'variations') setIdeas(ideas ? null : ideasFor());
     else if (c === 'compare') setCompareId(compareId ? null : vs.find((v) => v.id !== variant.id)?.id ?? null);
     else if (c === 'render-project') void renderStill('project');
     else if (c === 'render-png') void renderStill('download');
@@ -521,8 +524,10 @@ function ObjectEditor({ p, o, narrow, onImport, onAddVessel, onPick }: { p: Proj
   });
   const addVariantNow = () => {
     flush();
-    const vid = ws.addVariant(p.id, o.id, variant);
-    setDraft((d) => ({ ...d, variants: [...d.variants, { ...variant, id: vid, name: variant.name + ' 2' }], variantId: vid }));
+    // a model's first copy starts as a recolour, so the new variant visibly differs from the original
+    const base = draft.source.kind === 'model' && (variant.finish ?? 'original') === 'original' ? { ...variant, finish: 'tint' as const, tint: 1, topColor: palette[0] ?? variant.topColor, name: 'Recolour' } : variant;
+    const vid = ws.addVariant(p.id, o.id, base);
+    setDraft((d) => ({ ...d, variants: [...d.variants, { ...base, id: vid, name: base.name + ' 2' }], variantId: vid }));
   };
 
   const [size, setSize] = useState(SIZES[0]);
@@ -588,7 +593,7 @@ function ObjectEditor({ p, o, narrow, onImport, onAddVessel, onPick }: { p: Proj
       x={{
         palette,
         ideas,
-        onIdeas: () => setIdeas(ideas ? null : variations(variant, palette)),
+        onIdeas: () => setIdeas(ideas ? null : ideasFor()),
         onAddIdea: addIdea,
         compareId: compareVariant?.id ?? null,
         onCompare: (id) => setCompareId(id),
@@ -736,10 +741,10 @@ function ObjectsList({ p, active, onPick, onImport, onAddVessel }: { p: Project;
             <button type="button" onClick={() => onPick(x.id)} aria-current={x.id === active ? 'true' : undefined} className="flex min-w-0 flex-1 items-center gap-2 text-start">
               <span className="block h-12 w-12 shrink-0 overflow-hidden rounded-[12px] bg-white/10">{x.thumb ? <img src={x.thumb} alt="" className="h-full w-full object-cover" /> : <Box size={18} className="m-auto mt-3.5" />}</span>
               <span className="min-w-0">
-                <span dir="auto" className="block truncate text-[13.5px] font-bold">
+                <span dir="auto" className="line-clamp-2 break-words text-[13px] font-bold leading-[1.25]">
                   {t(x.title)}
                 </span>
-                <span className="block text-[11.5px] text-white/65">{x.source.kind === 'vessel' ? t('Parametric vessel') : t('Imported GLB')}</span>
+                <span className="block truncate text-[11.5px] text-white/65">{x.source.kind === 'vessel' ? t('Vessel') : t('GLB model')}</span>
               </span>
             </button>
             {(p.objects ?? []).length > 1 && (
@@ -807,6 +812,7 @@ function Inspector(props: InspectorProps) {
   const { t } = useI18n();
   const show = (k: 'material' | 'light' | 'shape' | 'render') => !only || only === k || (only === 'material' && k === 'shape');
   const vessel = draft.source.kind === 'vessel' ? draft.source : null;
+  const isModel = draft.source.kind === 'model';
   return (
     <div className="space-y-5">
       {!only && (
@@ -820,11 +826,10 @@ function Inspector(props: InspectorProps) {
 
       {show('material') && (
         <Section title={t('Material')} icon={<Sparkles size={16} />}>
-          {draft.source.kind === 'model' && <p className="text-[12.5px] leading-[1.45] text-white/70">{t('Imported models keep their own materials. Variants apply to the parametric vessel.')}</p>}
           <div className="grid grid-cols-4 gap-2" role="radiogroup" aria-label={t('Variants')}>
             {draft.variants.map((v) => (
               <button key={v.id} type="button" role="radio" aria-checked={v.id === variant.id} title={t(v.name)} aria-label={t(v.name)} onClick={() => edit({ variantId: v.id }, 'Variant changed')} className={`h-12 overflow-hidden rounded-[14px] ${v.id === variant.id ? 'ring-2 ring-white ring-offset-2 ring-offset-[#2a2420]' : 'ring-1 ring-white/25'}`}>
-                <Swatch v={v} />
+                <Swatch v={v} thumb={isModel ? draft.thumb : undefined} />
               </button>
             ))}
           </div>
@@ -842,6 +847,33 @@ function Inspector(props: InspectorProps) {
               </button>
             )}
           </div>
+          {isModel ? (
+            <>
+          <Seg
+            label={t('Finish')}
+            value={variant.finish ?? 'original'}
+            options={[
+              { id: 'original', label: t('Original') },
+              { id: 'tint', label: t('Recolour') },
+              { id: 'solid', label: t('Solid') },
+            ]}
+            onChange={(f) => editVariant(f === 'original' ? { finish: f } : { finish: f, tint: variant.tint ?? 1, ...(variant.name === 'As modelled' ? { name: f === 'solid' ? 'Solid colour' : 'Recolour' } : {}) })}
+          />
+          {(variant.finish ?? 'original') === 'original' ? (
+            <p className="text-[12.5px] leading-[1.45] text-white/70">{t('The model’s own texture. Choose Recolour or Solid to change its colour.')}</p>
+          ) : (
+            <>
+              <ColorField label={t('Colour')} value={variant.topColor} onChange={(c) => editVariant({ topColor: c })} />
+              {x.palette.length > 0 && <PaletteRow colors={x.palette} label={t('Project palette')} active={variant.topColor} onPick={(c) => editVariant({ topColor: c })} />}
+              {variant.finish === 'tint' && <Slider label={t('Strength')} value={variant.tint ?? 1} min={0} max={1} fmt={(v) => `${Math.round(v * 100)}%`} onChange={(v) => editVariant({ tint: v })} />}
+              <Slider label={t('Roughness')} value={variant.roughness} min={0.02} max={1} onChange={(v) => editVariant({ roughness: v })} />
+              <Slider label={t('Gloss')} value={variant.gloss} min={0} max={1} onChange={(v) => editVariant({ gloss: v })} />
+              <Slider label={t('Metal')} value={variant.metal ?? 0} min={0} max={1} onChange={(v) => editVariant({ metal: v })} />
+            </>
+          )}
+            </>
+          ) : (
+            <>
           <Seg
             label={t('Base')}
             value={variant.base}
@@ -866,14 +898,16 @@ function Inspector(props: InspectorProps) {
           <Slider label={t('Transition')} value={variant.softness} min={0.01} max={0.8} fmt={(v) => `${Math.round(v * 100)}%`} onChange={(v) => editVariant({ softness: v })} />
           <Slider label={t('Roughness')} value={variant.roughness} min={0.02} max={1} onChange={(v) => editVariant({ roughness: v })} />
           <Slider label={t('Gloss coat')} value={variant.gloss} min={0} max={1} onChange={(v) => editVariant({ gloss: v })} />
-          {draft.source.kind === 'vessel' && (
+            </>
+          )}
+          {(
             <div className="grid grid-cols-2 gap-2">
               <button type="button" onClick={x.onIdeas} aria-expanded={!!x.ideas} className={`lg-btn min-h-[38px] px-2 text-[12.5px] ${x.ideas ? 'lg-btn-primary' : 'lg-btn-ghost'}`}>
                 <Wand2 size={14} /> {t('Variations')}
               </button>
               <button
                 type="button"
-                disabled={draft.variants.length < 2}
+                disabled={draft.variants.length < 2 || isModel}
                 onClick={() => x.onCompare(x.compareId ? null : (draft.variants.find((v) => v.id !== variant.id)?.id ?? null))}
                 aria-pressed={!!x.compareId}
                 className={`lg-btn min-h-[38px] px-2 text-[12.5px] disabled:opacity-40 ${x.compareId ? 'lg-btn-primary' : 'lg-btn-ghost'}`}
@@ -890,7 +924,7 @@ function Inspector(props: InspectorProps) {
                   .filter((v) => v.id !== variant.id)
                   .map((v) => (
                     <button key={v.id} type="button" onClick={() => x.onCompare(v.id)} aria-pressed={v.id === x.compareId} title={t(v.name)} aria-label={t(v.name)} className={`h-9 w-9 overflow-hidden rounded-[10px] ${v.id === x.compareId ? 'ring-2 ring-white' : 'ring-1 ring-white/25'}`}>
-                      <Swatch v={v} />
+                      <Swatch v={v} thumb={isModel ? draft.thumb : undefined} />
                     </button>
                   ))}
               </div>
@@ -924,7 +958,7 @@ function Inspector(props: InspectorProps) {
 
       {show('light') && (
         <Section title={t('Light & camera')} icon={<SunMedium size={16} />}>
-          <Seg cols={4} label={t('Light')} value={draft.light.preset} options={LIGHTS.map((l) => ({ id: l.id, label: t(l.label) }))} onChange={(v) => edit({ light: { ...draft.light, preset: v } }, 'Light changed')} />
+          <Seg wrap label={t('Light')} value={draft.light.preset} options={LIGHTS.map((l) => ({ id: l.id, label: t(l.label) }))} onChange={(v) => edit({ light: { ...draft.light, preset: v } }, 'Light changed')} />
           {draft.light.preset === 'hdri' && (
             <div className="space-y-2 rounded-[14px] bg-white/10 p-2.5">
               {x.envs.length > 0 && (
@@ -945,6 +979,7 @@ function Inspector(props: InspectorProps) {
           <div>
             <p className="lg-label mb-1.5">{t('Stand')}</p>
             <Seg
+              wrap
               label={t('Stand')}
               value={draft.stage ?? 'none'}
               options={[

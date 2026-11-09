@@ -106,7 +106,7 @@ test('studio: import a GLB, render it into the project as a new work', async ({ 
   await expect(page.getByText('Preparing the object…')).toBeHidden({ timeout: 15000 });
   await page.locator('button[aria-label="Import GLB"] + input[type=file]').setInputFiles(fixture('pyramid.glb'));
   await expect(page.getByText('Model imported')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'pyramid Imported GLB' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'pyramid GLB model' })).toBeVisible();
   await expect(page.getByText('Preparing the object…')).toBeHidden({ timeout: 15000 });
   await page.getByRole('button', { name: 'To project', exact: true }).click();
   await expect(page).toHaveURL(/#\/p\/form-01\?s=make&i=w-/, { timeout: 15000 });

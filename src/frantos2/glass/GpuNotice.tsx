@@ -69,7 +69,7 @@ export function GpuChip() {
   return (
     <span className="relative">
       <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="lg-btn lg-btn-plain h-10 min-h-0 gap-1.5 px-3 text-[12.5px] text-[var(--lg-accent)]" title={t('The browser is drawing without the graphics card.')}>
-        <Cpu size={15} /> <span className="hidden xl:inline">{t('Lite graphics')}</span>
+        <Cpu size={15} /> <span className="hidden 2xl:inline">{t('Lite graphics')}</span>
       </button>
       {open && <GpuNotice className="absolute end-0 top-12 w-[340px]" force onClose={() => setOpen(false)} />}
     </span>

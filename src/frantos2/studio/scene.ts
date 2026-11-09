@@ -282,6 +282,8 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
       if (m.isMesh) m.geometry.dispose();
     });
     originals.clear();
+    for (const x of modelMats) x.m.dispose();
+    modelMats = [];
     mesh = null;
   }
 
@@ -327,6 +329,72 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
     reshadow();
   }
 
+  /* imported models: every mesh gets its own copy of its material, so the variant can recolour it in place */
+  interface ModelMat {
+    m: THREE.MeshStandardMaterial;
+    map: THREE.Texture | null;
+    color: THREE.Color;
+    roughness: number;
+    metalness: number;
+    env: number;
+    u: { uTint: { value: THREE.Color }; uAmount: { value: number } };
+  }
+  let modelMats: ModelMat[] = [];
+  function prepModel(root: THREE.Object3D) {
+    modelMats = [];
+    root.traverse((x) => {
+      const mesh = x as THREE.Mesh;
+      if (!mesh.isMesh || Array.isArray(mesh.material)) return;
+      const src = mesh.material as THREE.MeshStandardMaterial;
+      if (!(src as { isMeshStandardMaterial?: boolean }).isMeshStandardMaterial) return;
+      const m = src.clone();
+      mesh.material = m;
+      const u = { uTint: { value: new THREE.Color('#ffffff') }, uAmount: { value: 0 } };
+      // recolour keeps the texture's light and shade (its luminance) and swaps its colour for the tint
+      m.onBeforeCompile = (sh) => {
+        sh.uniforms.uTint = u.uTint;
+        sh.uniforms.uAmount = u.uAmount;
+        sh.fragmentShader = sh.fragmentShader
+          .replace('#include <common>', '#include <common>\nuniform vec3 uTint;\nuniform float uAmount;')
+          .replace(
+            '#include <map_fragment>',
+            '#include <map_fragment>\n{ float l = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722)); float lt = mix(0.26, 0.95, sqrt(l)); vec3 r = lt < 0.5 ? uTint * (2.0 * lt) : mix(uTint, vec3(1.0), (2.0 * lt - 1.0) * 0.7); diffuseColor.rgb = mix(diffuseColor.rgb, r, uAmount); }',
+          );
+      };
+      modelMats.push({ m, map: m.map, color: m.color.clone(), roughness: m.roughness, metalness: m.metalness, env: m.envMapIntensity, u });
+    });
+  }
+  function paintModel(v: MaterialVariant) {
+    const mode = v.finish ?? 'original';
+    for (const x of modelMats) {
+      const hadMap = !!x.m.map;
+      if (mode === 'original') {
+        x.m.map = x.map;
+        x.m.color.copy(x.color);
+        x.m.roughness = x.roughness;
+        x.m.metalness = x.metalness;
+        x.m.envMapIntensity = x.env;
+        x.u.uAmount.value = 0;
+      } else {
+        x.m.roughness = Math.max(0.04, v.roughness * (1 - v.gloss * 0.45));
+        x.m.metalness = v.metal ?? 0;
+        x.m.envMapIntensity = 0.6 + v.gloss * 1.1;
+        if (mode === 'solid' || !x.map) {
+          x.m.map = null;
+          x.m.color.set(v.topColor);
+          x.u.uAmount.value = 0;
+        } else {
+          x.m.map = x.map;
+          x.m.color.set('#ffffff');
+          x.u.uTint.value.set(v.topColor);
+          x.u.uAmount.value = v.tint ?? 1;
+        }
+      }
+      if (hadMap !== !!x.m.map) x.m.needsUpdate = true;
+    }
+    dirty = true;
+  }
+
   async function setObject(o: StudioObject, modelUrl?: string, quality: 'draft' | 'full' = 'full') {
     clear();
     if (o.source.kind === 'vessel') {
@@ -354,6 +422,8 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
         const m = x as THREE.Mesh;
         if (m.isMesh) (m.castShadow = true), (m.receiveShadow = true);
       });
+      prepModel(root);
+      paintModel(o.variants.find((x) => x.id === o.variantId) ?? o.variants[0]);
       mesh = root;
     }
     if (mesh) holder.add(mesh);
@@ -370,7 +440,12 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
   let keepCamera = false;
 
   function setVariant(v: MaterialVariant, _quality: 'draft' | 'full' = 'full') {
-    if (!vesselMat || !mesh) return;
+    if (!mesh) return;
+    if (!(mesh as THREE.Mesh).isMesh) {
+      paintModel(v);
+      return;
+    }
+    if (!vesselMat) return;
     vesselMat.update(v);
     dirty = true;
   }
@@ -594,8 +669,11 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
       roomEnv.dispose();
       pmrem.dispose();
       renderer.dispose();
-      // give the WebGL context back now: browsers keep only a handful, software ones are expensive
-      renderer.forceContextLoss();
+      // give the WebGL context back once the canvas has left the page: browsers keep only a handful,
+      // software ones are expensive. A canvas that stays (React re-running an effect) keeps its context for the next scene.
+      window.setTimeout(() => {
+        if (!canvas.isConnected) renderer.forceContextLoss();
+      }, 0);
     },
   };
 }

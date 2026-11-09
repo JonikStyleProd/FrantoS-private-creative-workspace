@@ -30,11 +30,15 @@ export function Slider({ label, value, min, max, step = 0.01, fmt, onChange }: {
   );
 }
 
-export function Seg<T extends string | number>({ label, value, options, onChange, cols }: { label: string; value: T; options: { id: T; label: string }[]; onChange: (v: T) => void; cols?: number }) {
+/**
+ * A segmented choice. `wrap` lays the options out as chips that size to their label and flow onto
+ * the next line, so long or translated labels never get cut or broken mid-word.
+ */
+export function Seg<T extends string | number>({ label, value, options, onChange, cols, wrap }: { label: string; value: T; options: { id: T; label: string }[]; onChange: (v: T) => void; cols?: number; wrap?: boolean }) {
   return (
-    <div role="radiogroup" aria-label={label} className="grid gap-1 rounded-[14px] bg-white/10 p-1" style={{ gridTemplateColumns: `repeat(${cols ?? options.length}, minmax(0, 1fr))` }}>
+    <div role="radiogroup" aria-label={label} className={`gap-1 rounded-[14px] bg-white/10 p-1 ${wrap ? 'flex flex-wrap' : 'grid'}`} style={wrap ? undefined : { gridTemplateColumns: `repeat(${cols ?? options.length}, minmax(0, 1fr))` }}>
       {options.map((o) => (
-        <button key={String(o.id)} type="button" role="radio" aria-checked={o.id === value} onClick={() => onChange(o.id)} className={`min-h-[36px] rounded-[10px] px-1 text-[12.5px] font-bold ${o.id === value ? 'bg-white text-[#11151a]' : 'text-white/85 hover:bg-white/10'}`}>
+        <button key={String(o.id)} type="button" role="radio" aria-checked={o.id === value} onClick={() => onChange(o.id)} className={`min-h-[36px] whitespace-nowrap rounded-[10px] text-[12.5px] font-bold ${wrap ? 'flex-auto px-3' : 'min-w-0 px-1'} ${o.id === value ? 'bg-white text-[#11151a]' : 'text-white/85 hover:bg-white/10'}`}>
           {o.label}
         </button>
       ))}
@@ -42,7 +46,9 @@ export function Seg<T extends string | number>({ label, value, options, onChange
   );
 }
 
-export function Swatch({ v }: { v: MaterialVariant }) {
+export function Swatch({ v, thumb }: { v: MaterialVariant; thumb?: string }) {
+  if (v.finish === 'tint' || v.finish === 'solid') return <span className="block h-full w-full rounded-[inherit]" style={{ background: v.finish === 'solid' ? v.topColor : `linear-gradient(135deg, ${v.topColor}, ${v.topColor}aa)` }} />;
+  if (thumb) return <img src={thumb} alt="" className="block h-full w-full rounded-[inherit] object-cover" />;
   const bg = v.blend >= 1 ? v.baseColor : `linear-gradient(0deg, ${v.baseColor} 0 ${Math.round((v.blend - v.softness / 2) * 100)}%, ${v.topColor} ${Math.round((v.blend + v.softness / 2) * 100)}% 100%)`;
   return <span className="block h-full w-full rounded-[inherit]" style={{ background: bg }} />;
 }
