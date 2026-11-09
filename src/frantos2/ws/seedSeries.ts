@@ -97,7 +97,7 @@ const NOCTURNE: Series = {
   comments: [
     { work: 0, version: 0, pin: [0.52, 0.32], text: 'It reads as a day scent. Can we go smoked — amber or ink?', ageH: 24 * 18, resolved: true, reply: 'v2 in smoked amber with a rim light.' },
     { work: 0, version: 1, pin: [0.48, 0.7], text: 'Lovely pooling at the foot. Keep exactly this density.', ageH: 24 * 15, resolved: true },
-    { work: 2, version: 2, pin: [0.5, 0.45], text: 'Ink blue reads almost black on the shelf. Lift it a step?', ageH: 6 },
+    { work: 2, version: 2, pin: [0.5, 0.45], text: 'Ink blue reads almost black on the shelf. Lift it a step?', ageH: 10 },
     { work: 3, version: 1, pin: [0.5, 0.4], text: 'The fade is gorgeous — can the amber climb a little higher?', ageH: 30 },
   ],
   presentation: ['amber', 'onyx', 'rose', 'jade', 'ink', 'duo'],
@@ -145,7 +145,7 @@ const SALT: Series = {
   ],
   comments: [
     { work: 1, version: 0, pin: [0.5, 0.4], text: 'Feels like a hotel breakfast. Matte, please.', ageH: 24 * 9, resolved: true, reply: 'Sea salt matte in v2.' },
-    { work: 2, version: 3, pin: [0.5, 0.25], text: 'Love the tideline. Can it be 3 mm thinner?', ageH: 4 },
+    { work: 2, version: 3, pin: [0.5, 0.25], text: 'Love the tideline. Can it be 3 mm thinner?', ageH: 13 },
     { work: 0, version: 0, pin: [0.5, 0.55], text: 'Could the sand line sit a finger lower?', ageH: 20 },
   ],
   presentation: ['bowl', 'cup', 'pitcher', 'server', 'tumbler', 'vase'],
@@ -238,8 +238,8 @@ const MAREE: Series = {
   ],
   comments: [
     { work: 0, version: 0, pin: [0.5, 0.4], text: 'Too shiny, too even. Real sea glass is frosted and uneven.', ageH: 24 * 11, resolved: true, reply: 'v2 clears from deep cobalt at the foot to pale at the lip.' },
-    { work: 1, version: 3, pin: [0.5, 0.55], text: 'Mist might disappear against the white walls. Test it in room 204?', ageH: 9 },
-    { work: 3, version: 1, pin: [0.5, 0.35], text: 'Storm is my favourite. Can we make two sizes?', ageH: 2 },
+    { work: 1, version: 3, pin: [0.5, 0.55], text: 'Mist might disappear against the white walls. Test it in room 204?', ageH: 16 },
+    { work: 3, version: 1, pin: [0.5, 0.35], text: 'Storm is my favourite. Can we make two sizes?', ageH: 14 },
   ],
   presentation: ['cobalt', 'seafoam', 'aqua', 'bottle', 'amber-glass', 'storm'],
   portfolio: ['cobalt', 'storm'],
@@ -248,7 +248,7 @@ const MAREE: Series = {
 export const SERIES: Series[] = [NOCTURNE, SALT, LUMEN, MAREE];
 export const SERIES_IDS = SERIES.map((s) => s.id);
 /** bump when the series files or copy change */
-export const SERIES_REV = 1;
+export const SERIES_REV = 2;
 
 /** render size of every picture in the series (4:5, like the rest of the demo) */
 export const SERIES_W = 1600;
