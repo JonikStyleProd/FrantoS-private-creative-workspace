@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react';
 import { get, set, del, keys } from 'idb-keyval';
 import { Asset, Board, Brand, CanvasGroup, Profile, WorkStatus, CanvasNote, Comment, Decision, MaterialVariant, MoodItem, Project, StudioObject, WsState, Work } from './types';
 import { AH_ID, DEMO_ID, DEMO_REV, afterHoursProject, demoProject } from './seed';
+import { SERIES_IDS, SERIES_REV, seriesProject } from './seedSeries';
 
 /**
  * Local-first workspace store.
@@ -98,9 +99,10 @@ export function ensureLoaded() {
           if (!state.projects.some((p) => p.id === DEMO_ID)) state.projects.push(demoProject());
           else state = { ...state, projects: state.projects.map((p) => (p.id === DEMO_ID && (p.seedRev ?? 1) < DEMO_REV ? refreshDemo(p) : p)) };
           if (!state.projects.some((p) => p.id === AH_ID)) state.projects.push(afterHoursProject());
+          addSeries();
           gcBlobs();
         } else {
-          state = { v: 1, projects: [demoProject(), afterHoursProject()], you: 'You' };
+          state = { v: 1, projects: [demoProject(), afterHoursProject(), ...SERIES_IDS.map((id) => seriesProject(id))], you: 'You' };
         }
         status = 'idle';
       } catch (e) {
@@ -112,6 +114,29 @@ export function ensureLoaded() {
     })();
   }
   return loading;
+}
+
+/** the four collection demos: added once per browser (a deleted one stays deleted), refreshed when their files change */
+function addSeries() {
+  let seen: string[] = [];
+  try {
+    seen = JSON.parse(localStorage.getItem('frantos-series-seen') ?? '[]');
+  } catch {
+    /* ignore */
+  }
+  const add = SERIES_IDS.filter((id) => !seen.includes(id) && !state.projects.some((p) => p.id === id));
+  state = {
+    ...state,
+    projects: [
+      ...state.projects.map((p) => (SERIES_IDS.includes(p.id) && p.kind === 'demo' && (p.seedRev ?? 0) < SERIES_REV ? seriesProject(p.id) : p)),
+      ...add.map((id) => seriesProject(id)),
+    ],
+  };
+  try {
+    localStorage.setItem('frantos-series-seen', JSON.stringify(SERIES_IDS));
+  } catch {
+    /* ignore */
+  }
 }
 
 /** Bring an older demo copy up to date: new copy for the demo's own files, the visitor's notes stay. */
@@ -237,7 +262,7 @@ export const ws = {
   },
 
   resetDemo(id: string = DEMO_ID) {
-    const projects = state.projects.map((p) => (p.id !== id ? p : id === DEMO_ID ? demoProject() : id === AH_ID ? afterHoursProject() : p));
+    const projects = state.projects.map((p) => (p.id !== id ? p : id === DEMO_ID ? demoProject() : id === AH_ID ? afterHoursProject() : SERIES_IDS.includes(id) ? seriesProject(id) : p));
     commit({ ...state, projects }, 'Demo project reset');
   },
 
