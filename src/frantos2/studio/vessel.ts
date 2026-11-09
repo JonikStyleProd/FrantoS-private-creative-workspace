@@ -161,18 +161,15 @@ export interface PaintedMaps {
   bumpMap: THREE.CanvasTexture;
 }
 
-/** Paint colour, roughness, clearcoat and bump for a variant. v = 0 at the foot, 1 at the lip. */
-export function paint(v: MaterialVariant): PaintedMaps {
-  const make = () => {
-    const c = document.createElement('canvas');
-    c.width = W;
-    c.height = Hh;
-    return c;
-  };
-  const col = make();
-  const rough = make();
-  const coat = make();
-  const bump = make();
+const make = () => {
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = Hh;
+  return c;
+};
+
+/** Paint colour, roughness, clearcoat and bump for a variant into the given canvases. v = 0 at the foot, 1 at the lip. */
+function paintInto(col: HTMLCanvasElement, rough: HTMLCanvasElement, coat: HTMLCanvasElement, bump: HTMLCanvasElement, v: MaterialVariant) {
   const cx = col.getContext('2d')!;
   const rx = rough.getContext('2d')!;
   const kx = coat.getContext('2d')!;
@@ -186,28 +183,26 @@ export function paint(v: MaterialVariant): PaintedMaps {
   for (let y = 0; y < Hh; y++) {
     const vv = 1 - y / (Hh - 1);
     const wTop = v.blend >= 1 ? 0 : smooth(lo, hi, vv);
-    // glaze runs darker near the rim
-    const pool = 1 - 0.12 * smooth(0.85, 1, vv);
+    const pool = 1 - 0.12 * smooth(0.85, 1, vv); // glaze runs darker near the rim
     const c = base.clone().lerp(top.clone().multiplyScalar(pool), wTop);
     cx.fillStyle = `#${c.getHexString()}`;
     cx.fillRect(0, y, W, 1);
     const baseRough = stone ? 0.88 : v.base === 'clay' ? 0.9 : v.roughness;
-    const r = baseRough + (v.roughness - baseRough) * wTop;
-    const rv = Math.round(r * 255);
+    const rv = Math.round((baseRough + (v.roughness - baseRough) * wTop) * 255);
     rx.fillStyle = `rgb(0,${rv},0)`;
     rx.fillRect(0, y, W, 1);
     const k = Math.round((v.base === 'glaze' ? v.gloss : v.gloss * wTop) * 255);
     kx.fillStyle = `rgb(${k},${k},${k})`;
     kx.fillRect(0, y, W, 1);
   }
+  bx.globalCompositeOperation = 'source-over';
   bx.fillStyle = '#fff';
   bx.fillRect(0, 0, W, Hh);
   if (stone) {
-    // pores show only where the stone is: fade them out under the glaze
-    const p = poreLayer();
+    // pores only where the stone shows: fade them out under the glaze
     const mask = make();
     const mx = mask.getContext('2d')!;
-    mx.drawImage(p, 0, 0);
+    mx.drawImage(poreLayer(), 0, 0);
     mx.globalCompositeOperation = 'destination-in';
     const g = mx.createLinearGradient(0, 0, 0, Hh);
     g.addColorStop(0, 'rgba(0,0,0,0)');
@@ -229,30 +224,45 @@ export function paint(v: MaterialVariant): PaintedMaps {
       cx.fillRect(r() * W, r() * Hh, 1.5, 1.5);
     }
   }
-  const tex = (c: HTMLCanvasElement, srgb = false) => {
-    const t = new THREE.CanvasTexture(c);
-    t.wrapS = THREE.RepeatWrapping;
-    t.anisotropy = 4;
-    if (srgb) t.colorSpace = THREE.SRGBColorSpace;
-    return t;
-  };
-  return { map: tex(col, true), roughnessMap: tex(rough), clearcoatMap: tex(coat), bumpMap: tex(bump) };
 }
 
-export function vesselMaterial(v: MaterialVariant) {
-  const m = paint(v);
-  const mat = new THREE.MeshPhysicalMaterial({
-    map: m.map,
-    roughness: 1,
-    roughnessMap: m.roughnessMap,
-    metalness: 0,
-    clearcoat: 1,
-    clearcoatMap: m.clearcoatMap,
-    clearcoatRoughness: Math.max(0.03, v.roughness * 0.7),
-    bumpMap: m.bumpMap,
-    bumpScale: 0.35,
-    envMapIntensity: 0.6,
-    side: THREE.DoubleSide,
-  });
-  return mat;
+/**
+ * One material for the vessel, repainted in place. Swapping variants or moving a slider
+ * only re-uploads four textures: the shader is compiled once, never again.
+ */
+export class VesselMaterial {
+  readonly material: THREE.MeshPhysicalMaterial;
+  private canvases = [make(), make(), make(), make()] as const;
+  private maps: PaintedMaps;
+  constructor(v: MaterialVariant) {
+    const tex = (c: HTMLCanvasElement, srgb = false) => {
+      const t = new THREE.CanvasTexture(c);
+      t.wrapS = THREE.RepeatWrapping;
+      t.anisotropy = 4;
+      if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+      return t;
+    };
+    const [a, b, c, d] = this.canvases;
+    this.maps = { map: tex(a, true), roughnessMap: tex(b), clearcoatMap: tex(c), bumpMap: tex(d) };
+    this.material = new THREE.MeshPhysicalMaterial({
+      ...this.maps,
+      roughness: 1,
+      metalness: 0,
+      clearcoat: 1,
+      bumpScale: 0.35,
+      envMapIntensity: 0.6,
+      side: THREE.DoubleSide,
+    });
+    this.update(v);
+  }
+  update(v: MaterialVariant) {
+    const [a, b, c, d] = this.canvases;
+    paintInto(a, b, c, d, v);
+    this.material.clearcoatRoughness = Math.max(0.03, v.roughness * 0.7);
+    for (const t of Object.values(this.maps)) t.needsUpdate = true;
+  }
+  dispose() {
+    for (const t of Object.values(this.maps)) t.dispose();
+    this.material.dispose();
+  }
 }

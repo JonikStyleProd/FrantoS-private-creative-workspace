@@ -3,6 +3,7 @@ import { AnimatePresence, LayoutGroup, MotionConfig, motion } from 'framer-motio
 import './f2.css';
 import { parse, useHash } from './route';
 import { useI18n } from './i18n';
+import { useTheme } from './glass/theme';
 
 // Every surface is its own chunk: the landing page loads only what it shows.
 const LegacyShell = lazy(() => import('./LegacyShell').then((m) => ({ default: m.LegacyShell })));
@@ -40,7 +41,7 @@ const TITLES: Record<string, string> = {
   pcase: 'Case — FrantoS',
 };
 
-const Blank = ({ dark }: { dark?: boolean }) => <div className={`fixed inset-0 ${dark ? 'bg-[#0e0e10]' : 'bg-[#eee8dd]'}`} />;
+const Blank = ({ dark }: { dark?: boolean }) => <div className={`fixed inset-0 ${dark ? (document.documentElement.dataset.theme === 'light' ? 'bg-[#f3f1ec]' : 'bg-[#0e0e10]') : 'bg-[#eee8dd]'}`} />;
 const APP_ROUTES = new Set(['app', 'project', 'pshow', 'team', 'join', 'editor', 'showroom']);
 const GLASS = new Set(['landing', 'app', 'project', 'editor', 'showroom']);
 
@@ -48,14 +49,15 @@ export function Root() {
   const hash = useHash();
   const route = parse(hash);
   const { lang, dir } = useI18n();
+  const { theme } = useTheme();
 
   useEffect(() => {
     document.title = TITLES[route.name] ?? 'FrantoS';
   }, [route.name]);
 
   useEffect(() => {
-    document.body.style.background = route.name === 'legacy' ? '' : GLASS.has(route.name) ? '#101418' : '#eee8dd';
-  }, [route.name]);
+    document.body.style.background = route.name === 'legacy' ? '' : GLASS.has(route.name) ? (theme === 'light' ? '#f3f1ec' : '#101418') : '#eee8dd';
+  }, [route.name, theme]);
 
   if (route.name === 'legacy') {
     return (

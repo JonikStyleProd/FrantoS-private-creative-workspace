@@ -232,4 +232,12 @@ export const glassHe: Record<string, string> = {
   "Travertine base fading into a terracotta satin glaze. One twisted rounded square, made for the FORM / 01 identity.": "בסיס טרוורטין שנמוג אל זיגוג טרקוטה סאטן. ריבוע מעוגל ומפותל, שנוצר לזהות של FORM / 01.",
   "{name} is too large for the browser. Models up to 80 MB.": "{name} גדול מדי לדפדפן. מודלים עד 80 MB.",
   "{name}: 3D models are imported as GLB (binary glTF). Export GLB from Blender, Cinema 4D or Spline.": "{name}: מודלים תלת־ממדיים מיובאים כ־GLB (glTF בינארי). ייצאו GLB מ־Blender, Cinema 4D או Spline.",
+  "Dark theme": "ערכת נושא כהה",
+  "Light theme": "ערכת נושא בהירה",
+  "All rights reserved.": "כל הזכויות שמורות.",
+  "Created by JonikStyle Production.": "נוצר על ידי JonikStyle Production.",
+  "Install app": "התקנת האפליקציה",
+  "Install FrantoS": "התקנת FrantoS",
+  "In Safari tap": "ב־Safari הקישו על",
+  "Share, then “Add to Home Screen”.": "„שיתוף” ואז „הוספה למסך הבית”.",
 };

@@ -11,7 +11,7 @@ import { UploadError } from '../ws/media';
 import { FilePick } from '../ws/uploads';
 import { toast, useMedia } from '../ws/kit';
 import { openPalette } from '../daily/Palette';
-import { Pane } from '../glass/kit';
+import { Pane, ThemeSwitch } from '../glass/kit';
 import { GlassAccount } from '../glass/account';
 import { createObjectScene, ObjectScene, ViewMode } from './scene';
 import { blobToDataUrl, downscale, ingestModel, stillToAsset } from './models';
@@ -104,7 +104,7 @@ function Editor({ p, q }: { p: Project; q: URLSearchParams }) {
   };
 
   return (
-    <div className="lg fixed inset-0 overflow-hidden" dir={dir}>
+    <div className="lg lg-studio fixed inset-0 overflow-hidden" dir={dir}>
       {stored ? (
         <ObjectEditor key={stored.id} p={p} o={stored} narrow={narrow} onImport={importModel} onAddVessel={addVessel} onPick={(oid) => setQ({ o: oid })} />
       ) : (
@@ -175,6 +175,7 @@ function TopBar({ p, o }: { p: Project; o?: StudioObject }) {
           <button type="button" onClick={openPalette} className="lg-btn lg-btn-plain hidden min-h-[40px] text-[13px] sm:inline-flex" aria-label={t('Search or run a command')}>
             <Search size={15} /> <span className="text-white/60">⌘K</span>
           </button>
+          <ThemeSwitch />
         </Pane>
         {o && (
           <button type="button" onClick={() => go(`/o/${p.id}/${o.id}`)} className="lg-btn lg-btn-primary">
@@ -196,6 +197,8 @@ function ObjectEditor({ p, o, narrow, onImport, onAddVessel, onPick }: { p: Proj
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<ObjectScene | null>(null);
   const [draft, setDraft] = useState<Draft>(o);
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
   const [view, setView] = useState<ViewMode>('render');
   const [spin, setSpin] = useState(false);
   const [ready, setReady] = useState(false);
@@ -230,23 +233,43 @@ function ObjectEditor({ p, o, narrow, onImport, onAddVessel, onPick }: { p: Proj
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // geometry / model
+  // while a slider moves: a light mesh and half-size textures; full quality once it rests
   const sourceKey = JSON.stringify(draft.source);
+  const firstLoad = useRef(true);
   useEffect(() => {
     const s = sceneRef.current;
     if (!s) return;
     if (draft.source.kind === 'model' && !modelUrl) return;
-    setReady(false);
-    s.setObject(draft, modelUrl)
-      .then(() => setReady(true))
-      .catch(() => setError(t('This model could not be read.')));
+    if (firstLoad.current) {
+      firstLoad.current = false;
+      s.setObject(draft, modelUrl)
+        .then(() => setReady(true))
+        .catch(() => setError(t('This model could not be read.')));
+      return;
+    }
+    const raf = requestAnimationFrame(() => void s.setObject(draft, modelUrl, 'draft'));
+    const full = window.setTimeout(() => void s.setObject(draftRef.current, modelUrl, 'full'), 280);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(full);
+    };
   }, [sourceKey, modelUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const variant = draft.variants.find((v) => v.id === draft.variantId) ?? draft.variants[0];
   const variantKey = JSON.stringify(variant);
+  const firstPaint = useRef(true);
   useEffect(() => {
     if (!ready) return;
-    const id = requestAnimationFrame(() => sceneRef.current?.setVariant(variant));
-    return () => cancelAnimationFrame(id);
+    if (firstPaint.current) {
+      firstPaint.current = false;
+      return;
+    }
+    const id = requestAnimationFrame(() => sceneRef.current?.setVariant(variant, 'draft'));
+    const full = window.setTimeout(() => sceneRef.current?.setVariant(variant, 'full'), 280);
+    return () => {
+      cancelAnimationFrame(id);
+      window.clearTimeout(full);
+    };
   }, [variantKey, ready]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => sceneRef.current?.setLight(draft.light), [JSON.stringify(draft.light)]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => sceneRef.current?.setLens(draft.camera.lens), [draft.camera.lens, ready]);

@@ -1,15 +1,35 @@
 {
+  "id": "/",
   "name": "FrantoS — private creative workspace",
   "short_name": "FrantoS",
+  "description": "A private studio for creative work: references, versions, client notes, a 3D object editor and a showroom — in your browser, offline too.",
+  "lang": "en",
   "start_url": "/#/app",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#eee8dd",
-  "theme_color": "#15130f",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "any",
+  "background_color": "#101418",
+  "theme_color": "#101418",
+  "categories": ["design", "productivity", "photo"],
   "icons": [
-    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
+  "shortcuts": [
+    { "name": "Projects", "short_name": "Projects", "url": "/#/app", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Studio — FORM / 01", "short_name": "Studio", "url": "/#/s/form-01", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "3D showroom", "short_name": "Showroom", "url": "/#/o/form-01/o-vessel", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+  ],
+  "screenshots": [
+    { "src": "/screenshots/wide-landing.webp", "sizes": "1440x900", "type": "image/webp", "form_factor": "wide", "label": "FrantoS — the work in front, everything else is glass" },
+    { "src": "/screenshots/wide-studio.webp", "sizes": "1440x900", "type": "image/webp", "form_factor": "wide", "label": "Studio: the FORM / 01 vessel in 3D" },
+    { "src": "/screenshots/narrow-project.webp", "sizes": "390x844", "type": "image/webp", "form_factor": "narrow", "label": "A project on one screen" },
+    { "src": "/screenshots/narrow-showroom.webp", "sizes": "390x844", "type": "image/webp", "form_factor": "narrow", "label": "3D showroom with AR" }
+  ],
+  "launch_handler": { "client_mode": "focus-existing" },
   "share_target": {
     "action": "/share",
     "method": "GET",

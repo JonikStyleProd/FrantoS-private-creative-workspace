@@ -19,12 +19,14 @@
   --lg-accent: #ff9a6b;
   --lg-accent-ink: #1b120d;
   --lg-blur: blur(28px) saturate(170%);
+  --lg-tint: 10, 12, 16;
+  --lg-bg: #101418;
   --lg-ease: cubic-bezier(0.22, 1, 0.36, 1);
   color: var(--lg-ink);
   font-family: 'Manrope Variable', 'Heebo Variable', system-ui, sans-serif;
   font-feature-settings: 'ss01', 'cv11';
   -webkit-font-smoothing: antialiased;
-  background: #101418;
+  background: var(--lg-bg);
 }
 .lg[dir='rtl'],
 .lg :lang(he) {
@@ -141,3 +143,85 @@
 @media (prefers-reduced-motion: reduce) {
   .lg * { scroll-behavior: auto !important; }
 }
+
+.lg-shade { background: linear-gradient(90deg, rgba(var(--lg-tint), 0.62), rgba(var(--lg-tint), 0.25) 45%, transparent 75%); }
+[dir='rtl'] .lg-shade, .lg[dir='rtl'] .lg-shade { background: linear-gradient(270deg, rgba(var(--lg-tint), 0.62), rgba(var(--lg-tint), 0.25) 45%, transparent 75%); }
+
+/*
+ * Studio: the viewport redraws while you work, and a blurred pane over a live canvas
+ * has to re-blur every frame. Panels there are tinted, not blurred.
+ */
+.lg-studio .lg-glass,
+.lg-studio .lg-glass-strong {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: rgba(20, 24, 30, 0.84);
+}
+
+/* ───────── light glass ───────── */
+html[data-theme='light'] .lg {
+  --lg-ink: #14171c;
+  --lg-ink-2: rgba(20, 23, 28, 0.78);
+  --lg-ink-3: rgba(20, 23, 28, 0.62);
+  --lg-fill: rgba(255, 255, 255, 0.58);
+  --lg-fill-strong: rgba(250, 249, 246, 0.86);
+  --lg-fill-soft: rgba(20, 23, 28, 0.06);
+  --lg-line: rgba(20, 23, 28, 0.12);
+  --lg-hi: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 18px 50px rgba(40, 30, 20, 0.14);
+  --lg-accent: #c4542a;
+  --lg-accent-ink: #ffffff;
+  --lg-tint: 243, 241, 236;
+  --lg-bg: #f3f1ec;
+  color: var(--lg-ink);
+}
+html[data-theme='light'] .lg-soft { border-color: rgba(20, 23, 28, 0.1); }
+html[data-theme='light'] .lg-studio .lg-glass,
+html[data-theme='light'] .lg-studio .lg-glass-strong { background: rgba(250, 249, 246, 0.92); }
+html[data-theme='light'] .lg-btn-primary { background: #14171c; color: #ffffff; }
+html[data-theme='light'] .lg-btn-primary:hover { background: #2a2e35; }
+html[data-theme='light'] .lg-btn-ghost { background: rgba(20, 23, 28, 0.06); color: #14171c; border-color: rgba(20, 23, 28, 0.16); }
+html[data-theme='light'] .lg-btn-ghost:hover { background: rgba(20, 23, 28, 0.11); }
+html[data-theme='light'] .lg-btn-plain { color: rgba(20, 23, 28, 0.78); }
+html[data-theme='light'] .lg-btn-plain:hover { color: #14171c; background: rgba(20, 23, 28, 0.07); }
+html[data-theme='light'] .lg-input { background: rgba(255, 255, 255, 0.75); border-color: rgba(20, 23, 28, 0.2); color: #14171c; }
+html[data-theme='light'] .lg-input::placeholder { color: rgba(20, 23, 28, 0.45); }
+html[data-theme='light'] .lg-input:focus { border-color: #14171c; background: #ffffff; }
+html[data-theme='light'] .lg :focus-visible { outline-color: #14171c; }
+html[data-theme='light'] .lg-shadow-text { text-shadow: none; }
+html[data-theme='light'] .lg-pin { color: #14171c; background: rgba(255, 255, 255, 0.8); border-color: rgba(20, 23, 28, 0.6); }
+html[data-theme='light'] .lg-pin[data-active='true'] { color: #ffffff; border-color: #ffffff; }
+html[data-theme='light'] .lg-scroll { scrollbar-color: rgba(20, 23, 28, 0.3) transparent; }
+
+/* the white-on-dark utilities, mirrored */
+html[data-theme='light'] .lg .bg-white { background-color: #14171c; }
+html[data-theme='light'] .lg .text-\[\#11151a\] { color: #ffffff; }
+html[data-theme='light'] .lg .text-white\/90 { color: rgb(20 23 28 / 0.9); }
+html[data-theme='light'] .lg .text-white\/85 { color: rgb(20 23 28 / 0.85); }
+html[data-theme='light'] .lg .text-white\/80 { color: rgb(20 23 28 / 0.8); }
+html[data-theme='light'] .lg .text-white\/75 { color: rgb(20 23 28 / 0.75); }
+html[data-theme='light'] .lg .text-white\/70 { color: rgb(20 23 28 / 0.7); }
+html[data-theme='light'] .lg .text-white\/65 { color: rgb(20 23 28 / 0.66); }
+html[data-theme='light'] .lg .text-white\/60 { color: rgb(20 23 28 / 0.62); }
+html[data-theme='light'] .lg .text-white\/55 { color: rgb(20 23 28 / 0.58); }
+html[data-theme='light'] .lg .hover\:text-white:hover { color: #14171c; }
+html[data-theme='light'] .lg .bg-white\/10 { background-color: rgb(20 23 28 / 0.06); }
+html[data-theme='light'] .lg .bg-white\/15 { background-color: rgb(20 23 28 / 0.08); }
+html[data-theme='light'] .lg .bg-white\/20 { background-color: rgb(20 23 28 / 0.1); }
+html[data-theme='light'] .lg .bg-white\/25 { background-color: rgb(20 23 28 / 0.16); }
+html[data-theme='light'] .lg .bg-white\/50 { background-color: rgb(20 23 28 / 0.3); }
+html[data-theme='light'] .lg .hover\:bg-white\/10:hover { background-color: rgb(20 23 28 / 0.06); }
+html[data-theme='light'] .lg .hover\:bg-white\/15:hover { background-color: rgb(20 23 28 / 0.09); }
+html[data-theme='light'] .lg .border-white\/15,
+html[data-theme='light'] .lg .border-white\/20,
+html[data-theme='light'] .lg .border-white\/25 { border-color: rgb(20 23 28 / 0.14); }
+html[data-theme='light'] .lg .border-white\/40,
+html[data-theme='light'] .lg .border-white\/45,
+html[data-theme='light'] .lg .border-white\/70 { border-color: rgb(20 23 28 / 0.35); }
+html[data-theme='light'] .lg .ring-white { --tw-ring-color: #14171c; }
+html[data-theme='light'] .lg .ring-white\/25,
+html[data-theme='light'] .lg .ring-white\/30 { --tw-ring-color: rgb(20 23 28 / 0.2); }
+html[data-theme='light'] .lg .ring-white\/50,
+html[data-theme='light'] .lg .ring-white\/60,
+html[data-theme='light'] .lg .ring-white\/80 { --tw-ring-color: rgb(20 23 28 / 0.5); }
+html[data-theme='light'] .lg .ring-offset-\[\#2a2420\] { --tw-ring-offset-color: #f3f1ec; }
+html[data-theme='light'] .lg .accent-white { accent-color: #14171c; }

@@ -7,7 +7,7 @@ import { useProject, ensureLoaded } from '../ws/store';
 import type { MaterialVariant, StudioObject } from '../ws/types';
 import { useAssetUrl } from '../ws/media';
 import { toast } from '../ws/kit';
-import { Pane } from '../glass/kit';
+import { Pane, ThemeSwitch } from '../glass/kit';
 import { createObjectScene, ObjectScene } from './scene';
 
 /**
@@ -100,7 +100,7 @@ function Room({ pid, title, o }: { pid: string; title: string; o: StudioObject }
 
   const bg = o.background.kind === 'transparent' ? '#1a1d22' : o.background.color;
   return (
-    <div className="lg fixed inset-0 overflow-hidden" dir={dir} style={{ background: `radial-gradient(ellipse at 50% 40%, ${bg} 0%, color-mix(in srgb, ${bg} 50%, #15110e) 60%, #0c0a09 100%)` }}>
+    <div className="lg lg-studio fixed inset-0 overflow-hidden" dir={dir} style={{ background: `radial-gradient(ellipse at 50% 40%, ${bg} 0%, color-mix(in srgb, ${bg} 50%, #15110e) 60%, #0c0a09 100%)` }}>
       <canvas ref={ref} className="absolute inset-0 h-full w-full touch-none" aria-label={t('{name}, 3D: drag to turn, pinch or scroll to zoom', { name: t(o.title) })} />
 
       <header className="absolute inset-x-3 top-3 z-20 flex items-center gap-2 sm:inset-x-4 sm:top-4">
@@ -113,6 +113,9 @@ function Room({ pid, title, o }: { pid: string; title: string; o: StudioObject }
           </span>
         </Pane>
         <div className="ms-auto flex items-center gap-2">
+          <span className="lg-glass rounded-full p-0.5">
+            <ThemeSwitch />
+          </span>
           <button
             type="button"
             onClick={() => navigator.clipboard?.writeText(location.href).then(() => toast(t('Link copied')))}

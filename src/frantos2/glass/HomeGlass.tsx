@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRight, Cloud, Lock, Plus, RotateCcw, Search, X } from 'lucide-react';
 import './glass.css';
 import { GlassAccount } from './account';
+import { InstallButton } from './install';
 import { useI18n } from '../i18n';
 import { go } from '../route';
 import { ws, useWs, ensureLoaded } from '../ws/store';
@@ -13,7 +14,7 @@ import { openPalette } from '../daily/Palette';
 import { cloudEnabled, useAuth } from '../cloud/client';
 import { moveToStudio } from '../cloud/sync';
 import { useStudioId } from '../cloud/Account';
-import { Backdrop, GlassLang, Mark, Pane, lgEase } from './kit';
+import { Backdrop, Credits, GlassLang, Mark, Pane, ThemeSwitch, lgEase } from './kit';
 import { STAGES, STAGE_LABEL, assetById, itemsOf, latest } from './stages';
 
 const DEMO_ID = 'form-01';
@@ -73,6 +74,8 @@ export function HomeGlass() {
             <span className="hidden md:block">
               <GlassLang />
             </span>
+            <ThemeSwitch />
+            <InstallButton compact />
             <GlassAccount />
             <button type="button" onClick={() => setCreating(true)} className="lg-btn lg-btn-primary">
               <Plus size={16} /> <span className="hidden sm:inline">{t('New project')}</span>
@@ -128,6 +131,7 @@ export function HomeGlass() {
         <p className="mt-10 max-w-[720px] text-[13px] leading-[1.55] text-white/70">
           {cloudEnabled ? t('Local projects stay in this browser (IndexedDB). Projects moved to your studio sync to the server and work offline too.') : t('Everything here is stored in this browser (IndexedDB) and works offline. There is no account or server in this build, so there are no shared links or invites.')}
         </p>
+        <Credits className="mt-8 border-t border-white/15 pt-6" />
       </div>
       <AnimatePresence>{creating && <NewProject onClose={() => setCreating(false)} />}</AnimatePresence>
     </div>

@@ -38,7 +38,7 @@ import { openPalette } from '../daily/Palette';
 import { cloudEnabled, useAuth } from '../cloud/client';
 import { createReviewLink, moveToStudio } from '../cloud/sync';
 import { useStudioId } from '../cloud/Account';
-import { Backdrop, GlassLang, Pane, lgEase } from './kit';
+import { Backdrop, GlassLang, Pane, ThemeSwitch, lgEase } from './kit';
 import { Item, STAGES, STAGE_LABEL, Stage, assetById, defaultStage, itemImage, itemsOf, latest } from './stages';
 
 /**
@@ -146,7 +146,7 @@ function Screen({ p, q }: { p: Project; q: URLSearchParams }) {
             <ArrowLeft size={18} className="rtl:-scale-x-100" />
           </button>
           <span dir="auto" className="truncate text-[15px] font-bold">{p.title}</span>
-          <span dir="auto" className="ms-2 hidden truncate text-[12.5px] text-white/70 md:inline">{p.brief ? p.brief.split('.')[0] : ''}</span>
+          <span dir="auto" className="ms-2 hidden truncate text-[12.5px] text-white/70 2xl:inline">{p.brief ? p.brief.split('.')[0] : ''}</span>
         </Pane>
         <div className="ms-auto flex items-center gap-2">
           <Pane className="hidden items-center gap-1 rounded-full p-1 sm:flex">
@@ -156,6 +156,7 @@ function Screen({ p, q }: { p: Project; q: URLSearchParams }) {
             <span className="hidden xl:block">
               <GlassLang />
             </span>
+            <ThemeSwitch />
           </Pane>
           <button type="button" onClick={() => go(`/s/${p.id}`)} className="lg-glass lg-btn">
             <Box size={15} /> <span className="hidden sm:inline">{t('Studio')}</span>

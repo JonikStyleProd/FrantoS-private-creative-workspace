@@ -1,23 +1,50 @@
 import React, { useEffect, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { Moon, Sun } from 'lucide-react';
 import { LANGS, useI18n } from '../i18n';
+import { useTheme } from './theme';
 
 export const lgEase = [0.22, 1, 0.36, 1] as const;
 
-/** The FrantoS wordmark: a word and a small glass bead. */
-export function Mark({ onClick, size = 18 }: { onClick?: () => void; size?: number }) {
-  const inner = (
-    <span className="inline-flex items-center gap-2 font-extrabold tracking-[-0.03em]" style={{ fontSize: size }}>
-      <span aria-hidden className="inline-block rounded-full border border-white/70 bg-white/25" style={{ width: size * 0.62, height: size * 0.62, boxShadow: 'inset 0 1px 0 rgba(255,255,255,.6)' }} />
-      FrantoS
-    </span>
-  );
+/** The FrantoS logo from the brand kit: white on dark glass, black on light glass. */
+export function Mark({ onClick, size = 18, compact = false }: { onClick?: () => void; size?: number; compact?: boolean }) {
+  const { theme } = useTheme();
+  const h = Math.round(size * 1.35);
+  const src = compact ? (theme === 'light' ? '/brand/mark-black.webp' : '/brand/mark-white.webp') : theme === 'light' ? '/brand/wordmark-black.webp' : '/brand/wordmark-white.webp';
+  const inner = <img src={src} alt="FrantoS" style={{ height: h, width: 'auto' }} className="block select-none" draggable={false} />;
   return onClick ? (
     <button type="button" onClick={onClick} className="rounded-full px-1" aria-label="FrantoS">
       {inner}
     </button>
   ) : (
     inner
+  );
+}
+
+/** Sun / moon: switches the glass between dark and light. */
+export function ThemeSwitch() {
+  const { theme, toggle } = useTheme();
+  const { t } = useI18n();
+  const light = theme === 'light';
+  return (
+    <button type="button" onClick={toggle} aria-pressed={light} aria-label={light ? t('Dark theme') : t('Light theme')} title={light ? t('Dark theme') : t('Light theme')} className="lg-btn lg-btn-plain lg-icon">
+      {light ? <Moon size={17} /> : <Sun size={17} />}
+    </button>
+  );
+}
+
+/** Credits: the JonikStyle mark at 40 px and the rights line. */
+export function Credits({ className = '' }: { className?: string }) {
+  const { theme } = useTheme();
+  const { t } = useI18n();
+  const year = new Date().getFullYear();
+  return (
+    <div className={`flex flex-wrap items-center gap-x-4 gap-y-2 text-[12.5px] text-white/70 ${className}`}>
+      <img src={theme === 'light' ? '/brand/jonikstyle-dark.webp' : '/brand/jonikstyle-light.webp'} alt="JonikStyle" style={{ height: 40, width: 'auto' }} draggable={false} />
+      <span>
+        © {year} FrantoS. {t('All rights reserved.')} {t('Created by JonikStyle Production.')}
+      </span>
+    </div>
   );
 }
 
@@ -28,7 +55,7 @@ export function Mark({ onClick, size = 18 }: { onClick?: () => void; size?: numb
 export function Backdrop({ src, alt = '', tint = 0.32, blur = false, fit = 'cover', id, shade }: { src?: string; alt?: string; tint?: number; blur?: boolean; fit?: 'cover' | 'contain'; id?: string; shade?: 'start' }) {
   const reduce = useReducedMotion();
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden bg-[#101418]" aria-hidden={alt ? undefined : true}>
+    <div className="pointer-events-none absolute inset-0 overflow-hidden bg-[var(--lg-bg)]" aria-hidden={alt ? undefined : true}>
       <AnimatePresence initial={false}>
         {src && (
           <motion.div
@@ -44,8 +71,8 @@ export function Backdrop({ src, alt = '', tint = 0.32, blur = false, fit = 'cove
           </motion.div>
         )}
       </AnimatePresence>
-      {shade && <div className="absolute inset-0 bg-gradient-to-r from-[rgba(10,12,16,0.62)] via-[rgba(10,12,16,0.25)] to-transparent rtl:bg-gradient-to-l" />}
-      <div className="absolute inset-0" style={{ background: `linear-gradient(180deg, rgba(10,12,16,${tint + 0.12}) 0%, rgba(10,12,16,${tint * 0.5}) 38%, rgba(10,12,16,${tint * 0.6}) 62%, rgba(10,12,16,${tint + 0.22}) 100%)` }} />
+      {shade && <div className="lg-shade absolute inset-0" />}
+      <div className="absolute inset-0" style={{ background: `linear-gradient(180deg, rgba(var(--lg-tint),${tint + 0.12}) 0%, rgba(var(--lg-tint),${tint * 0.5}) 38%, rgba(var(--lg-tint),${tint * 0.6}) 62%, rgba(var(--lg-tint),${tint + 0.22}) 100%)` }} />
     </div>
   );
 }

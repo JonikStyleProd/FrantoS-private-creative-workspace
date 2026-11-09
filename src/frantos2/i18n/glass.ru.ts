@@ -232,4 +232,12 @@ export const glassRu: Record<string, string> = {
   "Travertine base fading into a terracotta satin glaze. One twisted rounded square, made for the FORM / 01 identity.": "Травертиновое основание переходит в терракотовую сатиновую глазурь. Скрученный скруглённый квадрат для айдентики FORM / 01.",
   "{name} is too large for the browser. Models up to 80 MB.": "{name} слишком большой для браузера. Модели — до 80 МБ.",
   "{name}: 3D models are imported as GLB (binary glTF). Export GLB from Blender, Cinema 4D or Spline.": "{name}: 3D-модели импортируются в формате GLB (бинарный glTF). Экспортируйте GLB из Blender, Cinema 4D или Spline.",
+  "Dark theme": "Тёмная тема",
+  "Light theme": "Светлая тема",
+  "All rights reserved.": "Все права защищены.",
+  "Created by JonikStyle Production.": "Создатель — JonikStyle Production.",
+  "Install app": "Установить приложение",
+  "Install FrantoS": "Установить FrantoS",
+  "In Safari tap": "В Safari нажмите",
+  "Share, then “Add to Home Screen”.": "«Поделиться», затем «На экран „Домой“».",
 };

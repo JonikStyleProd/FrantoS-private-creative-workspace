@@ -2,6 +2,10 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { Root } from './frantos2/Root';
 import './index.css';
+import './frantos2/glass/theme';
+import { captureInstall } from './frantos2/glass/install';
+
+captureInstall();
 
 // Android/desktop "Share to FrantoS" lands on /share?title&text&url → keep it for the workspace
 if (window.location.pathname === '/share') {

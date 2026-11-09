@@ -7,13 +7,13 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { LightPreset, MaterialVariant, StudioObject } from '../ws/types';
-import { buildVessel, vesselMaterial } from './vessel';
+import { buildVessel, VesselMaterial } from './vessel';
 
 export type ViewMode = 'render' | 'clay' | 'wire';
 
 export interface ObjectScene {
-  setObject(o: StudioObject, modelUrl?: string): Promise<void>;
-  setVariant(v: MaterialVariant): void;
+  setObject(o: StudioObject, modelUrl?: string, quality?: 'draft' | 'full'): Promise<void>;
+  setVariant(v: MaterialVariant, quality?: 'draft' | 'full'): void;
   setLight(l: StudioObject['light']): void;
   setLens(mm: number): void;
   setTurntable(on: boolean, seconds?: number): void;
@@ -44,11 +44,17 @@ const softShadow = () => {
 
 export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive?: boolean; pixelRatio?: number } = {}): ObjectScene {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(opts.pixelRatio ?? Math.min(window.devicePixelRatio, 2));
+  renderer.setPixelRatio(opts.pixelRatio ?? Math.min(window.devicePixelRatio, 1.5));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NeutralToneMapping;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.VSMShadowMap;
+  // the light and the object only change on edits: orbiting never needs a new shadow map
+  renderer.shadowMap.autoUpdate = false;
+  const reshadow = () => {
+    renderer.shadowMap.needsUpdate = true;
+    dirty = true;
+  };
 
   const scene = new THREE.Scene();
   const pmrem = new THREE.PMREMGenerator(renderer);
@@ -75,9 +81,9 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
   // lights
   const key = new THREE.DirectionalLight('#fff4e8', 2.2);
   key.castShadow = true;
-  key.shadow.mapSize.set(2048, 2048);
+  key.shadow.mapSize.set(1024, 1024);
   key.shadow.radius = 12;
-  key.shadow.blurSamples = 16;
+  key.shadow.blurSamples = 10;
   key.shadow.camera.near = 0.5;
   key.shadow.camera.far = 12;
   key.shadow.camera.left = key.shadow.camera.bottom = -1.5;
@@ -90,7 +96,7 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
   const holder = new THREE.Group();
   scene.add(holder);
   let mesh: THREE.Object3D | null = null;
-  let vesselMat: THREE.MeshPhysicalMaterial | null = null;
+  let vesselMat: VesselMaterial | null = null;
   let height = 1.25;
   let view: ViewMode = 'render';
   let light: StudioObject['light'] = { preset: 'softbox', angle: -35, intensity: 1 };
@@ -160,7 +166,7 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
     if (p !== 'window') key.color.set('#fff4e8');
     rim.position.set(-Math.sin(a) * dist, 2, -Math.cos(a) * dist);
     key.target.position.set(0, -height / 2 + 0.3, 0);
-    dirty = true;
+    reshadow();
   }
 
   function applyView() {
@@ -184,15 +190,15 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
     mesh = null;
   }
 
-  async function setObject(o: StudioObject, modelUrl?: string) {
+  async function setObject(o: StudioObject, modelUrl?: string, quality: 'draft' | 'full' = 'full') {
     clear();
     if (o.source.kind === 'vessel') {
       height = o.source.height;
-      const geo = buildVessel({ twist: o.source.twist, height: o.source.height, waist: o.source.waist }, window.innerWidth < 700 ? 110 : 170);
+      const geo = buildVessel({ twist: o.source.twist, height: o.source.height, waist: o.source.waist }, quality === 'draft' ? 72 : window.innerWidth < 700 ? 110 : 150);
       const v = o.variants.find((x) => x.id === o.variantId) ?? o.variants[0];
-      vesselMat?.dispose();
-      vesselMat = vesselMaterial(v);
-      const m = new THREE.Mesh(geo, vesselMat);
+      if (!vesselMat) vesselMat = new VesselMaterial(v);
+      else if (quality === 'full') vesselMat.update(v);
+      const m = new THREE.Mesh(geo, vesselMat.material);
       m.castShadow = true;
       m.receiveShadow = true;
       mesh = m;
@@ -221,18 +227,16 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
     light = o.light;
     lens = o.camera.lens;
     placeLights();
-    frame(lens);
+    if (!keepCamera) frame(lens);
+    keepCamera = true;
     applyView();
+    reshadow();
   }
+  let keepCamera = false;
 
-  function setVariant(v: MaterialVariant) {
+  function setVariant(v: MaterialVariant, _quality: 'draft' | 'full' = 'full') {
     if (!vesselMat || !mesh) return;
-    const next = vesselMaterial(v);
-    for (const k of ['map', 'roughnessMap', 'clearcoatMap', 'bumpMap'] as const) vesselMat[k]?.dispose();
-    vesselMat.dispose();
-    vesselMat = next;
-    originals.set(mesh as THREE.Mesh, next);
-    if (view === 'render') (mesh as THREE.Mesh).material = next;
+    vesselMat.update(v);
     dirty = true;
   }
 

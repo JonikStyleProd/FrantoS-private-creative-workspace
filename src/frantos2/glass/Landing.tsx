@@ -4,8 +4,9 @@ import { ArrowRight, Cloud, Languages, Lock, MessageSquare, Play, Sparkles } fro
 import './glass.css';
 import { useI18n } from '../i18n';
 import { go } from '../route';
-import { Backdrop, GlassLang, Mark, Pane, lgEase } from './kit';
+import { Backdrop, Credits, GlassLang, Mark, Pane, ThemeSwitch, lgEase } from './kit';
 import { STAGES, STAGE_LABEL, Stage } from './stages';
+import { InstallButton } from './install';
 
 const P = '/projects/form-01/';
 const AH = '/series/after-hours/';
@@ -64,6 +65,8 @@ export function GlassLanding() {
               <span className="hidden sm:block">
                 <GlassLang />
               </span>
+              <ThemeSwitch />
+              <InstallButton />
               <button type="button" onClick={() => go('/app')} className="lg-btn lg-btn-primary">
                 {t('Open workspace')}
               </button>
@@ -168,12 +171,15 @@ export function GlassLanding() {
             </span>
           </div>
         </div>
-        <footer className="relative z-10 mx-auto flex max-w-[1360px] flex-wrap items-center justify-between gap-3 border-t border-white/15 px-5 py-6 text-[13px] text-white/75 sm:px-10">
-          <Mark size={15} />
-          <span>{t('Collect. Make. Review. Show.')}</span>
-          <a href="#/after-hours" className="underline-offset-4 hover:underline">
-            After Hours / Tel Aviv
-          </a>
+        <footer className="relative z-10 mx-auto max-w-[1360px] border-t border-white/15 px-5 py-8 sm:px-10">
+          <div className="flex flex-wrap items-center justify-between gap-4 text-[13px] text-white/75">
+            <Mark size={16} />
+            <span>{t('Collect. Make. Review. Show.')}</span>
+            <a href="#/after-hours" className="underline-offset-4 hover:underline">
+              After Hours / Tel Aviv
+            </a>
+          </div>
+          <Credits className="mt-6" />
         </footer>
       </section>
     </div>
