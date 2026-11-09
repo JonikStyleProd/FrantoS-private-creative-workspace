@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useMotionValue, useSpring, useTransform, anima
 import { ArrowRight, ArrowUpRight, ChevronLeft, ChevronRight, Eye, LayoutPanelLeft, Play, RotateCcw, X } from 'lucide-react';
 import { go } from '../route';
 import { Wordmark } from '../ui';
+import { LangSwitch } from '../i18n/LangSwitch';
 import { FormPoster, POSTER_BG } from './FormPoster';
 import { demoProject } from '../ws/seed';
 import { WorkCanvas } from '../ws/WorkCanvas';
@@ -65,6 +66,9 @@ export function BehindTheWork() {
           <Wordmark />
         </a>
         <nav className="flex items-center gap-1 md:gap-3">
+          <span className="hidden sm:block">
+            <LangSwitch />
+          </span>
           <a href="#scenes" className="hidden rounded-full px-3 py-2 text-[14px] font-medium text-[var(--ink-2)] hover:text-[var(--ink)] md:inline">
             {t('How it works')}
           </a>
@@ -677,7 +681,8 @@ function Closing() {
         <div className="mx-auto flex max-w-[1440px] flex-col gap-3 px-5 py-6 text-[var(--ink-2)] md:flex-row md:items-center md:justify-between md:px-10">
           <Wordmark small />
           <p className="text-[12.5px]">FORM / 01 is a demo project: a procedural 3D object rendered for FrantoS; references are AI-generated.</p>
-          <span className="flex gap-4 text-[13px]">
+          <span className="flex flex-wrap items-center gap-4 text-[13px]">
+            <LangSwitch />
             <a href="#/after-hours" className="f2-link">
               {t('After Hours (photo story)')}
             </a>
