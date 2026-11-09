@@ -4,6 +4,8 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: 'tests/e2e',
   timeout: 60_000,
+  // the studio tests render WebGL in software here; give UI assertions room when workers share the CPU
+  expect: { timeout: 10_000 },
   retries: 0,
   use: {
     baseURL: 'http://localhost:4173',

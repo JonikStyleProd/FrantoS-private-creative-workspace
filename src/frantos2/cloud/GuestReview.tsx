@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Lock } from 'lucide-react';
+import { Check, Lock } from 'lucide-react';
 import { sb, guestFiles } from './client';
 import { rowToComments } from './sync';
 import { Project } from '../ws/types';
@@ -70,6 +70,22 @@ export function GuestReview({ token, workId, q }: { token: string; workId?: stri
     },
   };
 
+  // the client says yes: one approval note per work, on its newest version — the studio confirms it
+  const [approving, setApproving] = useState(false);
+  const approved = (wid: string, vid: string) => project?.comments.some((c) => c.approval && c.workId === wid && c.versionId === vid);
+  const pending = (project?.works ?? []).map((w) => ({ w, v: [...w.versions].sort((a, b) => b.n - a.n)[0] })).filter(({ w, v }) => v && !approved(w.id, v.id));
+  const approveAll = async () => {
+    if (!project || !pending.length) return;
+    const n = ensureName();
+    setApproving(true);
+    try {
+      for (const { w, v } of pending) await sb!.rpc('review_comment', { p_token: token, p_name: n, p_work: w.id, p_version: v.id, p_body: t('Approved v{n}', { n: v.n }), p_anchor: { approve: true } });
+      await load();
+    } finally {
+      setApproving(false);
+    }
+  };
+
   if (state !== 'ok' || !project)
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 bg-[var(--paper)] px-6 text-center">
@@ -94,6 +110,16 @@ export function GuestReview({ token, workId, q }: { token: string; workId?: stri
         </div>
         <div className="flex items-center gap-2">
           {name && <span className="hidden text-[12.5px] text-[var(--ink-2)] sm:inline">{t('Commenting as {name}', { name })}</span>}
+          {link?.can_comment &&
+            (pending.length ? (
+              <button type="button" disabled={approving} onClick={approveAll} className="flex min-h-[38px] items-center gap-1.5 rounded-full bg-[var(--ink)] px-4 text-[13.5px] font-semibold text-[var(--paper)] disabled:opacity-60">
+                <Check size={15} /> {project.works.length > 1 ? t('Approve all ({n})', { n: pending.length }) : t('Approve')}
+              </button>
+            ) : (
+              <span className="flex items-center gap-1.5 rounded-full border border-[var(--rule)] px-3 py-1.5 text-[13px] font-semibold">
+                <Check size={14} /> {t('Approved — thank you')}
+              </span>
+            ))}
           <LangSwitch />
         </div>
       </header>

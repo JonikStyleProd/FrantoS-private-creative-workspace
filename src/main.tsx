@@ -7,12 +7,13 @@ import { captureInstall } from './frantos2/glass/install';
 
 captureInstall();
 
-// Android/desktop "Share to FrantoS" lands on /share?title&text&url → keep it for the workspace
+// "Share to FrantoS" from another app: text arrives as /share?title&text&url; files are caught by the
+// service worker (POST) and wait in a cache. Either way the share screen asks where it goes.
 if (window.location.pathname === '/share') {
   const q = new URLSearchParams(window.location.search);
-  const text = [q.get('title'), q.get('text'), q.get('url')].filter(Boolean).join('\n');
-  if (text) sessionStorage.setItem('frantos-share', text);
-  window.history.replaceState(null, '', '/#/app');
+  const keep = new URLSearchParams();
+  ['title', 'text', 'url', 'files'].forEach((k) => q.get(k) && keep.set(k, q.get(k)!));
+  window.history.replaceState(null, '', `/#/share?${keep.toString()}`);
 }
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) {

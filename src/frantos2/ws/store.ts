@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { get, set, del, keys } from 'idb-keyval';
-import { Asset, Board, CanvasGroup, CanvasNote, Comment, Decision, MaterialVariant, MoodItem, Project, StudioObject, WsState, Work } from './types';
+import { Asset, Board, Brand, CanvasGroup, Profile, WorkStatus, CanvasNote, Comment, Decision, MaterialVariant, MoodItem, Project, StudioObject, WsState, Work } from './types';
 import { AH_ID, DEMO_ID, DEMO_REV, afterHoursProject, demoProject } from './seed';
 
 /**
@@ -133,7 +133,11 @@ function refreshDemo(p: Project): Project {
 async function gcBlobs() {
   try {
     const used = new Set<string>();
-    state.projects.forEach((p) => p.assets.forEach((a) => (a.blobKey && used.add(a.blobKey), a.thumbKey && used.add(a.thumbKey))));
+    state.projects.forEach((p) => {
+      p.assets.forEach((a) => (a.blobKey && used.add(a.blobKey), a.thumbKey && used.add(a.thumbKey)));
+      p.comments.forEach((c) => c.audio && used.add(c.audio.blobKey));
+      (p.objects ?? []).forEach((o) => o.motion?.audio && used.add(o.motion.audio.blobKey));
+    });
     const all = (await keys()) as string[];
     await Promise.all(all.filter((k) => typeof k === 'string' && k.startsWith('blob:') && !used.has(k)).map((k) => del(k)));
   } catch {
@@ -340,6 +344,36 @@ export const ws = {
   deleteComment(pid: string, cid: string) {
     updateProject(pid, (p) => ({ ...p, comments: p.comments.filter((c) => c.id !== cid) }), 'Comment deleted', false);
     syncer?.comment(pid, 'delete', cid);
+  },
+  setProfile(patch: Partial<Profile>) {
+    commit({ ...state, profile: { name: state.you === 'You' ? '' : state.you, handle: '', ...state.profile, ...patch } });
+  },
+  setBrand(patch: Partial<Brand>) {
+    commit({ ...state, brand: { font: 'manrope', palette: [], ...state.brand, ...patch } });
+  },
+  seeNews(n: number) {
+    state = { ...state, seenNews: n };
+    schedule();
+  },
+  planWork(pid: string, wid: string, patch: { due?: number | null; status?: WorkStatus }) {
+    updateProject(pid, (p) => ({ ...p, works: p.works.map((w) => (w.id === wid ? { ...w, ...(patch.status ? { status: patch.status } : {}), ...(patch.due !== undefined ? { due: patch.due ?? undefined } : {}) } : w)) }), 'Plan changed');
+  },
+  approveAll(pid: string) {
+    updateProject(pid, (p) => ({ ...p, works: p.works.map((w) => ({ ...w, approvedVersionId: w.versions[w.versions.length - 1]?.id, status: 'done' as const })) }), 'Approved all');
+  },
+  /** a whole project from a template */
+  createFromTemplate(tpl: { title: string; brief: string; works: string[]; tags: string[]; boards: Omit<Board, 'id' | 'createdAt' | 'updatedAt'>[] }): string {
+    const id = this.createProject(tpl.title);
+    const now = Date.now();
+    updateProject(id, (p) => ({
+      ...p,
+      brief: tpl.brief,
+      tags: tpl.tags,
+      boards: tpl.boards.map((b) => ({ ...b, id: uid('b-'), createdAt: now, updatedAt: now })),
+      decisions: [...(p.decisions ?? [])],
+      notes: tpl.works.map((w, i) => ({ id: uid('n-'), x: 0.06 + (i % 3) * 0.3, y: 0.08 + Math.floor(i / 3) * 0.22, w: 0.24, z: i + 1, text: w })),
+    }));
+    return id;
   },
   setYou(name: string) {
     state = { ...state, you: name };

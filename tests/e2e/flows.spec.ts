@@ -90,7 +90,7 @@ test('studio: change the material, it survives a reload and shows in the showroo
   if (isPhone(page)) await page.getByRole('button', { name: 'Material' }).click();
   await page.getByRole('radio', { name: 'Raw clay' }).click();
   await expect(page.getByRole('radio', { name: 'Raw clay' })).toHaveAttribute('aria-checked', 'true');
-  await page.waitForTimeout(2000); // the edit is saved after a short pause
+  await page.waitForTimeout(3500); // the edit is saved after a short pause
   await page.reload();
   await expect(page.getByText('Preparing the object…')).toBeHidden({ timeout: 20000 });
   if (isPhone(page)) await page.getByRole('button', { name: 'Material' }).click();
@@ -131,9 +131,40 @@ test('studio modes: canvas board exports to the project, image edit saves a new 
   // Motion: three keys out of the box, play toggles
   await page.goto('/#/s/form-01?m=motion');
   await expect(page.getByRole('button', { name: /^Key at/ })).toHaveCount(3, { timeout: 20000 });
-  await page.getByRole('button', { name: 'Play' }).click();
-  await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
+  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Pause', exact: true })).toBeVisible();
   // ⌘K lists the studio's own commands
   await page.keyboard.press('Control+k');
   await expect(page.getByRole('option', { name: /Studio: Canvas/ })).toBeVisible();
+});
+
+test('workspace pages: library, objects, templates, settings, portfolio, news, deck, guide', async ({ page }) => {
+  test.setTimeout(150_000);
+  test.skip(isPhone(page), 'desktop flow');
+  await page.goto('/#/library');
+  await expect(page.getByRole('heading', { name: /files across/ })).toBeVisible();
+  await page.goto('/#/objects');
+  await expect(page.getByRole('heading', { name: 'The shelf' })).toBeVisible();
+  await expect(page.getByText('Vessel · 225° twist').first()).toBeVisible();
+  // a template makes a project with boards and opens it in Canvas
+  await page.goto('/#/templates');
+  await page.getByRole('button', { name: 'Use this template' }).first().click();
+  await expect(page).toHaveURL(/#\/s\/p-.*m=canvas/, { timeout: 15000 });
+  await expect(page.getByText(/× \d+ px/)).toBeVisible();
+  // the brand kit: a heading face chosen in Settings
+  await page.goto('/#/settings');
+  await page.getByRole('button', { name: /Literata/ }).first().click();
+  await expect(page.getByRole('button', { name: /Literata/ }).first()).toHaveAttribute('aria-pressed', 'true');
+  await page.goto('/#/portfolio');
+  await expect(page.getByRole('heading', { name: 'Your work, on one page' })).toBeVisible();
+  await page.goto('/#/new');
+  await expect(page.getByRole('heading', { name: 'Fresh in FrantoS' })).toBeVisible();
+  // a board presented, then the brand guide
+  await page.goto('/#/s/form-01?m=canvas');
+  await page.getByRole('button', { name: 'Post 4:5' }).first().click();
+  await page.getByRole('button', { name: 'Present', exact: true }).click();
+  await expect(page).toHaveURL(/#\/p\/form-01\/deck/);
+  await expect(page.getByRole('button', { name: 'Next slide' })).toBeVisible();
+  await page.goto('/#/p/form-01/guide');
+  await expect(page.getByRole('heading', { name: 'FORM / 01' })).toBeVisible();
 });

@@ -46,6 +46,7 @@ function rowToComments(rows: any[]): Comment[] {
     path: r.anchor?.path,
     t: r.anchor?.t,
     t2: r.anchor?.t2,
+    approval: r.anchor?.approve ? true : undefined,
     isTask: r.is_task,
     author: r.author_name,
     authorId: r.author_id ?? undefined,

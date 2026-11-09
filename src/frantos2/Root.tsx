@@ -20,6 +20,16 @@ const GuestReview = lazy(() => import('./cloud/GuestReview').then((m) => ({ defa
 const TeamPage = lazy(() => import('./cloud/Account').then((m) => ({ default: m.TeamPage })));
 const JoinPage = lazy(() => import('./cloud/Account').then((m) => ({ default: m.JoinPage })));
 const CasePage = lazy(() => import('./tell/CasePage').then((m) => ({ default: m.CasePage })));
+const LibraryPage = lazy(() => import('./pages/LibraryPage').then((m) => ({ default: m.LibraryPage })));
+const ObjectsPage = lazy(() => import('./pages/ObjectsPage').then((m) => ({ default: m.ObjectsPage })));
+const TemplatesPage = lazy(() => import('./pages/TemplatesPage').then((m) => ({ default: m.TemplatesPage })));
+const SettingsPage = lazy(() => import('./pages/SettingsPage').then((m) => ({ default: m.SettingsPage })));
+const NewsPage = lazy(() => import('./pages/NewsPage').then((m) => ({ default: m.NewsPage })));
+const PortfolioPage = lazy(() => import('./pages/Portfolio').then((m) => ({ default: m.PortfolioPage })));
+const FolioPublic = lazy(() => import('./pages/Portfolio').then((m) => ({ default: m.FolioPublic })));
+const SharePage = lazy(() => import('./pages/SharePage').then((m) => ({ default: m.SharePage })));
+const DeckPage = lazy(() => import('./pages/DeckPage').then((m) => ({ default: m.DeckPage })));
+const GuidePage = lazy(() => import('./pages/GuidePage').then((m) => ({ default: m.GuidePage })));
 const CloudLayer = lazy(() => import('./cloud/CloudLayer'));
 const AppChrome = lazy(() => import('./AppChrome'));
 const Palette = lazy(() => import('./daily/Palette').then((m) => ({ default: m.Palette })));
@@ -39,11 +49,21 @@ const TITLES: Record<string, string> = {
   editor: 'Studio — FrantoS',
   showroom: 'Showroom — FrantoS',
   pcase: 'Case — FrantoS',
+  library: 'Library — FrantoS',
+  objects: 'Objects — FrantoS',
+  templates: 'Templates — FrantoS',
+  settings: 'Settings — FrantoS',
+  news: "What's new — FrantoS",
+  portfolio: 'Portfolio — FrantoS',
+  folio: 'Portfolio — FrantoS',
+  share: 'Shared to FrantoS',
+  deck: 'Presentation — FrantoS',
+  guide: 'Brand guide — FrantoS',
 };
 
 const Blank = ({ dark }: { dark?: boolean }) => <div className={`fixed inset-0 ${dark ? (document.documentElement.dataset.theme === 'light' ? 'bg-[#f3f1ec]' : 'bg-[#0e0e10]') : 'bg-[#eee8dd]'}`} />;
-const APP_ROUTES = new Set(['app', 'project', 'pshow', 'team', 'join', 'editor', 'showroom']);
-const GLASS = new Set(['landing', 'app', 'project', 'editor', 'showroom']);
+const APP_ROUTES = new Set(['app', 'project', 'pshow', 'team', 'join', 'editor', 'showroom', 'library', 'objects', 'templates', 'settings', 'news', 'portfolio', 'share', 'deck', 'guide']);
+const GLASS = new Set(['landing', 'app', 'project', 'editor', 'showroom', 'library', 'objects', 'templates', 'settings', 'news', 'portfolio', 'folio', 'share', 'deck']);
 
 export function Root() {
   const hash = useHash();
@@ -121,6 +141,31 @@ export function Root() {
     case 'guest':
       baseKey = `r-${route.token}`;
       base = <GuestReview token={route.token} workId={route.workId} q={route.q} />;
+      break;
+    case 'library':
+    case 'objects':
+    case 'templates':
+    case 'settings':
+    case 'news':
+    case 'portfolio':
+      baseKey = route.name;
+      base = route.name === 'library' ? <LibraryPage /> : route.name === 'objects' ? <ObjectsPage /> : route.name === 'templates' ? <TemplatesPage /> : route.name === 'settings' ? <SettingsPage /> : route.name === 'news' ? <NewsPage /> : <PortfolioPage />;
+      break;
+    case 'folio':
+      baseKey = `u-${route.handle}`;
+      base = <FolioPublic handle={route.handle} />;
+      break;
+    case 'share':
+      baseKey = 'share';
+      base = <SharePage q={route.q} />;
+      break;
+    case 'deck':
+      baseKey = `deck-${route.id}`;
+      base = <DeckPage id={route.id} slide={route.slide} presenter={route.presenter} />;
+      break;
+    case 'guide':
+      baseKey = `guide-${route.id}`;
+      base = <GuidePage id={route.id} />;
       break;
     default:
       baseKey = 'landing';

@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import type { LightPreset, MaterialVariant, StudioObject } from '../ws/types';
+import type { LightPreset, MaterialVariant, StageProp, StudioObject } from '../ws/types';
 import { buildVessel, VesselMaterial } from './vessel';
 
 export type ViewMode = 'render' | 'clay' | 'wire';
@@ -29,6 +29,8 @@ export interface ObjectScene {
   /** a quick thumbnail from the current view */
   snapshot(w: number, h: number, opts?: { background?: string | null; type?: string; quality?: number }): Promise<Blob>;
   exportGLB(): Promise<Blob>;
+  /** what the object stands on */
+  setStage(kind: StageProp | undefined): void;
   /** an environment map from an .hdr file (null = the studio room) */
   setHDRI(url: string | null): Promise<void>;
   /** split view: the left part shows `a`, the right part the current variant */
@@ -138,7 +140,12 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
   scene.add(key, key.target, fill, rim);
 
   const holder = new THREE.Group();
-  scene.add(holder);
+  const props = new THREE.Group();
+  scene.add(holder, props);
+  let propH = 0;
+  let stageKind: StageProp = 'none';
+  const stone = new THREE.MeshStandardMaterial({ color: '#e2dbcf', roughness: 0.86, metalness: 0 });
+  const wall = new THREE.MeshStandardMaterial({ color: '#d9d1c4', roughness: 0.95, side: THREE.BackSide });
   let mesh: THREE.Object3D | null = null;
   let vesselMat: VesselMaterial | null = null;
   let compareMat: VesselMaterial | null = null;
@@ -162,7 +169,7 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
     camera.setFocalLength(lens);
     const fov = THREE.MathUtils.degToRad(camera.fov);
     const aspect = camera.aspect || 1;
-    const fitH = (height * 2.15) / 2 / Math.tan(fov / 2);
+    const fitH = ((height + propH) * 2.15) / 2 / Math.tan(fov / 2);
     const fitW = ((aspect < 0.8 ? 1.75 : 2.6) / aspect) / 2 / Math.tan(fov / 2);
     const d = Math.max(fitH, fitW);
     fitD = d;
@@ -252,6 +259,7 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
     key.target.position.set(0, -height / 2 + 0.3, 0);
     reshadow();
   }
+  void stageKind;
 
   function applyView() {
     holder.traverse((o) => {
@@ -272,6 +280,48 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
     });
     originals.clear();
     mesh = null;
+  }
+
+  function applyStage(kind: StageProp = 'none') {
+    stageKind = kind;
+    props.children.slice().forEach((c) => {
+      props.remove(c);
+      (c as THREE.Mesh).geometry?.dispose();
+    });
+    const base = -height / 2;
+    propH = 0;
+    if (kind === 'plinth') {
+      propH = 0.42;
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(0.66, 0.66, propH, 96), stone);
+      m.position.y = base - propH / 2;
+      props.add(m);
+    } else if (kind === 'block') {
+      propH = 0.3;
+      const m = new THREE.Mesh(new THREE.BoxGeometry(1.5, propH, 1.1, 1, 1, 1), stone);
+      m.position.y = base - propH / 2;
+      props.add(m);
+    } else if (kind === 'arch') {
+      // a curved wall behind the object and a floor that meets it: a small set
+      const r = 1.7;
+      const wallM = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 3.2, 96, 1, true, Math.PI * 0.5, Math.PI), wall);
+      wallM.position.set(0, base + 1.6, 0.4);
+      const floor = new THREE.Mesh(new THREE.CircleGeometry(r, 96), new THREE.MeshStandardMaterial({ color: '#e6dfd3', roughness: 0.9 }));
+      floor.rotation.x = -Math.PI / 2;
+      floor.position.set(0, base - 0.004, 0.4);
+      floor.userData.noShadow = true;
+      props.add(wallM, floor);
+    }
+    props.traverse((c) => {
+      const m = c as THREE.Mesh;
+      if (m.isMesh) (m.castShadow = kind !== 'arch'), (m.receiveShadow = kind !== 'arch');
+    });
+    const floorY = base - propH;
+    blob.position.y = catcher.position.y = floorY + 0.001;
+    blob.visible = kind === 'none';
+    target.set(0, -propH / 2, 0);
+    controls.target.copy(target);
+    key.target.position.set(0, base + 0.3, 0);
+    reshadow();
   }
 
   async function setObject(o: StudioObject, modelUrl?: string, quality: 'draft' | 'full' = 'full') {
@@ -304,10 +354,8 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
       mesh = root;
     }
     if (mesh) holder.add(mesh);
-    blob.position.y = catcher.position.y = -height / 2 + 0.001;
     blob.scale.setScalar(Math.max(0.8, height * 0.9));
-    target.set(0, 0, 0);
-    controls.target.copy(target);
+    applyStage(o.stage);
     light = o.light;
     lens = o.camera.lens;
     placeLights();
@@ -470,6 +518,10 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
       const out = (await new GLTFExporter().parseAsync(holder, { binary: true })) as ArrayBuffer;
       return new Blob([out], { type: 'model/gltf-binary' });
     },
+    setStage(kind) {
+      applyStage(kind);
+      frame(lens);
+    },
     async setHDRI(url) {
       if (!url) {
         hdriEnv?.dispose();
@@ -531,6 +583,8 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
       document.removeEventListener('visibilitychange', onVis);
       controls.dispose();
       clear();
+      stone.dispose();
+      wall.dispose();
       vesselMat?.dispose();
       compareMat?.dispose();
       hdriEnv?.dispose();

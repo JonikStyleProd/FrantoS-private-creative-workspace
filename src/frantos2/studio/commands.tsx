@@ -49,6 +49,8 @@ function defs(p: Project, o: StudioObject | undefined, setMode: (m: Mode) => voi
     { id: 'vid-dl', title: t('Download turntable video'), modes: obj, run: () => sendCmd('video-download') },
     ...(o ? [{ id: 'room', title: t('Open the showroom'), kbd: 'O', run: () => go(`/o/${p.id}/${o.id}`) }] : []),
     { id: 'case', title: t('Open the case page'), run: () => go(`/p/${p.id}/case`) },
+    { id: 'deck', title: t('Present boards'), run: () => go(`/p/${p.id}/deck`) },
+    { id: 'guide', title: t('Brand guide'), run: () => go(`/p/${p.id}/guide`) },
     { id: 'back', title: t('Back to the project'), run: () => go(`/p/${p.id}`) },
     { id: 'theme', title: t('Switch light / dark theme'), kbd: '⇧L', run: () => setTheme(getTheme() === 'dark' ? 'light' : 'dark') },
     { id: 'help', title: t('Keyboard shortcuts'), kbd: '?', run: () => window.dispatchEvent(new Event('studio:help')) },

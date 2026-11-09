@@ -8,7 +8,7 @@ import { ws, useProject, ensureLoaded, undo } from '../ws/store';
 import type { Asset, LightPreset, MaterialVariant, Project, StudioObject } from '../ws/types';
 import { assetUrl, extractPalette, ingest, useAssetUrl } from '../ws/media';
 import { UploadError } from '../ws/media';
-import { FilePick } from '../ws/uploads';
+import { FilePick, upload, useDropZone } from '../ws/uploads';
 import { toast, useMedia } from '../ws/kit';
 import { openPalette } from '../daily/Palette';
 import { Pane, ThemeSwitch } from '../glass/kit';
@@ -16,7 +16,7 @@ import { GlassAccount } from '../glass/account';
 import { createObjectScene, ObjectScene, ViewMode } from './scene';
 import { blobToDataUrl, downscale, ingestHDRI, ingestModel, stillToAsset } from './models';
 import { projectPalette, variations } from './palette';
-import { canRecord, recordCanvas, videoFormat } from './record';
+import { canRecord, recordCanvas, recordGif, videoFormat } from './record';
 import { VESSEL_VARIANTS } from '../ws/seed';
 import { ColorField, PaletteRow, Section, Seg, Slider, Swatch } from './ui';
 import { ImageMode } from './ImageMode';
@@ -129,12 +129,39 @@ function Editor({ p, q }: { p: Project; q: URLSearchParams }) {
     };
   }, [p.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // drop files anywhere in the studio: GLB → a new object, .hdr → the light, pictures → the project
+  const drop = useDropZone(async (files) => {
+    for (const f of Array.from(files)) {
+      if (/\.glb$/i.test(f.name)) {
+        const dt = new DataTransfer();
+        dt.items.add(f);
+        await importModel(dt.files);
+      } else if (/\.hdr$/i.test(f.name)) {
+        try {
+          const a = await ingestHDRI(f);
+          ws.addAsset(p.id, a);
+          if (stored) ws.patchObject(p.id, stored.id, { light: { ...stored.light, preset: 'hdri', hdriAssetId: a.id } }, 'Light changed');
+          toast(t('Environment added'));
+        } catch (e) {
+          toast(e instanceof UploadError ? e.message : t('This environment could not be read.'), { tone: 'error' });
+        }
+      } else if (/^(image|video)\//.test(f.type)) {
+        upload([f], p.id, { isReference: true, then: (a) => mode === 'image' && a.kind === 'image' && setQ({ a: a.id }) });
+      }
+    }
+  });
+
   const mode: StudioMode = (MODES.find((m) => m.id === q.get('m'))?.id ?? 'object') as StudioMode;
   const setMode = (m: StudioMode) => setQ({ m: m === 'object' ? undefined : m });
   useStudioCommands(p, stored, mode, setMode);
 
   return (
-    <div className="lg lg-studio fixed inset-0 overflow-hidden" dir={dir}>
+    <div className="lg lg-studio fixed inset-0 overflow-hidden" dir={dir} {...(mode === 'canvas' ? {} : drop.props)}>
+      {drop.over && mode !== 'canvas' && (
+        <div className="pointer-events-none absolute inset-4 z-[60] flex items-center justify-center rounded-[30px] border-2 border-dashed border-white/80 bg-black/30 text-center text-[18px] font-bold">
+          {t('Drop GLB, .hdr, pictures or video')}
+        </div>
+      )}
       {mode === 'image' ? (
         <ImageMode p={p} q={q} setQ={setQ} />
       ) : mode === 'canvas' ? (
@@ -328,6 +355,12 @@ function ObjectEditor({ p, o, narrow, onImport, onAddVessel, onPick }: { p: Proj
     return () => cancelAnimationFrame(id);
   }, [compareVariant && JSON.stringify(compareVariant), split, ready]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => sceneRef.current?.setLens(draft.camera.lens), [draft.camera.lens, ready]);
+  const firstStage = useRef(true);
+  useEffect(() => {
+    if (!ready) return;
+    if (firstStage.current) return void (firstStage.current = false);
+    sceneRef.current?.setStage(draft.stage);
+  }, [draft.stage, ready]);
   useEffect(() => sceneRef.current?.setView(view), [view, ready]);
   useEffect(() => sceneRef.current?.setTurntable(spin, draft.turntable.seconds), [spin, draft.turntable.seconds]);
 
@@ -397,6 +430,31 @@ function ObjectEditor({ p, o, narrow, onImport, onAddVessel, onPick }: { p: Proj
       );
       const name = `${draft.title.replace(/[^\w\- ]+/g, '').trim() || 'object'}-turntable.${ext}`;
       await deliverVideo(blob, name, target);
+    } catch (e) {
+      if ((e as Error).name !== 'AbortError') toast(t('Recording failed.'), { tone: 'error' });
+    } finally {
+      s.setRecording(false);
+      s.setPose(start);
+      setRec(null);
+      recAbort.current = null;
+    }
+  }
+  async function recordTurntableGif() {
+    const s = sceneRef.current;
+    if (!s || rec != null) return;
+    const start = s.getPose();
+    setSpin(false);
+    s.setRecording(true, draft.background);
+    setRec(0);
+    const ac = new AbortController();
+    recAbort.current = ac;
+    try {
+      const blob = await recordGif(s.canvas, Math.min(draft.turntable.seconds, 8), (f) => (s.setPose({ ...start, az: start.az + 360 * f }), s.draw()), { signal: ac.signal, onProgress: (f) => setRec(f) });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${draft.title.replace(/[^\w\- ]+/g, '').trim() || 'object'}-turntable.gif`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
     } catch (e) {
       if ((e as Error).name !== 'AbortError') toast(t('Recording failed.'), { tone: 'error' });
     } finally {
@@ -534,6 +592,7 @@ function ObjectEditor({ p, o, narrow, onImport, onAddVessel, onPick }: { p: Proj
         onCompare: (id) => setCompareId(id),
         rec,
         onRecord: recordTurntable,
+        onGif: recordTurntableGif,
         onStopRecord: () => recAbort.current?.abort(),
         hdri: hdriAsset,
         envs: p.assets.filter((a) => a.kind === 'env'),
@@ -733,6 +792,7 @@ interface InspectorProps {
     onCompare: (id: string | null) => void;
     rec: number | null;
     onRecord: (target: 'project' | 'download') => void;
+    onGif: () => void;
     onStopRecord: () => void;
     hdri?: Asset;
     envs: Asset[];
@@ -880,6 +940,20 @@ function Inspector(props: InspectorProps) {
               {!x.hdri && <p className="text-[11.5px] leading-[1.45] text-white/65">{t('Without a file the studio room lights the object. Free .hdr environments: polyhaven.com')}</p>}
             </div>
           )}
+          <div>
+            <p className="lg-label mb-1.5">{t('Stand')}</p>
+            <Seg
+              label={t('Stand')}
+              value={draft.stage ?? 'none'}
+              options={[
+                { id: 'none', label: t('Floor') },
+                { id: 'plinth', label: t('Plinth') },
+                { id: 'block', label: t('Block') },
+                { id: 'arch', label: t('Arch') },
+              ]}
+              onChange={(v) => edit({ stage: v }, 'Stand changed')}
+            />
+          </div>
           <Slider label={t('Light direction')} value={draft.light.angle} min={-180} max={180} step={1} fmt={(v) => `${Math.round(v)}°`} onChange={(v) => edit({ light: { ...draft.light, angle: v } }, 'Light changed')} />
           <Slider label={t('Intensity')} value={draft.light.intensity} min={0.2} max={2} onChange={(v) => edit({ light: { ...draft.light, intensity: v } }, 'Light changed')} />
           <div>
@@ -939,12 +1013,15 @@ function Inspector(props: InspectorProps) {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-2">
-                <button type="button" onClick={() => x.onRecord('download')} className="lg-btn lg-btn-ghost min-h-[38px] text-[12.5px]">
+              <div className="grid grid-cols-3 gap-2">
+                <button type="button" onClick={() => x.onRecord('download')} className="lg-btn lg-btn-ghost min-h-[38px] px-1 text-[12.5px]">
                   <Download size={14} /> {t('Video')}
                 </button>
-                <button type="button" onClick={() => x.onRecord('project')} className="lg-btn lg-btn-ghost min-h-[38px] text-[12.5px]">
-                  {t('Video to project')}
+                <button type="button" onClick={x.onGif} className="lg-btn lg-btn-ghost min-h-[38px] px-1 text-[12.5px]">
+                  GIF
+                </button>
+                <button type="button" onClick={() => x.onRecord('project')} className="lg-btn lg-btn-ghost min-h-[38px] px-1 text-[12.5px]" aria-label={t('Video to project')}>
+                  {t('To project')}
                 </button>
               </div>
             )}

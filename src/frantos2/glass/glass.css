@@ -234,3 +234,13 @@ html[data-theme='light'] .lg .ring-white\/60,
 html[data-theme='light'] .lg .ring-white\/80 { --tw-ring-color: rgb(20 23 28 / 0.5); }
 html[data-theme='light'] .lg .ring-offset-\[\#2a2420\] { --tw-ring-offset-color: #f3f1ec; }
 html[data-theme='light'] .lg .accent-white { accent-color: #14171c; }
+
+/* Deck: Save as PDF prints every slide on its own page */
+@media print {
+  @page { margin: 0; }
+  body:has(.deck-print) * { visibility: hidden; }
+  .deck-print, .deck-print * { visibility: visible; }
+  .deck-print { display: block !important; position: absolute; inset: 0; background: #fff; }
+  .deck-page { display: flex; align-items: center; justify-content: center; height: 100vh; break-after: page; }
+  .deck-page > div { box-shadow: none !important; }
+}

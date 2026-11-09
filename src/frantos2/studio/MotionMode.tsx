@@ -1,15 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, Diamond, Download, Pause, Play, Plus, Trash2, Video } from 'lucide-react';
+import { Box, Diamond, Download, Music, Pause, Play, Plus, Trash2, Type, Video, X } from 'lucide-react';
+import { get, set as idbSet } from 'idb-keyval';
 import { useI18n } from '../i18n';
 import { go } from '../route';
 import { uid, ws } from '../ws/store';
-import type { CameraKey, Project, StudioObject } from '../ws/types';
+import type { CameraKey, MotionTitle, Project, StudioObject } from '../ws/types';
 import { ingest, useAssetUrl } from '../ws/media';
 import { toast, useMedia } from '../ws/kit';
 import { Pane } from '../glass/kit';
 import { createObjectScene, ObjectScene, Pose } from './scene';
-import { canRecord, recordCanvas, videoFormat } from './record';
-import { Section, Slider, Swatch } from './ui';
+import { canRecord, drawTitles, recordCanvas, recordGif, videoFormat } from './record';
+import { fontCss } from './brand';
+import { useWs } from '../ws/store';
+import { ColorField, Section, Seg, Slider, Swatch } from './ui';
 
 /**
  * Studio · Motion: a camera move around the object, built from keyframes on a timeline.
@@ -62,6 +65,23 @@ function Timeline({ p, o }: { p: Project; o: StudioObject }) {
   const [ready, setReady] = useState(false);
   const [keys, setKeys] = useState<CameraKey[]>(() => o.motion?.keys ?? DEFAULT_KEYS());
   const [seconds, setSeconds] = useState(o.motion?.seconds ?? 6);
+  const [titles, setTitles] = useState<MotionTitle[]>(() => o.motion?.titles ?? []);
+  const [audio, setAudio] = useState<{ blobKey: string; name: string } | undefined>(o.motion?.audio);
+  const [audioUrl, setAudioUrl] = useState<string | undefined>(undefined);
+  const audioEl = useRef<HTMLAudioElement | null>(null);
+  const { state: wsState } = useWs();
+  const titleFont = fontCss(wsState.brand?.font);
+  useEffect(() => {
+    if (!audio) {
+      setAudioUrl(undefined);
+      return;
+    }
+    let url: string | undefined;
+    get(audio.blobKey).then((b) => b && setAudioUrl((url = URL.createObjectURL(b as Blob))));
+    return () => {
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [audio?.blobKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const [time, setTime] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [sel, setSel] = useState<string | null>(null);
@@ -73,9 +93,18 @@ function Timeline({ p, o }: { p: Project; o: StudioObject }) {
 
   // save the move (debounced) — it belongs to the object
   const timer = useRef<number | undefined>(undefined);
+  const latest = useRef({ titles, audio });
+  latest.current = { titles, audio };
   const save = (k: CameraKey[], s: number) => {
     window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => ws.patchObject(p.id, o.id, { motion: { seconds: s, keys: k } }, 'Motion edited'), 300);
+    timer.current = window.setTimeout(() => ws.patchObject(p.id, o.id, { motion: { seconds: s, keys: k, ...latest.current } }, 'Motion edited'), 300);
+  };
+  const keysRef = useRef(keys);
+  keysRef.current = keys;
+  const setTitlesSaved = (next: MotionTitle[]) => {
+    setTitles(next);
+    latest.current = { ...latest.current, titles: next };
+    save(keysRef.current, seconds);
   };
   useEffect(() => {
     if (!o.motion) ws.patchObject(p.id, o.id, { motion: { seconds, keys } });
@@ -121,11 +150,20 @@ function Timeline({ p, o }: { p: Project; o: StudioObject }) {
 
   // playback
   useEffect(() => {
+    const a = audioEl.current;
+    if (a) {
+      if (playing) {
+        a.currentTime = time;
+        a.play().catch(() => undefined);
+      } else a.pause();
+    }
     if (!playing) return;
     let raf = 0;
     const t0 = performance.now() - time * 1000;
     const tick = () => {
-      const tm = ((performance.now() - t0) / 1000) % seconds;
+      const raw = (performance.now() - t0) / 1000;
+      const tm = raw % seconds;
+      if (raw >= seconds && audioEl.current && tm < 0.1) audioEl.current.currentTime = 0;
       setTime(tm);
       show(tm);
       raf = requestAnimationFrame(tick);
@@ -186,6 +224,51 @@ function Timeline({ p, o }: { p: Project; o: StudioObject }) {
   };
   const dragKey = useRef<string | null>(null);
 
+  const overlay = titles.length ? (x: CanvasRenderingContext2D, f: number, w: number, h: number) => drawTitles(x, titles, f, w, h, titleFont) : undefined;
+  async function exportGif() {
+    const s = scene.current;
+    if (!s || rec != null) return;
+    setPlaying(false);
+    const ac = new AbortController();
+    abort.current = ac;
+    s.setRecording(true, o.background);
+    setRec(0);
+    try {
+      const blob = await recordGif(
+        s.canvas,
+        seconds,
+        (f) => {
+          show(f * seconds);
+          s.draw();
+        },
+        { signal: ac.signal, onProgress: (f) => setRec(f), overlay }
+      );
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${o.title.replace(/[^\w\- ]+/g, '').trim() || 'object'}-motion.gif`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    } catch (e) {
+      if ((e as Error).name !== 'AbortError') toast(t('Recording failed.'), { tone: 'error' });
+    } finally {
+      s.setRecording(false);
+      setRec(null);
+      abort.current = null;
+      show(time);
+    }
+  }
+  const pickAudio = async (f?: File) => {
+    if (!f) return;
+    if (!f.type.startsWith('audio/')) return toast(t('Choose an audio file: MP3, M4A, WAV or OGG.'), { tone: 'error' });
+    if (f.size > 30 * 1024 * 1024) return toast(t('Audio up to 30 MB.'), { tone: 'error' });
+    const key = `blob:${uid('au-')}`;
+    await idbSet(key, f);
+    const next = { blobKey: key, name: f.name };
+    setAudio(next);
+    latest.current = { ...latest.current, audio: next };
+    save(keysRef.current, seconds);
+  };
+
   async function exportVideo(target: 'download' | 'project') {
     const s = scene.current;
     if (!s || rec != null) return;
@@ -207,7 +290,8 @@ function Timeline({ p, o }: { p: Project; o: StudioObject }) {
           s.draw();
         },
         ac.signal,
-        (f) => setRec(f)
+        (f) => setRec(f),
+        { overlay, audio: audioUrl ? { url: audioUrl } : undefined }
       );
       const name = `${o.title.replace(/[^\w\- ]+/g, '').trim() || 'object'}-motion.${ext}`;
       if (target === 'download') {
@@ -238,6 +322,8 @@ function Timeline({ p, o }: { p: Project; o: StudioObject }) {
     <>
       <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse at 50% 40%, ${bg} 0%, color-mix(in srgb, ${bg} 55%, #1a1612) 62%, #0e0c0b 100%)` }}>
         <canvas ref={canvas} style={{ opacity: ready ? 1 : 0, transition: 'opacity .35s ease' }} className="absolute inset-0 h-full w-full touch-none outline-none" aria-label={t('3D viewport: drag to orbit, then add a key')} />
+        <TitlesPreview titles={titles} f={time / seconds} font={titleFont} />
+        {audioUrl && <audio ref={audioEl} src={audioUrl} preload="auto" />}
         {rec != null && (
           <p className="lg-glass absolute start-1/2 top-[84px] z-30 flex -translate-x-1/2 items-center gap-2 rounded-full px-4 py-2 text-[13px] font-bold rtl:translate-x-1/2" role="status">
             <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-[#ff5a4f]" /> {t('Recording')} · {Math.round(rec * 100)}%
@@ -365,6 +451,61 @@ function Timeline({ p, o }: { p: Project; o: StudioObject }) {
               </button>
             </Section>
           ) : null}
+          <Section title={t('Titles')} icon={<Type size={16} />}>
+            {titles.map((tl) => (
+              <div key={tl.id} className="space-y-2 rounded-[14px] bg-white/10 p-2.5">
+                <div className="flex gap-1.5">
+                  <textarea dir="auto" rows={2} className="lg-input py-1.5 text-[13.5px]" value={tl.text} aria-label={t('Title text')} onChange={(e) => setTitlesSaved(titles.map((x) => (x.id === tl.id ? { ...x, text: e.target.value } : x)))} />
+                  <button type="button" onClick={() => setTitlesSaved(titles.filter((x) => x.id !== tl.id))} className="lg-btn lg-btn-plain lg-icon h-9 min-h-0 w-9 shrink-0" aria-label={t('Remove')}>
+                    <X size={14} />
+                  </button>
+                </div>
+                <Seg
+                  label={t('Position')}
+                  value={tl.pos}
+                  options={[
+                    { id: 'top', label: t('Top') },
+                    { id: 'center', label: t('Centre') },
+                    { id: 'bottom', label: t('Bottom') },
+                  ]}
+                  onChange={(v) => setTitlesSaved(titles.map((x) => (x.id === tl.id ? { ...x, pos: v } : x)))}
+                />
+                <Slider label={t('From')} value={tl.from * seconds} min={0} max={seconds} step={0.1} fmt={(v) => `${v.toFixed(1)} s`} onChange={(v) => setTitlesSaved(titles.map((x) => (x.id === tl.id ? { ...x, from: Math.min(v / seconds, x.to - 0.05) } : x)))} />
+                <Slider label={t('To')} value={tl.to * seconds} min={0} max={seconds} step={0.1} fmt={(v) => `${v.toFixed(1)} s`} onChange={(v) => setTitlesSaved(titles.map((x) => (x.id === tl.id ? { ...x, to: Math.max(v / seconds, x.from + 0.05) } : x)))} />
+                <Slider label={t('Size')} value={tl.size} min={0.04} max={0.2} fmt={(v) => `${Math.round(v * 100)}%`} onChange={(v) => setTitlesSaved(titles.map((x) => (x.id === tl.id ? { ...x, size: v } : x)))} />
+                <ColorField label={t('Colour')} value={tl.color} onChange={(c) => setTitlesSaved(titles.map((x) => (x.id === tl.id ? { ...x, color: c } : x)))} />
+              </div>
+            ))}
+            <button type="button" onClick={() => setTitlesSaved([...titles, { id: uid('t-'), text: o.title, from: Math.min(0.8, time / seconds), to: Math.min(1, time / seconds + 0.4), pos: 'bottom', size: 0.08, color: '#ffffff' }])} className="lg-btn lg-btn-ghost min-h-[36px] w-full text-[12.5px]">
+              <Plus size={14} /> {t('Add a title at the playhead')}
+            </button>
+          </Section>
+          <Section title={t('Sound')} icon={<Music size={16} />}>
+            {audio ? (
+              <div className="flex items-center gap-2 rounded-[14px] bg-white/10 p-2.5">
+                <Music size={14} />
+                <span className="min-w-0 flex-1 truncate text-[13px] font-semibold">{audio.name}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAudio(undefined);
+                    latest.current = { ...latest.current, audio: undefined };
+                    save(keysRef.current, seconds);
+                  }}
+                  className="lg-btn lg-btn-plain lg-icon h-8 min-h-0 w-8"
+                  aria-label={t('Remove')}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              <label className="lg-btn lg-btn-ghost min-h-[36px] w-full cursor-pointer text-[12.5px]">
+                <Plus size={14} /> {t('Add a sound')}
+                <input type="file" accept="audio/*" className="sr-only" onChange={(e) => pickAudio(e.target.files?.[0])} />
+              </label>
+            )}
+            <p className="text-[11.5px] leading-[1.45] text-white/60">{t('The sound plays from its start under the move and goes into the MP4/WebM. GIFs have no sound.')}</p>
+          </Section>
           <Section title={t('Export')} icon={<Download size={16} />}>
             {rec != null ? (
               <button type="button" onClick={() => abort.current?.abort()} className="lg-btn lg-btn-ghost w-full">
@@ -380,6 +521,11 @@ function Timeline({ p, o }: { p: Project; o: StudioObject }) {
                 </button>
               </div>
             )}
+            {rec == null && (
+              <button type="button" onClick={exportGif} className="lg-btn lg-btn-ghost w-full text-[13px]">
+                <Download size={14} /> GIF · 480 px
+              </button>
+            )}
             <p className="text-[11.5px] leading-[1.45] text-white/60">{t('Records at the size of the view. Keep this tab in front while it records.')}</p>
           </Section>
         </Pane>
@@ -393,4 +539,24 @@ function Timeline({ p, o }: { p: Project; o: StudioObject }) {
       )}
     </>
   );
+}
+
+/** the titles over the viewport while you edit: drawn with the same code as the export */
+function TitlesPreview({ titles, f, font }: { titles: MotionTitle[]; f: number; font: string }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const c = ref.current;
+    if (!c) return;
+    const w = c.clientWidth;
+    const h = c.clientHeight;
+    if (c.width !== w || c.height !== h) {
+      c.width = w;
+      c.height = h;
+    }
+    const x = c.getContext('2d')!;
+    x.clearRect(0, 0, w, h);
+    drawTitles(x, titles, f, w, h, font);
+  });
+  if (!titles.length) return null;
+  return <canvas ref={ref} className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden />;
 }

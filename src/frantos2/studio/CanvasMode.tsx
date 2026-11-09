@@ -1,13 +1,15 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { AlignCenter, AlignLeft, AlignRight, ArrowDown, ArrowUp, Box, Copy, Download, Image as ImageIcon, Layers, LayoutTemplate, Palette as PaletteIcon, Plus, Square, Trash2, Type, Wand2, X } from 'lucide-react';
+import { Play, AlignCenter, AlignLeft, AlignRight, ArrowDown, ArrowUp, Box, Copy, Download, Image as ImageIcon, Layers, LayoutTemplate, Palette as PaletteIcon, Plus, Square, Trash2, Type, Wand2, X } from 'lucide-react';
 import { useI18n } from '../i18n';
 import { go } from '../route';
-import { uid, ws } from '../ws/store';
-import type { Board, BoardLayer, Project } from '../ws/types';
+import { uid, useWs, ws } from '../ws/store';
+import type { Board, BoardLayer, BrandFont, Project } from '../ws/types';
 import { AssetThumb, toast, useMedia } from '../ws/kit';
 import { Pane } from '../glass/kit';
-import { FONT, FORMATS, autoBoard, renderBoard } from './compose';
+import { FORMATS, autoBoard, reflow, renderBoard } from './compose';
+import { upload, useDropZone } from '../ws/uploads';
+import { FONTS, fontCss } from './brand';
 import { downscale, stillToAsset } from './models';
 import { projectPalette } from './palette';
 import { ColorField, PaletteRow, Section, Seg, Slider } from './ui';
@@ -60,7 +62,9 @@ function BoardEditor({ p, stored, narrow, onPick, onCreate }: { p: Project; stor
   const [busy, setBusy] = useState(false);
   const area = useRef<HTMLDivElement>(null);
   const [fit, setFit] = useState(0.4);
-  const palette = projectPalette(p);
+  const { state } = useWs();
+  const brandFont = state.brand?.font;
+  const palette = [...new Set([...projectPalette(p), ...(state.brand?.palette ?? [])])];
   const layer = b.layers.find((l) => l.id === sel);
 
   // outside changes (undo) win when nothing is pending here
@@ -75,7 +79,7 @@ function BoardEditor({ p, stored, narrow, onPick, onCreate }: { p: Project; stor
     window.clearTimeout(timer.current);
     const go_ = () => {
       pending.current = false;
-      ws.patchBoard(p.id, next.id, { title: next.title, bg: next.bg, w: next.w, h: next.h, layers: next.layers }, label);
+      ws.patchBoard(p.id, next.id, { title: next.title, bg: next.bg, w: next.w, h: next.h, layers: next.layers, notes: next.notes }, label);
     };
     if (now) go_();
     else timer.current = window.setTimeout(go_, 320);
@@ -212,7 +216,7 @@ function BoardEditor({ p, stored, narrow, onPick, onCreate }: { p: Project; stor
   async function exportBoard(target: 'download' | 'project') {
     setBusy(true);
     try {
-      const blob = await renderBoard(p, bRef.current, dir === 'rtl');
+      const blob = await renderBoard(p, bRef.current, dir === 'rtl', brandFont);
       if (target === 'download') {
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -235,6 +239,22 @@ function BoardEditor({ p, stored, narrow, onPick, onCreate }: { p: Project; stor
 
   const images = p.assets.filter((a) => a.kind === 'image');
   const objects = (p.objects ?? []).filter((o) => o.thumb);
+  // drop pictures on the board: they are added to the project and placed where they fell
+  const dropAt = useRef<{ x: number; y: number }>({ x: 0.5, y: 0.5 });
+  const drop = useDropZone((files) => {
+    let i = 0;
+    upload(files, p.id, {
+      isReference: true,
+      then: (a) => {
+        if (a.kind !== 'image') return;
+        const w = Math.round(bRef.current.w * 0.5);
+        const h = Math.round((w * a.h) / Math.max(1, a.w));
+        const c = dropAt.current;
+        addLayer({ kind: 'image', assetId: a.id, x: Math.round(c.x * bRef.current.w - w / 2 + i * 30), y: Math.round(c.y * bRef.current.h - h / 2 + i * 30), w, h, fit: 'cover' });
+        i++;
+      },
+    });
+  });
   const S = Math.min(b.w, b.h);
   const addMenu = (
     <div className="space-y-3">
@@ -286,6 +306,17 @@ function BoardEditor({ p, stored, narrow, onPick, onCreate }: { p: Project; stor
               <textarea id="ly-text" dir="auto" rows={3} className="lg-input text-[14px]" value={layer.text ?? ''} onChange={(e) => patchLayer(layer.id, { text: e.target.value })} />
               <Slider label={t('Size')} value={layer.size ?? 48} min={10} max={Math.round(S * 0.25)} step={1} fmt={(v) => `${v}px`} onChange={(v) => patchLayer(layer.id, { size: v })} />
               <Seg label={t('Weight')} value={layer.weight ?? 600} options={[400, 600, 800].map((w) => ({ id: w, label: w === 400 ? t('Regular') : w === 600 ? t('Semibold') : t('Bold') }))} onChange={(w) => patchLayer(layer.id, { weight: w })} />
+              <label className="lg-label" htmlFor="ly-font">
+                {t('Typeface')}
+              </label>
+              <select id="ly-font" className="lg-input min-h-[38px] py-1.5 text-[13.5px]" value={layer.font ?? ''} onChange={(e) => patchLayer(layer.id, { font: (e.target.value || undefined) as BrandFont | undefined }, true)}>
+                <option value="">{t('Brand heading face')}</option>
+                {FONTS.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.label}
+                  </option>
+                ))}
+              </select>
               <Seg
                 label={t('Align')}
                 value={layer.align ?? 'start'}
@@ -360,10 +391,24 @@ function BoardEditor({ p, stored, narrow, onPick, onCreate }: { p: Project; stor
           <p className="text-[12px] text-white/65">
             {b.w} × {b.h} px · {b.layers.length} {t('layers')}
           </p>
+          <label className="lg-label" htmlFor="bd-notes">
+            {t('Speaker notes')}
+          </label>
+          <textarea id="bd-notes" dir="auto" rows={3} className="lg-input text-[13.5px]" value={b.notes ?? ''} placeholder={t('What to say on this slide. Only you see it in presenter view.')} onChange={(e) => commit({ ...b, notes: e.target.value })} />
           <p className="text-[11.5px] leading-[1.45] text-white/60">{t('Click a layer to edit it. Drag to move, the corner to resize (Shift keeps proportions, Alt turns snapping off). Arrows nudge, Delete removes, ⌘D duplicates.')}</p>
         </Section>
       )}
       <Section title={t('Export')} icon={<Download size={16} />}>
+        <button
+          type="button"
+          onClick={() => {
+            const made = FORMATS.filter((f) => f.w !== b.w || f.h !== b.h).map((f) => ws.addBoard(p.id, reflow(bRef.current, f)));
+            toast(t('{n} boards in other formats — adjust each, they start from this one', { n: made.length }));
+          }}
+          className="lg-btn lg-btn-ghost min-h-[38px] w-full text-[12.5px]"
+        >
+          <LayoutTemplate size={14} /> {t('Make all formats')}
+        </button>
         <div className="grid grid-cols-2 gap-2">
           <button type="button" disabled={busy} onClick={() => exportBoard('download')} className="lg-btn lg-btn-ghost disabled:opacity-50">
             <Download size={15} /> PNG
@@ -414,10 +459,20 @@ function BoardEditor({ p, stored, narrow, onPick, onCreate }: { p: Project; stor
   return (
     <>
       <div ref={area} className={`absolute flex items-center justify-center ${narrow ? 'inset-x-3 bottom-[84px] top-[132px]' : 'bottom-8 end-[344px] start-[272px] top-[152px]'}`} onPointerDown={() => setSel(null)}>
-        <div className="relative shrink-0 shadow-[0_30px_90px_rgba(0,0,0,.45)]" style={{ width: b.w * fit, height: b.h * fit }} dir="ltr">
+        <div
+          className={`relative shrink-0 shadow-[0_30px_90px_rgba(0,0,0,.45)] ${drop.over ? 'outline outline-2 outline-offset-4 outline-white/80' : ''}`}
+          style={{ width: b.w * fit, height: b.h * fit }}
+          dir="ltr"
+          {...drop.props}
+          onDragOver={(e) => {
+            const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+            dropAt.current = { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height };
+            drop.props.onDragOver(e);
+          }}
+        >
           <div className="absolute left-0 top-0 origin-top-left overflow-hidden" style={{ width: b.w, height: b.h, background: b.bg, transform: `scale(${fit})` }} onPointerMove={onMove} onPointerUp={onUp}>
             {sorted.map((l) => (
-              <LayerView key={l.id} p={p} l={l} rtl={dir === 'rtl'} selected={l.id === sel} scale={fit} onDown={(e, h) => onDown(e, l, h)} />
+              <LayerView key={l.id} p={p} l={l} brandFont={brandFont} rtl={dir === 'rtl'} selected={l.id === sel} scale={fit} onDown={(e, h) => onDown(e, l, h)} />
             ))}
             {guides.v.map((x) => (
               <div key={`v${x}`} className="pointer-events-none absolute inset-y-0 bg-[#ff4fa3]" style={{ left: x, width: 1 / fit }} />
@@ -440,6 +495,9 @@ function BoardEditor({ p, stored, narrow, onPick, onCreate }: { p: Project; stor
           </button>
           <button type="button" onClick={() => setAdding(true)} className="lg-btn lg-btn-plain lg-icon min-h-[38px]" aria-label={t('Image')} title={t('Image')}>
             <ImageIcon size={16} />
+          </button>
+          <button type="button" onClick={() => go(`/p/${p.id}/deck/${Math.max(0, (p.boards ?? []).findIndex((x) => x.id === b.id))}`)} className="lg-btn lg-btn-primary min-h-[38px] text-[13px]" title={t('Present boards')}>
+            <Play size={14} /> <span className="max-sm:hidden">{t('Present')}</span>
           </button>
           {objects.length > 0 && (
             <button type="button" onClick={() => addLayer({ kind: 'object', objectId: objects[0].id, x: b.w * 0.2, y: b.h * 0.2, w: b.w * 0.6, h: b.w * 0.75, fit: 'contain' })} className="lg-btn lg-btn-plain lg-icon min-h-[38px]" aria-label={t('3D object')} title={t('3D object')}>
@@ -497,7 +555,7 @@ function BoardEditor({ p, stored, narrow, onPick, onCreate }: { p: Project; stor
   );
 }
 
-function LayerView({ p, l, rtl, selected, scale, onDown }: { p: Project; l: BoardLayer; rtl: boolean; selected: boolean; scale: number; onDown: (e: React.PointerEvent, h: Handle) => void }) {
+export function LayerView({ p, l, rtl, selected, scale, onDown, brandFont }: { p: Project; l: BoardLayer; rtl: boolean; brandFont?: BrandFont; selected: boolean; scale: number; onDown?: (e: React.PointerEvent, h: Handle) => void }) {
   const asset = l.kind === 'image' ? p.assets.find((a) => a.id === l.assetId) : undefined;
   const obj = l.kind === 'object' ? (p.objects ?? []).find((o) => o.id === l.objectId) : undefined;
   const k = 1 / scale;
@@ -515,13 +573,13 @@ function LayerView({ p, l, rtl, selected, scale, onDown }: { p: Project; l: Boar
         </div>
       );
     return (
-      <div dir={rtl ? 'rtl' : 'ltr'} className="h-full w-full whitespace-pre-wrap break-words" style={{ fontFamily: FONT, fontSize: l.size, fontWeight: l.weight, color: l.color, lineHeight: 1.12, textAlign: l.align === 'center' ? 'center' : l.align === 'end' ? 'end' : 'start' }}>
+      <div dir={rtl ? 'rtl' : 'ltr'} className="h-full w-full whitespace-pre-wrap break-words" style={{ fontFamily: fontCss(l.font ?? brandFont), fontSize: l.size, fontWeight: l.weight, color: l.color, lineHeight: 1.12, textAlign: l.align === 'center' ? 'center' : l.align === 'end' ? 'end' : 'start' }}>
         {l.text}
       </div>
     );
-  }, [l, asset, obj?.thumb, rtl]);
+  }, [l, asset, obj?.thumb, rtl, brandFont]);
   return (
-    <div className={`absolute cursor-move touch-none select-none ${l.kind === 'image' || l.kind === 'object' ? 'overflow-hidden' : ''}`} style={style} onPointerDown={(e) => onDown(e, 'move')}>
+    <div className={`absolute select-none ${onDown ? 'cursor-move touch-none' : ''} ${l.kind === 'image' || l.kind === 'object' ? 'overflow-hidden' : ''}`} style={style} onPointerDown={onDown ? (e) => onDown(e, 'move') : undefined}>
       {content}
       {selected && (
         <>
@@ -529,7 +587,7 @@ function LayerView({ p, l, rtl, selected, scale, onDown }: { p: Project; l: Boar
           {(['e', 's', 'se'] as const).map((h) => (
             <span
               key={h}
-              onPointerDown={(e) => onDown(e, h)}
+              onPointerDown={(e) => onDown?.(e, h)}
               className="absolute rounded-full border-white bg-[#4f8bff]"
               style={{
                 width: 14 * k,

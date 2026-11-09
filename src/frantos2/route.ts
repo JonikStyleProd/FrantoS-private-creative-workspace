@@ -24,7 +24,17 @@ export type Route =
   | { name: 'project'; id: string; tab: ProjectTab; sub?: string; q: URLSearchParams }
   | { name: 'pshow'; id: string; mode: 'presentation' | 'story'; slide: number }
   | { name: 'editor'; id: string; q: URLSearchParams }
-  | { name: 'showroom'; id: string; oid: string };
+  | { name: 'showroom'; id: string; oid: string }
+  | { name: 'deck'; id: string; slide: number; presenter: boolean }
+  | { name: 'guide'; id: string }
+  | { name: 'library' }
+  | { name: 'objects' }
+  | { name: 'templates' }
+  | { name: 'settings' }
+  | { name: 'news' }
+  | { name: 'portfolio' }
+  | { name: 'folio'; handle: string }
+  | { name: 'share'; q: URLSearchParams };
 
 export type ProjectTab = 'overview' | 'materials' | 'moodboard' | 'review' | 'stories';
 const TABS: ProjectTab[] = ['overview', 'materials', 'moodboard', 'review', 'stories'];
@@ -38,6 +48,14 @@ export function parse(hash: string): Route {
   const [a, b, c, d] = parts;
   if (!a) return { name: 'landing' };
   if (a === 'app') return { name: 'app' };
+  if (a === 'library') return { name: 'library' };
+  if (a === 'objects') return { name: 'objects' };
+  if (a === 'templates') return { name: 'templates' };
+  if (a === 'settings') return { name: 'settings' };
+  if (a === 'new') return { name: 'news' };
+  if (a === 'portfolio') return { name: 'portfolio' };
+  if (a === 'u' && b) return { name: 'folio', handle: b };
+  if (a === 'share') return { name: 'share', q: new URLSearchParams(query) };
   if (a === 'after-hours') return { name: 'afterhours' };
   if (a === 'team') return { name: 'team' };
   if (a === 'join' && b) return { name: 'join', token: b };
@@ -49,6 +67,8 @@ export function parse(hash: string): Route {
     if (c === 'present') return { name: 'pshow', id: b, mode: 'presentation', slide: num(d) };
     if (c === 'stories' && d === 'play') return { name: 'pshow', id: b, mode: 'story', slide: num(parts[4]) };
     if (c === 'case') return { name: 'pcase', id: b };
+    if (c === 'deck') return { name: 'deck', id: b, slide: num(d), presenter: new URLSearchParams(query).get('presenter') === '1' };
+    if (c === 'guide') return { name: 'guide', id: b };
     const tab = (TABS as string[]).includes(c ?? '') ? (c as ProjectTab) : 'overview';
     return { name: 'project', id: b, tab, sub: d, q: new URLSearchParams(query) };
   }

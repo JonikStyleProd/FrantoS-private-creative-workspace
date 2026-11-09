@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { Columns2, Crop as CropIcon, Download, Image as ImageIcon, Pipette, Plus, RotateCcw, Sparkles, SunMedium, X } from 'lucide-react';
+import { Circle, Move, Scissors, Columns2, Crop as CropIcon, Download, Image as ImageIcon, Pipette, Plus, RotateCcw, Sparkles, SunMedium, X } from 'lucide-react';
 import { useI18n } from '../i18n';
 import { go } from '../route';
 import { ws } from '../ws/store';
@@ -8,7 +8,7 @@ import type { Asset, Project } from '../ws/types';
 import { extractPalette, useAssetUrl } from '../ws/media';
 import { AssetThumb, toast, useMedia } from '../ws/kit';
 import { Pane } from '../glass/kit';
-import { ASPECTS, Adjust, LOOKS, NEUTRAL, apply, cropRect, type Crop } from './imageOps';
+import { ASPECTS, Adjust, LOOKS, NEUTRAL, apply, cropRect, cutout, type Crop, type Mask } from './imageOps';
 import { downscale, stillToAsset } from './models';
 import { projectPalette, rgbToHex } from './palette';
 import { Section, Seg, Slider } from './ui';
@@ -23,6 +23,7 @@ export function ImageMode({ p, q, setQ }: { p: Project; q: URLSearchParams; setQ
   const narrow = useMedia('(max-width: 900px)');
   const images = p.assets.filter((a) => a.kind === 'image');
   const asset = images.find((a) => a.id === q.get('a')) ?? images[0];
+  const from = q.get('from') ? p.assets.find((a) => a.id === q.get('from')) : undefined;
   const [sheet, setSheet] = useState<null | 'images' | 'adjust'>(null);
 
   if (!asset)
@@ -49,25 +50,29 @@ export function ImageMode({ p, q, setQ }: { p: Project; q: URLSearchParams; setQ
     </>
   );
 
-  return <Editor key={asset.id} p={p} asset={asset} list={list} narrow={narrow} sheet={sheet} setSheet={setSheet} />;
+  return <Editor key={asset.id + (from?.id ?? '')} p={p} asset={asset} from={from?.recipe?.sourceId === asset.id ? from : undefined} onReopen={(src, edited) => setQ({ a: src, from: edited })} list={list} narrow={narrow} sheet={sheet} setSheet={setSheet} />;
 }
 
-function Editor({ p, asset, list, narrow, sheet, setSheet }: { p: Project; asset: Asset; list: React.ReactNode; narrow: boolean; sheet: null | 'images' | 'adjust'; setSheet: (s: null | 'images' | 'adjust') => void }) {
+function Editor({ p, asset, from, onReopen, list, narrow, sheet, setSheet }: { p: Project; asset: Asset; from?: Asset; onReopen: (sourceId: string, editedId: string) => void; list: React.ReactNode; narrow: boolean; sheet: null | 'images' | 'adjust'; setSheet: (s: null | 'images' | 'adjust') => void }) {
   const { t } = useI18n();
   const { url } = useAssetUrl(asset, 'full');
   const box = useRef<HTMLDivElement>(null);
   const cv = useRef<HTMLCanvasElement>(null);
   const [bmp, setBmp] = useState<ImageBitmap | null>(null);
-  const [adj, setAdj] = useState<Adjust>(NEUTRAL);
-  const [look, setLook] = useState('none');
-  const [crop, setCrop] = useState<Crop>({ aspect: null, zoom: 1, x: 0, y: 0 });
+  const r0 = from?.recipe;
+  const [adj, setAdj] = useState<Adjust>(() => (r0 ? ({ ...NEUTRAL, ...r0.adjust } as Adjust) : NEUTRAL));
+  const [look, setLook] = useState(r0?.look ?? 'none');
+  const [crop, setCrop] = useState<Crop>(r0?.crop ?? { aspect: null, zoom: 1, x: 0, y: 0 });
+  const [mask, setMask] = useState<Mask | null>(() => (r0?.mask ? ({ ...r0.mask, adjust: { ...NEUTRAL, ...r0.mask.adjust } } as Mask) : null));
+  const [cut, setCut] = useState<number | null>(r0?.cutout?.tolerance ?? null);
+  const cutBase = useRef<ImageData | null>(null);
   const [split, setSplit] = useState<number | null>(null);
   const [picker, setPicker] = useState(false);
   const [busy, setBusy] = useState(false);
   const [boxSize, setBoxSize] = useState({ w: 800, h: 600 });
   const base = useRef<ImageData | null>(null);
   const palette = projectPalette(p);
-  const changed = look !== 'none' || JSON.stringify(adj) !== JSON.stringify(NEUTRAL) || crop.aspect != null || crop.zoom !== 1;
+  const changed = look !== 'none' || JSON.stringify(adj) !== JSON.stringify(NEUTRAL) || crop.aspect != null || crop.zoom !== 1 || !!mask || cut != null;
 
   useEffect(() => {
     if (!url) return;
@@ -107,6 +112,7 @@ function Editor({ p, asset, list, narrow, sheet, setSheet }: { p: Project; asset
     const x = c.getContext('2d', { willReadFrequently: true })!;
     x.drawImage(bmp, rect.sx, rect.sy, rect.sw, rect.sh, 0, 0, pv.w, pv.h);
     base.current = x.getImageData(0, 0, pv.w, pv.h);
+    cutBase.current = cut != null ? cutout(base.current, cut) : null;
     draw();
   }, [bmp, pv.w, pv.h, rect?.sx, rect?.sy]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -119,10 +125,17 @@ function Editor({ p, asset, list, narrow, sheet, setSheet }: { p: Project; asset
       if (!c || !base.current) return;
       c.width = base.current.width;
       c.height = base.current.height;
-      c.getContext('2d')!.putImageData(apply(base.current, adj, split ?? 0), 0, 0);
+      const ctx = c.getContext('2d')!;
+      ctx.clearRect(0, 0, c.width, c.height);
+      ctx.putImageData(apply(cutBase.current ?? base.current, adj, split ?? 0, mask), 0, 0);
     });
   };
-  useEffect(draw, [adj, split]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(draw, [adj, split, mask]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!base.current) return;
+    cutBase.current = cut != null ? cutout(base.current, cut) : null;
+    draw();
+  }, [cut]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const set = (patch: Partial<Adjust>) => {
     setLook('custom');
@@ -131,7 +144,15 @@ function Editor({ p, asset, list, narrow, sheet, setSheet }: { p: Project; asset
 
   // drag the picture inside the crop; click with the pipette to take a colour
   const drag = useRef<{ x: number; y: number; cx: number; cy: number } | null>(null);
+  const [maskEdit, setMaskEdit] = useState(false);
   const onDown = (e: React.PointerEvent) => {
+    if (maskEdit && mask) {
+      const r = cv.current!.getBoundingClientRect();
+      setMask({ ...mask, x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height });
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+      drag.current = { x: -2, y: 0, cx: 0, cy: 0 };
+      return;
+    }
     if (picker) {
       const c = cv.current!;
       const r = c.getBoundingClientRect();
@@ -154,6 +175,11 @@ function Editor({ p, asset, list, narrow, sheet, setSheet }: { p: Project; asset
   const onMove = (e: React.PointerEvent) => {
     const d = drag.current;
     if (!d || !e.buttons) return;
+    if (d.x === -2 && mask) {
+      const r = cv.current!.getBoundingClientRect();
+      setMask({ ...mask, x: Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)), y: Math.max(0, Math.min(1, (e.clientY - r.top) / r.height)) });
+      return;
+    }
     if (d.x === -1) {
       const r = cv.current!.getBoundingClientRect();
       setSplit(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)));
@@ -189,11 +215,13 @@ function Editor({ p, asset, list, narrow, sheet, setSheet }: { p: Project; asset
     c.height = h;
     const x = c.getContext('2d', { willReadFrequently: true })!;
     x.drawImage(bmp!, r.sx, r.sy, r.sw, r.sh, 0, 0, w, h);
-    x.putImageData(apply(x.getImageData(0, 0, w, h), adj), 0, 0);
-    const blob = await new Promise<Blob>((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('encode'))), 'image/jpeg', 0.92));
+    let px = x.getImageData(0, 0, w, h);
+    if (cut != null) px = cutout(px, cut);
+    x.putImageData(apply(px, adj, 0, mask), 0, 0);
+    const blob = await new Promise<Blob>((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('encode'))), cut != null ? 'image/png' : 'image/jpeg', 0.92));
     return { blob, w, h };
   }
-  const work = p.works.find((w) => w.versions.some((v) => v.assetId === asset.id));
+  const work = p.works.find((w) => w.versions.some((v) => v.assetId === (from?.id ?? asset.id))) ?? p.works.find((w) => w.versions.some((v) => v.assetId === asset.id));
   async function save(target: 'version' | 'work' | 'download') {
     if (!bmp || !rect) return;
     setBusy(true);
@@ -202,13 +230,14 @@ function Editor({ p, asset, list, narrow, sheet, setSheet }: { p: Project; asset
       if (target === 'download') {
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `${asset.title.replace(/[^\w\- ]+/g, '').trim() || 'image'}-edit.jpg`;
+        a.download = `${asset.title.replace(/[^\w\- ]+/g, '').trim() || 'image'}-edit.${cut != null ? 'png' : 'jpg'}`;
         a.click();
         setTimeout(() => URL.revokeObjectURL(a.href), 4000);
         return;
       }
       const na = await stillToAsset(await downscale(blob, 6000, 'image/webp'), w, h, `${asset.title} · ${t('edit')}`);
       na.palette = await extractPalette(blob);
+      na.recipe = { sourceId: asset.id, adjust: { ...adj }, look, crop, mask: mask ? { ...mask, adjust: { ...mask.adjust } } : null, cutout: cut != null ? { tolerance: cut } : null };
       ws.addAsset(p.id, na);
       if (target === 'version' && work) {
         ws.addVersion(p.id, work.id, na.id);
@@ -228,6 +257,16 @@ function Editor({ p, asset, list, narrow, sheet, setSheet }: { p: Project; asset
 
   const panel = (
     <div className="space-y-5">
+      {asset.recipe && (
+        <div className="rounded-[16px] bg-white/10 p-3 text-[12.5px] leading-[1.45]">
+          <p className="font-bold">{t('This is an edited copy')}</p>
+          <p className="mt-1 text-white/70">{t('Its edits are saved with it. Continue from the original to change them without losing quality.')}</p>
+          <button type="button" onClick={() => onReopen(asset.recipe!.sourceId, asset.id)} className="lg-btn lg-btn-primary mt-2 min-h-[34px] text-[12.5px]">
+            {t('Continue editing')}
+          </button>
+        </div>
+      )}
+      {from && <p className="rounded-[16px] bg-white/10 p-3 text-[12.5px]">{t('Editing from the original with the saved settings of “{name}”.', { name: from.title })}</p>}
       <Section title={t('Format')} icon={<CropIcon size={16} />}>
         <Seg cols={3} label={t('Format')} value={ASPECTS.find((a) => a.r === crop.aspect)?.id ?? 'Original'} options={ASPECTS.map((a) => ({ id: a.id, label: a.id === 'Original' ? t('Original') : a.id }))} onChange={(id) => setCrop({ aspect: ASPECTS.find((a) => a.id === id)!.r, zoom: 1, x: 0, y: 0 })} />
         <Slider label={t('Zoom')} value={crop.zoom} min={1} max={4} fmt={(v) => `${Math.round(v * 100)}%`} onChange={(v) => setCrop((c) => ({ ...c, zoom: v }))} />
@@ -254,6 +293,48 @@ function Editor({ p, asset, list, narrow, sheet, setSheet }: { p: Project; asset
         <button type="button" disabled={!changed} onClick={() => (setAdj(NEUTRAL), setLook('none'), setCrop({ aspect: null, zoom: 1, x: 0, y: 0 }))} className="lg-btn lg-btn-ghost min-h-[36px] w-full text-[12.5px] disabled:opacity-40">
           <RotateCcw size={14} /> {t('Reset all')}
         </button>
+      </Section>
+      <Section title={t('Local area')} icon={<Circle size={16} />}>
+        {!mask ? (
+          <button type="button" onClick={() => (setMask({ x: 0.5, y: 0.45, r: 0.28, feather: 0.6, invert: false, adjust: { ...NEUTRAL, exposure: 0.35 } }), setMaskEdit(true))} className="lg-btn lg-btn-ghost min-h-[36px] w-full text-[12.5px]">
+            <Plus size={14} /> {t('Add a radial area')}
+          </button>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => setMaskEdit((v) => !v)} aria-pressed={maskEdit} className={`lg-btn min-h-[36px] text-[12.5px] ${maskEdit ? 'lg-btn-primary' : 'lg-btn-ghost'}`}>
+                <Move size={14} /> {t('Place it')}
+              </button>
+              <button type="button" onClick={() => setMask({ ...mask, invert: !mask.invert })} aria-pressed={mask.invert} className={`lg-btn min-h-[36px] text-[12.5px] ${mask.invert ? 'lg-btn-primary' : 'lg-btn-ghost'}`}>
+                {t('Outside')}
+              </button>
+            </div>
+            <Slider label={t('Size')} value={mask.r} min={0.05} max={0.9} fmt={(v) => `${Math.round(v * 100)}%`} onChange={(v) => setMask({ ...mask, r: v })} />
+            <Slider label={t('Softness')} value={mask.feather} min={0.02} max={1} fmt={(v) => `${Math.round(v * 100)}%`} onChange={(v) => setMask({ ...mask, feather: v })} />
+            <Slider label={t('Exposure')} value={mask.adjust.exposure} min={-1.5} max={1.5} fmt={(v) => `${v > 0 ? '+' : ''}${v.toFixed(2)}`} onChange={(v) => setMask({ ...mask, adjust: { ...mask.adjust, exposure: v } })} />
+            <Slider label={t('Contrast')} value={mask.adjust.contrast} min={-1} max={1} onChange={(v) => setMask({ ...mask, adjust: { ...mask.adjust, contrast: v } })} />
+            <Slider label={t('Saturation')} value={mask.adjust.saturation} min={-1} max={1} onChange={(v) => setMask({ ...mask, adjust: { ...mask.adjust, saturation: v } })} />
+            <Slider label={t('Warmth')} value={mask.adjust.warmth} min={-1} max={1} onChange={(v) => setMask({ ...mask, adjust: { ...mask.adjust, warmth: v } })} />
+            <button type="button" onClick={() => (setMask(null), setMaskEdit(false))} className="lg-btn lg-btn-plain min-h-[32px] text-[12px]">
+              <X size={13} /> {t('Remove the area')}
+            </button>
+          </>
+        )}
+      </Section>
+      <Section title={t('Cut out')} icon={<Scissors size={16} />}>
+        <p className="text-[11.5px] leading-[1.45] text-white/60">{t('Takes a plain background away (studio shots, renders). Busy backgrounds stay; the result saves as PNG with transparency.')}</p>
+        {cut == null ? (
+          <button type="button" onClick={() => setCut(0.07)} className="lg-btn lg-btn-ghost min-h-[36px] w-full text-[12.5px]">
+            <Scissors size={14} /> {t('Remove the background')}
+          </button>
+        ) : (
+          <>
+            <Slider label={t('Tolerance')} value={cut} min={0.02} max={0.4} fmt={(v) => `${Math.round(v * 100)}%`} onChange={setCut} />
+            <button type="button" onClick={() => setCut(null)} className="lg-btn lg-btn-plain min-h-[32px] text-[12px]">
+              <X size={13} /> {t('Keep the background')}
+            </button>
+          </>
+        )}
       </Section>
       <Section title={t('Palette')} icon={<Pipette size={16} />}>
         <div className="flex flex-wrap gap-1.5">
@@ -288,7 +369,7 @@ function Editor({ p, asset, list, narrow, sheet, setSheet }: { p: Project; asset
             {t('New work')}
           </button>
           <button type="button" disabled={busy} onClick={() => save('download')} className="lg-btn lg-btn-ghost min-h-[38px] text-[12.5px] disabled:opacity-50">
-            <Download size={14} /> JPG
+            <Download size={14} /> {cut != null ? 'PNG' : 'JPG'}
           </button>
         </div>
         <p className="text-[11.5px] leading-[1.45] text-white/60">{t('The original stays as it is. Saving adds a new file.')}</p>
@@ -300,15 +381,18 @@ function Editor({ p, asset, list, narrow, sheet, setSheet }: { p: Project; asset
     <>
       <div ref={box} className={`absolute flex items-center justify-center ${narrow ? 'inset-x-3 bottom-[84px] top-[76px]' : 'bottom-6 end-[340px] start-[268px] top-[96px]'}`}>
         {!bmp && <p className="lg-glass rounded-full px-4 py-2 text-[13px]">{t('Opening the image…')}</p>}
-        <div className="relative" style={{ width: pv.w, height: pv.h }}>
+        <div className="relative" style={{ width: pv.w, height: pv.h, ...(cut != null ? { backgroundColor: '#ddd', backgroundImage: 'linear-gradient(45deg,#bbb 25%,transparent 25%,transparent 75%,#bbb 75%),linear-gradient(45deg,#bbb 25%,transparent 25%,transparent 75%,#bbb 75%)', backgroundSize: '20px 20px', backgroundPosition: '0 0,10px 10px' } : {}) }}>
           <canvas
             ref={cv}
             onPointerDown={onDown}
             onPointerMove={onMove}
             onPointerUp={() => (drag.current = null)}
-            className={`block h-full w-full touch-none rounded-[6px] shadow-[0_30px_80px_rgba(0,0,0,.45)] ${picker ? 'cursor-crosshair' : split != null ? 'cursor-ew-resize' : crop.zoom > 1 || crop.aspect ? 'cursor-grab active:cursor-grabbing' : ''}`}
+            className={`block h-full w-full touch-none rounded-[6px] shadow-[0_30px_80px_rgba(0,0,0,.45)] ${maskEdit && mask ? 'cursor-move' : picker ? 'cursor-crosshair' : split != null ? 'cursor-ew-resize' : crop.zoom > 1 || crop.aspect ? 'cursor-grab active:cursor-grabbing' : ''}`}
             aria-label={t('Image preview')}
           />
+          {mask && maskEdit && (
+            <span className="pointer-events-none absolute rounded-full border-2 border-dashed border-white shadow-[0_0_0_1px_rgba(0,0,0,.3)]" style={{ left: mask.x * pv.w - mask.r * Math.max(pv.w, pv.h), top: mask.y * pv.h - mask.r * Math.max(pv.w, pv.h), width: 2 * mask.r * Math.max(pv.w, pv.h), height: 2 * mask.r * Math.max(pv.w, pv.h) }} />
+          )}
           {split != null && (
             <>
               <div className="pointer-events-none absolute inset-y-0 w-px bg-white" style={{ left: `${split * 100}%` }} />

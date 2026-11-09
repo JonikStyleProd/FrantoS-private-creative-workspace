@@ -23,6 +23,8 @@ export interface Asset {
   influences?: { assetId: string; text: string };
   /** false while bytes are still being written */
   ready?: boolean;
+  /** made in the studio's Image mode: how to get it again from the original */
+  recipe?: { sourceId: string; adjust: Record<string, number>; look: string; crop: { aspect: number | null; zoom: number; x: number; y: number }; mask?: { x: number; y: number; r: number; feather: number; invert: boolean; adjust: Record<string, number> } | null; cutout?: { tolerance: number } | null };
   /** cloud copy in the private `assets` bucket */
   storagePath?: string;
   thumbPath?: string;
@@ -46,7 +48,12 @@ export interface Work {
   versions: Version[];
   approvedVersionId?: string;
   createdAt: number;
+  /** due date (ms) and a production status for planning */
+  due?: number;
+  status?: WorkStatus;
 }
+
+export type WorkStatus = 'todo' | 'doing' | 'client' | 'done';
 
 export interface Reply {
   id: string;
@@ -73,6 +80,10 @@ export interface Comment {
   authorId?: string;
   guest?: boolean;
   text: string;
+  /** a client approved this version from a review link */
+  approval?: boolean;
+  /** a voice note recorded on the pin: stored like an upload */
+  audio?: { blobKey: string; duration: number };
   author: string;
   createdAt: number;
   resolved: boolean;
@@ -138,6 +149,19 @@ export interface MaterialVariant {
 
 export type LightPreset = 'softbox' | 'window' | 'spot' | 'rim' | 'morning' | 'sunset' | 'gallery' | 'hdri';
 
+export type StageProp = 'none' | 'plinth' | 'block' | 'arch';
+
+/** a title over the motion clip, shown between two fractions of its length */
+export interface MotionTitle {
+  id: string;
+  text: string;
+  from: number;
+  to: number;
+  pos: 'top' | 'center' | 'bottom';
+  size: number;
+  color: string;
+}
+
 /** a camera pose around the object: azimuth and elevation in degrees, zoom 1 = framed */
 export interface CameraKey {
   id: string;
@@ -160,8 +184,10 @@ export interface StudioObject {
   camera: { lens: number };
   background: { kind: 'studio' | 'color' | 'transparent'; color: string };
   turntable: { seconds: number };
-  /** Motion mode: a camera move through keyframes */
-  motion?: { seconds: number; keys: CameraKey[] };
+  /** Motion mode: a camera move through keyframes, titles over it, an optional sound */
+  motion?: { seconds: number; keys: CameraKey[]; titles?: MotionTitle[]; audio?: { blobKey: string; name: string } };
+  /** what the object stands on in the scene */
+  stage?: StageProp;
   /** small preview, a data URL or a static path */
   thumb?: string;
   note?: string;
@@ -192,6 +218,8 @@ export interface BoardLayer {
   weight?: number;
   color?: string;
   align?: 'start' | 'center' | 'end';
+  /** typeface; empty = the brand kit's heading face */
+  font?: BrandFont;
   fill?: string;
   radius?: number;
   colors?: string[];
@@ -204,6 +232,8 @@ export interface Board {
   h: number;
   bg: string;
   layers: BoardLayer[];
+  /** presenter notes */
+  notes?: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -254,9 +284,38 @@ export interface Project {
   lastOpenedAt?: number;
 }
 
+/** who you are on your portfolio */
+export interface Profile {
+  name: string;
+  handle: string;
+  role?: string;
+  bio?: string;
+  links?: { label: string; url: string }[];
+  /** projects shown on the portfolio, in order (only published case pages appear publicly) */
+  projects?: string[];
+  published?: boolean;
+}
+
+export type BrandFont = 'manrope' | 'inter-tight' | 'literata' | 'instrument-serif' | 'jetbrains-mono' | 'frank-ruhl';
+
+/** the studio's brand kit: applied to boards, case pages, presentations and the guide */
+export interface Brand {
+  name?: string;
+  logo?: string;
+  font: BrandFont;
+  bodyFont?: BrandFont;
+  palette: string[];
+  accent?: string;
+  voice?: string;
+}
+
 export interface WsState {
   v: 1;
   projects: Project[];
+  profile?: Profile;
+  brand?: Brand;
+  /** the newest "What's new" entry you have seen */
+  seenNews?: number;
   lastProjectId?: string;
   you: string;
   /** which studio new cloud projects go to */

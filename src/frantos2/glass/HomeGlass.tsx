@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, Cloud, Lock, Plus, RotateCcw, Search, X } from 'lucide-react';
+import { CalendarDays, ArrowRight, Cloud, Lock, Plus, RotateCcw, Search, X } from 'lucide-react';
 import './glass.css';
 import { GlassAccount } from './account';
 import { InstallButton } from './install';
@@ -14,30 +14,19 @@ import { openPalette } from '../daily/Palette';
 import { cloudEnabled, useAuth } from '../cloud/client';
 import { moveToStudio } from '../cloud/sync';
 import { useStudioId } from '../cloud/Account';
-import { Backdrop, Credits, GlassLang, Mark, Pane, ThemeSwitch, lgEase } from './kit';
+import { Backdrop, Credits, Pane, lgEase } from './kit';
+import { AppHeader } from './Shell';
 import { STAGES, STAGE_LABEL, assetById, itemsOf, latest } from './stages';
 
 const DEMO_ID = 'form-01';
 
 /** All projects on glass, over the cover of the one you touched last. */
 export function HomeGlass() {
-  const { t, dir } = useI18n();
+  const { t, dir, lang } = useI18n();
   const { state, status } = useWs();
   const [creating, setCreating] = useState(false);
   useEffect(() => void ensureLoaded(), []);
 
-  // something shared from another app (PWA share target) → a note on the last project's board
-  useEffect(() => {
-    if (status === 'loading') return;
-    const shared = sessionStorage.getItem('frantos-share');
-    if (!shared) return;
-    sessionStorage.removeItem('frantos-share');
-    const target = state.projects.find((p) => p.id === state.lastProjectId) ?? state.projects[0];
-    if (!target) return;
-    ws.addNote(target.id, 0.04, 0.06, shared);
-    toast(t('Shared to FrantoS: added as a note on {name}', { name: target.title }));
-    go(`/p/${target.id}/moodboard`);
-  }, [status]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const on = () => setCreating(true);
     window.addEventListener('frantos:new', on);
@@ -59,29 +48,29 @@ export function HomeGlass() {
     [projects]
   );
 
+  // works with a due date in the next week, or already past it
+  const dueSoon = useMemo(
+    () =>
+      projects
+        .flatMap((p) => p.works.filter((w) => w.due && w.status !== 'done' && !w.approvedVersionId && w.due < Date.now() + 7 * 864e5).map((w) => ({ p, w, late: w.due! < Date.now() })))
+        .sort((a, b) => a.w.due! - b.w.due!)
+        .slice(0, 6),
+    [projects]
+  );
+
   return (
     <div className="lg min-h-full" dir={dir}>
       <div className="fixed inset-0">
         <Backdrop src={bg} id={cover?.id} tint={0.48} blur />
       </div>
       <div className="relative z-10 mx-auto max-w-[1360px] px-3 pb-16 pt-3 sm:px-6 sm:pt-5">
-        <Pane as="header" className="flex items-center gap-2 rounded-full py-1.5 pe-1.5 ps-5">
-          <Mark onClick={() => go('/')} />
-          <div className="ms-auto flex items-center gap-1.5">
-            <button type="button" onClick={openPalette} className="lg-btn lg-btn-plain hidden sm:inline-flex" aria-label={t('Search or run a command')}>
-              <Search size={15} /> <span className="text-white/60">⌘K</span>
-            </button>
-            <span className="hidden md:block">
-              <GlassLang />
-            </span>
-            <ThemeSwitch />
-            <InstallButton compact />
-            <GlassAccount />
+        <AppHeader
+          action={
             <button type="button" onClick={() => setCreating(true)} className="lg-btn lg-btn-primary">
               <Plus size={16} /> <span className="hidden sm:inline">{t('New project')}</span>
             </button>
-          </div>
-        </Pane>
+          }
+        />
 
         <div className="mt-10 grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-end">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: lgEase }}>
@@ -107,6 +96,22 @@ export function HomeGlass() {
             </Pane>
           )}
         </div>
+
+        {dueSoon.length > 0 && (
+          <Pane className="mt-6 flex flex-wrap items-center gap-2 rounded-[22px] p-2" delay={0.15}>
+            <span className="lg-label flex items-center gap-1.5 px-2">
+              <CalendarDays size={13} /> {t('Coming due')}
+            </span>
+            {dueSoon.map(({ p, w, late }) => (
+              <button key={p.id + w.id} type="button" onClick={() => go(`/p/${p.id}?i=${w.id}`)} className={`flex min-h-[36px] items-center gap-2 rounded-full px-3 text-[13px] font-semibold ${late ? 'bg-[var(--lg-accent)] text-white' : 'lg-soft hover:bg-white/15'}`}>
+                <span dir="auto" className="max-w-[220px] truncate">
+                  {w.title}
+                </span>
+                <span className="text-[12px] opacity-75">{new Date(w.due!).toLocaleDateString(lang, { day: 'numeric', month: 'short' })}</span>
+              </button>
+            ))}
+          </Pane>
+        )}
 
         <section aria-label={t('Projects')} className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((p, i) => (

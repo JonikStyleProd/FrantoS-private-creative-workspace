@@ -21,8 +21,14 @@ import {
   Upload,
   Wand2,
   X,
+  CalendarDays,
+  Mic,
+  Square as StopIcon,
+  BookOpen,
+  Presentation,
 } from 'lucide-react';
 import './glass.css';
+import { get as idbGet, set as idbSet } from 'idb-keyval';
 import { GlassAccount } from './account';
 import { useI18n } from '../i18n';
 import { go } from '../route';
@@ -156,6 +162,12 @@ function Screen({ p, q }: { p: Project; q: URLSearchParams }) {
             <span className="hidden xl:block">
               <GlassLang />
             </span>
+            <button type="button" onClick={() => go(`/p/${p.id}/deck`)} className="lg-btn lg-btn-plain lg-icon" aria-label={t('Present boards')} title={t('Present boards')}>
+              <Presentation size={16} />
+            </button>
+            <button type="button" onClick={() => go(`/p/${p.id}/guide`)} className="lg-btn lg-btn-plain lg-icon" aria-label={t('Brand guide')} title={t('Brand guide')}>
+              <BookOpen size={16} />
+            </button>
             <ThemeSwitch />
           </Pane>
           <button type="button" onClick={() => go(`/s/${p.id}`)} className="lg-glass lg-btn">
@@ -367,6 +379,11 @@ function Stagepiece({ p, item, q, setQ }: { p: Project; item: Item; q: URLSearch
   return <WorkPiece p={p} w={item.work} q={q} setQ={setQ} />;
 }
 
+function GridImg({ asset }: { asset?: Asset }) {
+  const { url } = useAssetUrl(asset, 'full');
+  return <span className="flex h-full w-full items-center justify-center bg-black/20">{url && <img src={url} alt="" className="max-h-full max-w-full object-contain" />}</span>;
+}
+
 function PieceImage({ asset }: { asset?: Asset }) {
   const { url } = useAssetUrl(asset, 'full');
   return url ? <img src={url} alt="" className="max-h-full max-w-full rounded-[6px] object-contain opacity-60" /> : null;
@@ -433,6 +450,29 @@ function WorkPiece({ p, w, q, setQ }: { p: Project; w: Work; q: URLSearchParams;
   }, [activeId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!asset) return null;
+  if (q.get('grid') && w.versions.length > 1) {
+    const vs = [...w.versions].sort((x, y) => x.n - y.n);
+    const cols = vs.length <= 2 ? 2 : vs.length <= 4 ? 2 : 3;
+    return (
+      <div className="grid h-full gap-3 p-1" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridAutoRows: 'minmax(0, 1fr)' }} dir="ltr">
+        {vs.map((v) => {
+          const a = assetById(p, v.assetId);
+          const open = p.comments.filter((c) => c.versionId === v.id && !c.resolved).length;
+          return (
+            <button key={v.id} type="button" onClick={() => setQ({ v: v.id, grid: undefined })} className={`group relative min-h-0 overflow-hidden rounded-[18px] ring-1 ${v.id === cur.id ? 'ring-2 ring-white' : 'ring-white/20 hover:ring-white/60'}`} aria-label={t('Open v{n}', { n: v.n })}>
+              <GridImg asset={a} />
+              <span className="lg-glass absolute start-2 top-2 rounded-full px-3 py-1 text-[12.5px] font-bold">
+                v{v.n}
+                {w.approvedVersionId === v.id ? ' ✓' : ''}
+                {v.label ? ` · ${t(v.label)}` : ''}
+              </span>
+              {open > 0 && <span className="absolute end-2 top-2 rounded-full bg-[var(--lg-accent)] px-2.5 py-1 text-[11.5px] font-bold text-white">{t('{n} open', { n: open })}</span>}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
   if (w.kind === 'video')
     return (
       <div className="relative h-full">
@@ -590,16 +630,44 @@ function WorkPanel({ p, w, q, setQ }: { p: Project; w: Work; q: URLSearchParams;
       },
     });
 
+  const due = w.due ? new Date(w.due) : null;
+  const late = !!due && due.getTime() < Date.now() - 864e5 && w.status !== 'done' && !w.approvedVersionId;
   return (
     <div className="space-y-5">
+      {/* plan: status and due date */}
+      <div className="space-y-2">
+        <p className="lg-label">{t('Plan')}</p>
+        <div role="radiogroup" aria-label={t('Status')} className="grid grid-cols-4 gap-1 rounded-[14px] bg-white/10 p-1">
+          {(['todo', 'doing', 'client', 'done'] as const).map((st) => {
+            const on = (w.status ?? (w.approvedVersionId ? 'done' : 'doing')) === st;
+            return (
+              <button key={st} type="button" role="radio" aria-checked={on} onClick={() => ws.planWork(p.id, w.id, { status: st })} className={`min-h-[34px] rounded-[10px] px-1 text-[11.5px] font-bold ${on ? 'bg-white text-[#11151a]' : 'text-white/80 hover:bg-white/10'}`}>
+                {t(st === 'todo' ? 'To do' : st === 'doing' ? 'In work' : st === 'client' ? 'With client' : 'Done')}
+              </button>
+            );
+          })}
+        </div>
+        <label className={`flex min-h-[38px] items-center gap-2 rounded-[12px] px-3 text-[13px] lg-soft ${late ? 'ring-1 ring-[var(--lg-accent)]' : ''}`}>
+          <CalendarDays size={14} />
+          <span className="text-white/75">{t('Due')}</span>
+          <input type="date" className="ms-auto bg-transparent text-[13px] font-semibold outline-none [color-scheme:dark]" value={due ? due.toISOString().slice(0, 10) : ''} onChange={(e) => ws.planWork(p.id, w.id, { due: e.target.value ? new Date(e.target.value + 'T18:00:00').getTime() : null })} aria-label={t('Due date')} />
+        </label>
+        {late && <p className="text-[12px] font-semibold text-[var(--lg-accent)]">{t('Past due')}</p>}
+      </div>
+
       {/* versions */}
       <div>
         <div className="mb-2 flex items-center justify-between">
           <p className="lg-label">{t('Versions')}</p>
           {sorted.length > 1 && (
-            <button type="button" onClick={() => setQ({ cmp: cmpId ? undefined : (sorted.filter((v) => v.n < cur.n).pop() ?? sorted.find((v) => v.id !== cur.id))?.id })} className={`lg-btn min-h-[34px] px-3 text-[12.5px] ${cmpId ? 'lg-btn-primary' : 'lg-btn-ghost'}`} aria-pressed={!!cmpId}>
-              <Columns2 size={14} /> {t('Compare')}
-            </button>
+            <span className="flex gap-1.5">
+              <button type="button" onClick={() => setQ({ grid: q.get('grid') ? undefined : '1', cmp: undefined })} className={`lg-btn min-h-[34px] px-3 text-[12.5px] ${q.get('grid') ? 'lg-btn-primary' : 'lg-btn-ghost'}`} aria-pressed={!!q.get('grid')} title={t('All versions side by side')}>
+                <LayoutGrid size={14} /> {t('All')}
+              </button>
+              <button type="button" onClick={() => setQ({ cmp: cmpId ? undefined : (sorted.filter((v) => v.n < cur.n).pop() ?? sorted.find((v) => v.id !== cur.id))?.id, grid: undefined })} className={`lg-btn min-h-[34px] px-3 text-[12.5px] ${cmpId ? 'lg-btn-primary' : 'lg-btn-ghost'}`} aria-pressed={!!cmpId}>
+                <Columns2 size={14} /> {t('Compare')}
+              </button>
+            </span>
           )}
         </div>
         <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label={t('Version')} dir="ltr">
@@ -714,6 +782,12 @@ function Note({ p, c, n, active, onSelect }: { p: Project; c: Comment; n: number
           <span dir="auto" className="mt-0.5 block text-[14.5px] leading-[1.45]">{t(c.text)}</span>
         </span>
       </button>
+      {c.audio && <VoiceNote blobKey={c.audio.blobKey} />}
+      {c.approval && p.works.find((x) => x.id === c.workId)?.approvedVersionId !== c.versionId && (
+        <button type="button" onClick={() => (ws.approve(p.id, c.workId, c.versionId), ws.resolve(p.id, c.id, true), toast(t('Approved — moved to Show')))} className="lg-btn lg-btn-primary ms-[42px] mt-2 min-h-[34px] text-[12.5px]">
+          <Check size={14} /> {t('The client approved — confirm')}
+        </button>
+      )}
       {c.replies.map((r) => (
         <p key={r.id} className="ms-[42px] mt-2 border-s border-white/25 ps-3 text-[13.5px] leading-[1.45] text-white/85">
           <span className="font-bold">{r.author === 'You' ? t('You') : r.author}:</span> {t(r.text)}
@@ -743,14 +817,66 @@ function Note({ p, c, n, active, onSelect }: { p: Project; c: Comment; n: number
   );
 }
 
+function VoiceNote({ blobKey }: { blobKey: string }) {
+  const { t } = useI18n();
+  const [url, setUrl] = useState<string | null>(null);
+  const [missing, setMissing] = useState(false);
+  useEffect(() => {
+    let u: string | null = null;
+    idbGet(blobKey).then((b) => (b ? setUrl((u = URL.createObjectURL(b as Blob))) : setMissing(true)));
+    return () => {
+      if (u) URL.revokeObjectURL(u);
+    };
+  }, [blobKey]);
+  if (missing) return <p className="ms-[42px] mt-2 text-[12px] text-white/60">{t('Voice note recorded on another device')}</p>;
+  return url ? <audio src={url} controls className="ms-[42px] mt-2 h-9 w-[calc(100%-42px)]" /> : null;
+}
+
 function Composer({ p, w, versionId, draft, onDone }: { p: Project; w: Work; versionId: string; draft: DraftDetail; onDone: (cid?: string) => void }) {
   const { t } = useI18n();
   const [text, setText] = useState('');
   const ref = useRef<HTMLTextAreaElement>(null);
   useEffect(() => ref.current?.focus(), []);
-  const submit = () => {
-    if (!text.trim()) return;
-    const cid = ws.addComment(p.id, { workId: w.id, versionId, text: text.trim(), ...(draft.anchor ?? {}), ...(draft.t != null ? { t: draft.t } : {}) });
+  // a voice note: recorded here, stored in this browser like an upload
+  const [voice, setVoice] = useState<{ blob: Blob; url: string; duration: number } | null>(null);
+  const [recording, setRecording] = useState<number | null>(null);
+  const recRef = useRef<MediaRecorder | null>(null);
+  const startVoice = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mr = new MediaRecorder(stream);
+      const chunks: Blob[] = [];
+      const t0 = Date.now();
+      mr.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+      mr.onstop = () => {
+        stream.getTracks().forEach((tr) => tr.stop());
+        const blob = new Blob(chunks, { type: mr.mimeType || 'audio/webm' });
+        setVoice({ blob, url: URL.createObjectURL(blob), duration: (Date.now() - t0) / 1000 });
+        setRecording(null);
+      };
+      mr.start();
+      recRef.current = mr;
+      setRecording(Date.now());
+      window.setTimeout(() => mr.state === 'recording' && mr.stop(), 120_000);
+    } catch {
+      toast(t('The microphone is not available. Allow it in the browser to record a voice note.'), { tone: 'error' });
+    }
+  };
+  const [, tick] = useState(0);
+  useEffect(() => {
+    if (recording == null) return;
+    const iv = setInterval(() => tick((x) => x + 1), 250);
+    return () => clearInterval(iv);
+  }, [recording]);
+  const submit = async () => {
+    if (!text.trim() && !voice) return;
+    let audio: Comment['audio'];
+    if (voice) {
+      const key = `blob:vn-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+      await idbSet(key, voice.blob);
+      audio = { blobKey: key, duration: Math.round(voice.duration * 10) / 10 };
+    }
+    const cid = ws.addComment(p.id, { workId: w.id, versionId, text: text.trim() || t('Voice note'), ...(audio ? { audio } : {}), ...(draft.anchor ?? {}), ...(draft.t != null ? { t: draft.t } : {}) });
     onDone(cid);
   };
   return (
@@ -772,11 +898,30 @@ function Composer({ p, w, versionId, draft, onDone }: { p: Project; w: Work; ver
           className="lg-input mt-1.5 resize-none"
           placeholder={t('What should change?')}
         />
-        <div className="mt-2 flex justify-end gap-2">
+        {voice && (
+          <div className="mt-2 flex items-center gap-2">
+            <audio src={voice.url} controls className="h-9 min-w-0 flex-1" />
+            <button type="button" onClick={() => setVoice(null)} className="lg-btn lg-btn-plain lg-icon h-9 min-h-0 w-9" aria-label={t('Remove')}>
+              <X size={14} />
+            </button>
+          </div>
+        )}
+        <div className="mt-2 flex items-center justify-end gap-2">
+          {recording != null ? (
+            <button type="button" onClick={() => recRef.current?.stop()} className="lg-btn lg-btn-ghost me-auto min-h-[38px] text-[12.5px]" aria-label={t('Stop recording')}>
+              <StopIcon size={13} className="fill-[var(--lg-accent)] text-[var(--lg-accent)]" /> {Math.floor((Date.now() - recording) / 1000)} s
+            </button>
+          ) : (
+            !voice && (
+              <button type="button" onClick={startVoice} className="lg-btn lg-btn-plain lg-icon me-auto h-[38px] min-h-0 w-[38px]" aria-label={t('Record a voice note')} title={t('Record a voice note')}>
+                <Mic size={16} />
+              </button>
+            )
+          )}
           <button type="button" onClick={() => onDone()} className="lg-btn lg-btn-plain min-h-[38px]">
             {t('Cancel')}
           </button>
-          <button type="submit" disabled={!text.trim()} className="lg-btn lg-btn-primary min-h-[38px] disabled:opacity-50">
+          <button type="submit" disabled={!text.trim() && !voice} className="lg-btn lg-btn-primary min-h-[38px] disabled:opacity-50">
             {t('Add note')}
           </button>
         </div>

@@ -58,44 +58,76 @@ export function cropRect(w: number, h: number, c: Crop) {
 
 const clamp = (v: number) => (v < 0 ? 0 : v > 255 ? 255 : v);
 
-/** Apply `a` to a copy of `src`. Pixels left of `split` (0..1, LTR) stay original — the before/after wipe. */
-export function apply(src: ImageData, a: Adjust, split = 0): ImageData {
+/** a soft round area with its own correction: centre and radius in fractions of the picture */
+export interface Mask {
+  x: number;
+  y: number;
+  r: number;
+  feather: number;
+  invert: boolean;
+  adjust: Adjust;
+}
+
+const prep = (a: Adjust) => ({ ex: Math.pow(2, a.exposure), ct: 1 + a.contrast, sat: 1 + a.saturation, wr: 1 + a.warmth * 0.12, wb: 1 - a.warmth * 0.12, tg: 1 - a.tint * 0.08, lift: a.fade * 42 });
+type Prep = ReturnType<typeof prep>;
+const tone = (r: number, g: number, b: number, k: Prep): [number, number, number] => {
+  r = r * k.ex * k.wr;
+  g = g * k.ex * k.tg;
+  b = b * k.ex * k.wb;
+  r = (r - 128) * k.ct + 128;
+  g = (g - 128) * k.ct + 128;
+  b = (b - 128) * k.ct + 128;
+  const l = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  r = l + (r - l) * k.sat;
+  g = l + (g - l) * k.sat;
+  b = l + (b - l) * k.sat;
+  if (k.lift) {
+    r = k.lift + r * (1 - k.lift / 255);
+    g = k.lift + g * (1 - k.lift / 255);
+    b = k.lift + b * (1 - k.lift / 255);
+  }
+  return [r, g, b];
+};
+
+/**
+ * Apply `a` (and an optional local `mask`) to a copy of `src`.
+ * Pixels left of `split` (0..1, LTR) stay original — the before/after wipe.
+ */
+export function apply(src: ImageData, a: Adjust, split = 0, mask?: Mask | null): ImageData {
   const { width: w, height: h } = src;
   const out = new ImageData(new Uint8ClampedArray(src.data), w, h);
   const d = out.data;
-  const ex = Math.pow(2, a.exposure);
-  const ct = 1 + a.contrast;
-  const sat = 1 + a.saturation;
-  const wr = 1 + a.warmth * 0.12;
-  const wb = 1 - a.warmth * 0.12;
-  const tg = 1 - a.tint * 0.08;
-  const lift = a.fade * 42;
+  const g0 = prep(a);
+  const m0 = mask ? prep(mask.adjust) : null;
   const cx = w / 2;
   const cy = h / 2;
   const maxR = Math.hypot(cx, cy);
   const sx = Math.round(split * w);
+  const mr = mask ? mask.r * Math.max(w, h) : 0;
+  const mf = mask ? Math.max(1, mask.feather * mr) : 1;
   // a fixed noise table: grain looks the same on every redraw
-  const noise = a.grain > 0 ? new Float32Array(4096).map((_, i) => {
-        const v = Math.sin(i * 12.9898) * 43758.5453;
-        return v - Math.floor(v) - 0.5;
-      }) : null;
+  const noise =
+    a.grain > 0
+      ? new Float32Array(4096).map((_, i) => {
+          const v = Math.sin(i * 12.9898) * 43758.5453;
+          return v - Math.floor(v) - 0.5;
+        })
+      : null;
   for (let y = 0; y < h; y++) {
     for (let x = sx; x < w; x++) {
       const i = (y * w + x) * 4;
-      let r = d[i] * ex * wr;
-      let g = d[i + 1] * ex * tg;
-      let b = d[i + 2] * ex * wb;
-      r = (r - 128) * ct + 128;
-      g = (g - 128) * ct + 128;
-      b = (b - 128) * ct + 128;
-      const l = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-      r = l + (r - l) * sat;
-      g = l + (g - l) * sat;
-      b = l + (b - l) * sat;
-      if (lift) {
-        r = lift + r * (1 - lift / 255);
-        g = lift + g * (1 - lift / 255);
-        b = lift + b * (1 - lift / 255);
+      let [r, g, b] = tone(d[i], d[i + 1], d[i + 2], g0);
+      if (mask && m0) {
+        const dd = Math.hypot(x - mask.x * w, y - mask.y * h);
+        let k = dd <= mr - mf ? 1 : dd >= mr ? 0 : (mr - dd) / mf;
+        k = k * k * (3 - 2 * k);
+        if (mask.invert) k = 1 - k;
+        if (k > 0) {
+          const [r2, g2, b2] = tone(r, g, b, m0);
+          r += (r2 - r) * k;
+          g += (g2 - g) * k;
+          b += (b2 - b) * k;
+        }
       }
       if (a.vignette) {
         const k = 1 - a.vignette * Math.pow(Math.hypot(x - cx, y - cy) / maxR, 2.2);
@@ -113,6 +145,63 @@ export function apply(src: ImageData, a: Adjust, split = 0): ImageData {
       d[i + 1] = clamp(g);
       d[i + 2] = clamp(b);
     }
+  }
+  return out;
+}
+
+/**
+ * Take a plain background away: grows from the edges through every pixel close in colour to the
+ * edge it started from (tolerance 0–1), then softens the cut by one pixel. Works for studio shots
+ * on a plain backdrop; a busy background stays — say so in the UI.
+ */
+export function cutout(src: ImageData, tolerance: number): ImageData {
+  const { width: w, height: h } = src;
+  const out = new ImageData(new Uint8ClampedArray(src.data), w, h);
+  const d = out.data;
+  const tol = (tolerance * 255) ** 2 * 3;
+  const seen = new Uint8Array(w * h);
+  const q = new Int32Array(w * h);
+  let head = 0;
+  let tail = 0;
+  const seedR = new Float32Array(w * h);
+  const seedG = new Float32Array(w * h);
+  const seedB = new Float32Array(w * h);
+  const push = (p: number, r: number, g: number, b: number) => {
+    seen[p] = 1;
+    seedR[p] = r;
+    seedG[p] = g;
+    seedB[p] = b;
+    q[tail++] = p;
+  };
+  for (let x = 0; x < w; x++)
+    for (const y of [0, h - 1]) {
+      const p = y * w + x;
+      if (!seen[p]) push(p, d[p * 4], d[p * 4 + 1], d[p * 4 + 2]);
+    }
+  for (let y = 0; y < h; y++)
+    for (const x of [0, w - 1]) {
+      const p = y * w + x;
+      if (!seen[p]) push(p, d[p * 4], d[p * 4 + 1], d[p * 4 + 2]);
+    }
+  while (head < tail) {
+    const p = q[head++];
+    d[p * 4 + 3] = 0;
+    const x = p % w;
+    const y = (p / w) | 0;
+    const nb = [x > 0 ? p - 1 : -1, x < w - 1 ? p + 1 : -1, y > 0 ? p - w : -1, y < h - 1 ? p + w : -1];
+    for (const n of nb) {
+      if (n < 0 || seen[n]) continue;
+      const dr = d[n * 4] - seedR[p];
+      const dg = d[n * 4 + 1] - seedG[p];
+      const db = d[n * 4 + 2] - seedB[p];
+      if (dr * dr + dg * dg + db * db <= tol) push(n, seedR[p], seedG[p], seedB[p]);
+      else seen[n] = 2; // edge of the object
+    }
+  }
+  // soften: object pixels touching the background get partial alpha
+  for (let p = 0; p < w * h; p++) {
+    if (seen[p] !== 2) continue;
+    d[p * 4 + 3] = 170;
   }
   return out;
 }
