@@ -25,7 +25,7 @@ export function StudioPage({ id, q }: { id: string; q: URLSearchParams }) {
   const { t, dir } = useI18n();
   const { project: p, loading } = useProject(id);
   useEffect(() => void ensureLoaded(), []);
-  if (!p && loading) return <div className="lg fixed inset-0" />;
+  if (!p && loading) return <div className="lg lg-studio lg-studio-blank fixed inset-0" />;
   if (!p)
     return (
       <div className="lg fixed inset-0 flex items-center justify-center" dir={dir}>
@@ -264,12 +264,9 @@ function ObjectEditor({ p, o, narrow, onImport, onAddVessel, onPick }: { p: Proj
       firstPaint.current = false;
       return;
     }
-    const id = requestAnimationFrame(() => sceneRef.current?.setVariant(variant, 'draft'));
-    const full = window.setTimeout(() => sceneRef.current?.setVariant(variant, 'full'), 280);
-    return () => {
-      cancelAnimationFrame(id);
-      window.clearTimeout(full);
-    };
+    // one repaint per frame at most, however fast the slider moves
+    const id = requestAnimationFrame(() => sceneRef.current?.setVariant(variant));
+    return () => cancelAnimationFrame(id);
   }, [variantKey, ready]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => sceneRef.current?.setLight(draft.light), [JSON.stringify(draft.light)]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => sceneRef.current?.setLens(draft.camera.lens), [draft.camera.lens, ready]);
@@ -309,7 +306,7 @@ function ObjectEditor({ p, o, narrow, onImport, onAddVessel, onPick }: { p: Proj
     const s = sceneRef.current;
     if (!s) return;
     try {
-      const b = await s.render(320, 400, { background: draft.background.kind === 'transparent' ? null : draft.background.color, type: 'image/webp', quality: 0.8 });
+      const b = await s.snapshot(320, 400, { background: draft.background.kind === 'transparent' ? null : draft.background.color, type: 'image/webp', quality: 0.8 });
       ws.patchObject(p.id, o.id, { thumb: await blobToDataUrl(b) });
     } catch {
       /* a thumbnail is a nicety */
@@ -387,7 +384,7 @@ function ObjectEditor({ p, o, narrow, onImport, onAddVessel, onPick }: { p: Proj
     <>
       {/* the work: viewport fills the window */}
       <div className="absolute inset-0" style={bgStyle}>
-        <canvas ref={canvasRef} className="absolute inset-0 h-full w-full touch-none outline-none" aria-label={t('3D viewport: drag to orbit, pinch or scroll to zoom')} />
+        <canvas ref={canvasRef} style={{ opacity: ready ? 1 : 0, transition: 'opacity .35s ease' }} className="absolute inset-0 h-full w-full touch-none outline-none" aria-label={t('3D viewport: drag to orbit, pinch or scroll to zoom')} />
         {!ready && !error && <p className="lg-glass absolute start-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full px-4 py-2 text-[13px] rtl:translate-x-1/2">{t('Preparing the object…')}</p>}
         {error && (
           <Pane className="absolute start-1/2 top-1/2 max-w-[380px] -translate-x-1/2 -translate-y-1/2 rounded-[22px] p-5 text-center rtl:translate-x-1/2">

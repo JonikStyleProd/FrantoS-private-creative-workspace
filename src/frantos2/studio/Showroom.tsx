@@ -20,7 +20,7 @@ export function Showroom({ pid, oid }: { pid: string; oid: string }) {
   const { project: p, loading } = useProject(pid);
   useEffect(() => void ensureLoaded(), []);
   const o = p?.objects?.find((x) => x.id === oid);
-  if (!p && loading) return <div className="lg fixed inset-0" />;
+  if (!p && loading) return <div className="lg lg-studio lg-studio-blank fixed inset-0" />;
   if (!p || !o)
     return (
       <div className="lg fixed inset-0 flex items-center justify-center p-6" dir={dir}>

@@ -240,4 +240,7 @@ export const glassRu: Record<string, string> = {
   "Install FrantoS": "Установить FrantoS",
   "In Safari tap": "В Safari нажмите",
   "Share, then “Add to Home Screen”.": "«Поделиться», затем «На экран „Домой“».",
+  "In Safari choose File → Add to Dock.": "В Safari выберите Файл → Добавить в Dock.",
+  "Firefox does not install web apps on desktop. Open FrantoS in Chrome, Edge or Safari to install it.": "Firefox не устанавливает веб-приложения на компьютер. Откройте FrantoS в Chrome, Edge или Safari, чтобы установить его.",
+  "Click the install icon at the right end of the address bar, or open the browser menu ⋮ → “Cast, save and share” → “Install page as app”.": "Нажмите значок установки справа в адресной строке или откройте меню браузера ⋮ → «Трансляция, сохранение и отправка» → «Установить страницу как приложение».",
 };

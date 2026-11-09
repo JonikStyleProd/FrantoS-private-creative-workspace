@@ -240,4 +240,7 @@ export const glassHe: Record<string, string> = {
   "Install FrantoS": "התקנת FrantoS",
   "In Safari tap": "ב־Safari הקישו על",
   "Share, then “Add to Home Screen”.": "„שיתוף” ואז „הוספה למסך הבית”.",
+  "In Safari choose File → Add to Dock.": "ב-Safari בחרו קובץ ← הוספה ל-Dock.",
+  "Firefox does not install web apps on desktop. Open FrantoS in Chrome, Edge or Safari to install it.": "Firefox לא מתקין אפליקציות רשת במחשב. פתחו את FrantoS ב-Chrome, ‏Edge או Safari כדי להתקין.",
+  "Click the install icon at the right end of the address bar, or open the browser menu ⋮ → “Cast, save and share” → “Install page as app”.": "לחצו על סמל ההתקנה בקצה שורת הכתובת, או פתחו את תפריט הדפדפן ⋮ ← „העברה, שמירה ושיתוף” ← „התקנת הדף כאפליקציה”.",
 };

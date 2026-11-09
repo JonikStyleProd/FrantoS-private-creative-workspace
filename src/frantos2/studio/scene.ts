@@ -21,11 +21,16 @@ export interface ObjectScene {
   resetCamera(): void;
   /** a still at the given size, with or without the studio background */
   render(w: number, h: number, opts?: { background?: string | null; type?: string; quality?: number }): Promise<Blob>;
+  /** a quick thumbnail from the current view */
+  snapshot(w: number, h: number, opts?: { background?: string | null; type?: string; quality?: number }): Promise<Blob>;
   exportGLB(): Promise<Blob>;
   resize(): void;
   dispose(): void;
   onInteract(cb: () => void): void;
 }
+
+const toBlob = (c: HTMLCanvasElement, type = 'image/png', quality?: number) =>
+  new Promise<Blob>((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('render failed'))), type, quality));
 
 const softShadow = () => {
   const c = document.createElement('canvas');
@@ -260,13 +265,40 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
   };
   document.addEventListener('visibilitychange', onVis);
 
-  renderer.setAnimationLoop(() => {
+  // Adaptive resolution: while frames keep coming (orbit, turntable) and the GPU can't keep
+  // up, render fewer pixels; climb back once it has headroom. Stills always render at full size.
+  const maxRatio = opts.pixelRatio ?? Math.min(window.devicePixelRatio, 1.5);
+  let ratio = maxRatio;
+  let last = 0;
+  let slow = 0;
+  let fast = 0;
+  const adapt = (now: number) => {
+    const dt = last ? now - last : 16;
+    last = now;
+    if (dt > 120) return; // a pause, not a slow frame
+    if (dt > 24) (slow++, (fast = 0));
+    else if (dt < 18) (fast++, (slow = 0));
+    if (slow > 8 && ratio > 0.75) {
+      ratio = Math.max(0.75, ratio - 0.25);
+      slow = 0;
+      renderer.setPixelRatio(ratio);
+      resize();
+    } else if (fast > 90 && ratio < maxRatio) {
+      ratio = Math.min(maxRatio, ratio + 0.25);
+      fast = 0;
+      renderer.setPixelRatio(ratio);
+      resize();
+    }
+  };
+
+  renderer.setAnimationLoop((now: number) => {
     if (!running) return;
     const moved = controls.update();
     if (moved || dirty || controls.autoRotate) {
       renderer.render(scene, camera);
       dirty = false;
-    }
+      adapt(now);
+    } else last = 0;
   });
 
   return {
@@ -294,10 +326,11 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
       frame(lens);
     },
     async render(w, h, o = {}) {
+      // Everything up to toBlob runs in one task, so the browser never composites the
+      // resized canvas: the visible view is restored and redrawn before the next paint.
       const prevSize = renderer.getSize(new THREE.Vector2());
       const prevRatio = renderer.getPixelRatio();
       const prevAspect = camera.aspect;
-      const prevPos = camera.position.clone();
       const bg = o.background ?? null;
       scene.background = bg ? new THREE.Color(bg) : null;
       renderer.setPixelRatio(1);
@@ -305,15 +338,36 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       renderer.render(scene, camera);
-      const blobOut = await new Promise<Blob>((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error('render failed'))), o.type ?? 'image/png', o.quality));
+      const out = document.createElement('canvas');
+      out.width = w;
+      out.height = h;
+      out.getContext('2d')!.drawImage(canvas, 0, 0, w, h);
       scene.background = null;
       renderer.setPixelRatio(prevRatio);
       renderer.setSize(prevSize.x, prevSize.y, false);
       camera.aspect = prevAspect;
-      camera.position.copy(prevPos);
       camera.updateProjectionMatrix();
-      dirty = true;
-      return blobOut;
+      renderer.render(scene, camera);
+      return toBlob(out, o.type, o.quality);
+    },
+    async snapshot(w, h, o = {}) {
+      // a thumbnail cropped from what is on screen: no second render, nothing flickers
+      const cw = canvas.width;
+      const ch = canvas.height;
+      const a = w / h;
+      const sw = Math.min(cw, ch * a * 0.62);
+      const sh = sw / a;
+      const out = document.createElement('canvas');
+      out.width = w;
+      out.height = h;
+      const x = out.getContext('2d')!;
+      if (o.background) {
+        x.fillStyle = o.background;
+        x.fillRect(0, 0, w, h);
+      }
+      renderer.render(scene, camera);
+      x.drawImage(canvas, (cw - sw) / 2, (ch - sh) / 2, sw, sh, 0, 0, w, h);
+      return toBlob(out, o.type, o.quality);
     },
     async exportGLB() {
       const { GLTFExporter } = await import('three/examples/jsm/exporters/GLTFExporter.js');

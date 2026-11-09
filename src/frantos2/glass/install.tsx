@@ -38,7 +38,8 @@ export function InstallButton({ compact }: { compact?: boolean }) {
   const [help, setHelp] = useState(false);
   if (standalone()) return null;
   const ios = isIOS();
-  if (!prompt && !ios) return null;
+  const safari = !ios && /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
+  const firefox = /firefox|fxios/i.test(navigator.userAgent);
   const run = async () => {
     if (prompt) {
       await prompt.prompt();
@@ -49,7 +50,7 @@ export function InstallButton({ compact }: { compact?: boolean }) {
   };
   return (
     <div className="relative">
-      <button type="button" onClick={run} className="lg-btn lg-btn-ghost" aria-expanded={ios ? help : undefined}>
+      <button type="button" onClick={run} className="lg-btn lg-btn-ghost" aria-expanded={prompt ? undefined : help}>
         <Download size={15} /> {!compact && <span className="hidden sm:inline">{t('Install app')}</span>}
       </button>
       <AnimatePresence>
@@ -62,7 +63,17 @@ export function InstallButton({ compact }: { compact?: boolean }) {
               </button>
             </div>
             <p className="mt-2 flex flex-wrap items-center gap-1 text-[13.5px] leading-[1.5] text-white/85">
-              {t('In Safari tap')} <Share size={14} /> {t('Share, then “Add to Home Screen”.')}
+              {ios ? (
+                <>
+                  {t('In Safari tap')} <Share size={14} /> {t('Share, then “Add to Home Screen”.')}
+                </>
+              ) : safari ? (
+                t('In Safari choose File → Add to Dock.')
+              ) : firefox ? (
+                t('Firefox does not install web apps on desktop. Open FrantoS in Chrome, Edge or Safari to install it.')
+              ) : (
+                t('Click the install icon at the right end of the address bar, or open the browser menu ⋮ → “Cast, save and share” → “Install page as app”.')
+              )}
             </p>
           </Pane>
         )}
