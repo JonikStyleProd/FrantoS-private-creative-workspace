@@ -21,6 +21,22 @@ export async function ingestModel(file: File): Promise<Asset> {
   return { id, kind: 'model', title: file.name.replace(/\.glb$/i, ''), blobKey, w: 1, h: 1, createdAt: Date.now(), isReference: false, ready: true };
 }
 
+const HDR_MAX = 60 * 1024 * 1024;
+
+/** Store an .hdr environment (equirectangular, Radiance RGBE) for studio lighting. */
+export async function ingestHDRI(file: File): Promise<Asset> {
+  if (!/\.hdr$/i.test(file.name)) throw new UploadError('type', tr('{name}: environments are imported as .hdr (equirectangular). Poly Haven has free ones.', { name: file.name }));
+  if (file.size > HDR_MAX) throw new UploadError('size', tr('{name} is too large. Environments up to 60 MB; 1K or 2K .hdr is plenty.', { name: file.name }));
+  const id = uid('a-');
+  const blobKey = `blob:${id}`;
+  try {
+    await set(blobKey, file);
+  } catch {
+    throw new UploadError('storage', tr('The browser refused to store this file (storage is full or blocked). Free some space or try a smaller file.'));
+  }
+  return { id, kind: 'env', title: file.name.replace(/\.hdr$/i, ''), blobKey, w: 1, h: 1, createdAt: Date.now(), isReference: false, ready: true };
+}
+
 /** Turn a rendered still into a project asset (stored like an upload). */
 export async function stillToAsset(blob: Blob, w: number, h: number, title: string): Promise<Asset> {
   const id = uid('a-');

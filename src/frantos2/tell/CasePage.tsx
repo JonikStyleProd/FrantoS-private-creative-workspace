@@ -206,6 +206,44 @@ function Case({ p, owner }: { p: Project; owner: boolean }) {
         </Section>
       )}
 
+      {(p.objects ?? []).some((o) => o.thumb) && (
+        <Section n="3D" title={t('Objects')}>
+          <div className="grid gap-8 sm:grid-cols-2">
+            {(p.objects ?? [])
+              .filter((o) => o.thumb)
+              .map((o) => (
+                <figure key={o.id} className="print:break-inside-avoid">
+                  <div className="overflow-hidden rounded-[6px]" style={{ background: o.background.kind === 'transparent' ? '#ece6da' : o.background.color }}>
+                    <img src={o.thumb} alt={t(o.title)} className="aspect-[4/5] w-full object-cover" />
+                  </div>
+                  <figcaption className="mt-3 flex flex-wrap items-center gap-3">
+                    <span className="f2-display text-[1.4rem] leading-tight">{t(o.title)}</span>
+                    <span className="flex gap-1" aria-label={t('Variants')}>
+                      {o.variants.map((v) => (
+                        <span key={v.id} title={t(v.name)} className="h-5 w-5 rounded-full border border-[var(--rule)]" style={{ background: `linear-gradient(0deg, ${v.baseColor} 50%, ${v.topColor} 50%)` }} />
+                      ))}
+                    </span>
+                    {owner && (
+                      <button type="button" onClick={() => go(`/o/${p.id}/${o.id}`)} className="ms-auto rounded-full border border-[var(--ink)] px-3 py-1.5 text-[13px] font-semibold print:hidden">
+                        {t('Open in 3D')}
+                      </button>
+                    )}
+                  </figcaption>
+                </figure>
+              ))}
+          </div>
+        </Section>
+      )}
+
+      {(p.boards ?? []).length > 0 && owner && (
+        <Section n="▦" title={t('Boards')}>
+          <p className="max-w-[46ch] text-[15px] text-[var(--ink-2)]">{t('Boards from the studio’s Canvas mode. Export one “To project” to show it here as part of the work.')}</p>
+          <button type="button" onClick={() => go(`/s/${p.id}?m=canvas`)} className="mt-4 rounded-full border border-[var(--ink)] px-4 py-2 text-[13.5px] font-semibold print:hidden">
+            {t('Open Canvas')}
+          </button>
+        </Section>
+      )}
+
       {finals.length > 0 && (
         <Section n="→" title={t('The work')}>
           <div className="flex flex-col gap-8">

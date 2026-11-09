@@ -24,6 +24,8 @@ function apply() {
 }
 apply();
 
+export const getTheme = () => theme;
+
 export function setTheme(t: Theme) {
   theme = t;
   try {

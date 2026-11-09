@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { get, set, del, keys } from 'idb-keyval';
-import { Asset, CanvasGroup, CanvasNote, Comment, Decision, MaterialVariant, MoodItem, Project, StudioObject, WsState, Work } from './types';
+import { Asset, Board, CanvasGroup, CanvasNote, Comment, Decision, MaterialVariant, MoodItem, Project, StudioObject, WsState, Work } from './types';
 import { AH_ID, DEMO_ID, DEMO_REV, afterHoursProject, demoProject } from './seed';
 
 /**
@@ -448,6 +448,22 @@ export const ws = {
       (p) => ({ ...p, objects: (p.objects ?? []).map((o) => (o.id === oid && o.variants.length > 1 ? { ...o, variants: o.variants.filter((v) => v.id !== vid), variantId: o.variantId === vid ? o.variants.find((v) => v.id !== vid)!.id : o.variantId } : o)) }),
       'Variant removed'
     );
+  },
+  /* studio: palette and boards */
+  setPalette(pid: string, palette: string[], undoLabel: string | undefined = 'Palette changed') {
+    updateProject(pid, (p) => ({ ...p, palette }), undoLabel);
+  },
+  addBoard(pid: string, b: Omit<Board, 'id' | 'createdAt' | 'updatedAt'>): string {
+    const id = uid('b-');
+    const now = Date.now();
+    updateProject(pid, (p) => ({ ...p, boards: [...(p.boards ?? []), { ...b, id, createdAt: now, updatedAt: now }] }), 'Board added');
+    return id;
+  },
+  patchBoard(pid: string, bid: string, patch: Partial<Board>, undoLabel?: string) {
+    updateProject(pid, (p) => ({ ...p, boards: (p.boards ?? []).map((b) => (b.id === bid ? { ...b, ...patch, updatedAt: Date.now() } : b)) }), undoLabel);
+  },
+  removeBoard(pid: string, bid: string) {
+    updateProject(pid, (p) => ({ ...p, boards: (p.boards ?? []).filter((b) => b.id !== bid) }), 'Board removed');
   },
   removeObject(pid: string, oid: string) {
     updateProject(pid, (p) => ({ ...p, objects: (p.objects ?? []).filter((o) => o.id !== oid) }), 'Object removed');

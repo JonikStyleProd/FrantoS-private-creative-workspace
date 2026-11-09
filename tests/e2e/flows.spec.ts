@@ -108,7 +108,32 @@ test('studio: import a GLB, render it into the project as a new work', async ({ 
   await expect(page.getByText('Model imported')).toBeVisible();
   await expect(page.getByRole('button', { name: 'pyramid Imported GLB' })).toBeVisible();
   await expect(page.getByText('Preparing the object…')).toBeHidden({ timeout: 15000 });
-  await page.getByRole('button', { name: 'To project' }).click();
+  await page.getByRole('button', { name: 'To project', exact: true }).click();
   await expect(page).toHaveURL(/#\/p\/form-01\?s=make&i=w-/, { timeout: 15000 });
   await expect(page.getByRole('heading', { name: /pyramid/ })).toBeVisible({ timeout: 15000 });
+});
+
+test('studio modes: canvas board exports to the project, image edit saves a new version, motion has keys', async ({ page }) => {
+  test.setTimeout(150_000);
+  test.skip(isPhone(page), 'desktop flow');
+  // Canvas: a composed board from one click, then into the project
+  await page.goto('/#/s/form-01?m=canvas');
+  await page.getByRole('button', { name: 'Post 4:5' }).click();
+  await expect(page.getByText('1080 × 1350 px', { exact: false })).toBeVisible();
+  await page.getByRole('button', { name: 'To project', exact: true }).click();
+  await expect(page).toHaveURL(/#\/p\/form-01\?s=make&i=w-/, { timeout: 20000 });
+  // Image: a look and a crop, saved as a new version of the poster
+  await page.goto('/#/s/form-01?m=image&a=poster');
+  await page.getByRole('button', { name: 'Warm film' }).click();
+  await page.getByRole('radio', { name: '1:1' }).click();
+  await page.getByRole('button', { name: 'Save as new version' }).click();
+  await expect(page.getByText(/Saved as a new version/)).toBeVisible({ timeout: 20000 });
+  // Motion: three keys out of the box, play toggles
+  await page.goto('/#/s/form-01?m=motion');
+  await expect(page.getByRole('button', { name: /^Key at/ })).toHaveCount(3, { timeout: 20000 });
+  await page.getByRole('button', { name: 'Play' }).click();
+  await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
+  // ⌘K lists the studio's own commands
+  await page.keyboard.press('Control+k');
+  await expect(page.getByRole('option', { name: /Studio: Canvas/ })).toBeVisible();
 });

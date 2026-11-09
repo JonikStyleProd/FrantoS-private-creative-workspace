@@ -160,6 +160,10 @@
 /* panels arrive by fading and settling only: a blur filter on a big pane over WebGL stalls frames */
 .lg-studio .lg-glass,
 .lg-studio .lg-glass-strong { filter: none !important; }
+/* dragging in the studio moves things, it never selects the interface text */
+.lg-studio { -webkit-user-select: none; user-select: none; }
+.lg-studio input,
+.lg-studio textarea { -webkit-user-select: text; user-select: text; }
 /* what the studio and the showroom show while the project loads: the same backdrop, never black */
 .lg-studio-blank { background: radial-gradient(ellipse at 50% 40%, #d8d2c8 0%, color-mix(in srgb, #d8d2c8 52%, #17130f) 61%, #0d0b0a 100%); }
 

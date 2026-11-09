@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, Box, Camera, Download, Eye, Film, Grid3x3, Image as ImageIcon, Layers, Lock, Plus, RefreshCcw, RotateCw, Search, Sparkles, SunMedium, Trash2, Undo2, Upload, X } from 'lucide-react';
+import { ArrowLeft, Box, Camera, Columns2, Download, Eye, Film, Grid3x3, Image as ImageIcon, Layers, Lock, Plus, RefreshCcw, RotateCw, Search, Sparkles, SunMedium, Trash2, Undo2, Upload, Video, Wand2, X } from 'lucide-react';
 import '../glass/glass.css';
 import { useI18n } from '../i18n';
 import { go } from '../route';
 import { ws, useProject, ensureLoaded, undo } from '../ws/store';
-import type { LightPreset, MaterialVariant, Project, StudioObject } from '../ws/types';
-import { useAssetUrl } from '../ws/media';
+import type { Asset, LightPreset, MaterialVariant, Project, StudioObject } from '../ws/types';
+import { assetUrl, extractPalette, ingest, useAssetUrl } from '../ws/media';
 import { UploadError } from '../ws/media';
 import { FilePick } from '../ws/uploads';
 import { toast, useMedia } from '../ws/kit';
@@ -14,8 +14,15 @@ import { openPalette } from '../daily/Palette';
 import { Pane, ThemeSwitch } from '../glass/kit';
 import { GlassAccount } from '../glass/account';
 import { createObjectScene, ObjectScene, ViewMode } from './scene';
-import { blobToDataUrl, downscale, ingestModel, stillToAsset } from './models';
+import { blobToDataUrl, downscale, ingestHDRI, ingestModel, stillToAsset } from './models';
+import { projectPalette, variations } from './palette';
+import { canRecord, recordCanvas, videoFormat } from './record';
 import { VESSEL_VARIANTS } from '../ws/seed';
+import { ColorField, PaletteRow, Section, Seg, Slider, Swatch } from './ui';
+import { ImageMode } from './ImageMode';
+import { CanvasMode } from './CanvasMode';
+import { MotionMode } from './MotionMode';
+import { ShortcutsHelp, useCmd, useStudioCommands } from './commands';
 
 /**
  * FrantoS Studio — editor. Phase 1: 3D · Object mode.
@@ -41,17 +48,22 @@ export function StudioPage({ id, q }: { id: string; q: URLSearchParams }) {
 }
 
 const MODES = [
-  { id: 'object', label: '3D · Object', icon: Box, ready: true },
-  { id: 'image', label: 'Image', icon: ImageIcon, ready: false },
-  { id: 'canvas', label: 'Canvas', icon: Layers, ready: false },
-  { id: 'motion', label: 'Motion', icon: Film, ready: false },
+  { id: 'object', label: '3D · Object', icon: Box, ready: true, key: '1' },
+  { id: 'image', label: 'Image', icon: ImageIcon, ready: true, key: '2' },
+  { id: 'canvas', label: 'Canvas', icon: Layers, ready: true, key: '3' },
+  { id: 'motion', label: 'Motion', icon: Film, ready: true, key: '4' },
 ] as const;
+export type StudioMode = (typeof MODES)[number]['id'];
 
 const LIGHTS: { id: LightPreset; label: string }[] = [
   { id: 'softbox', label: 'Softbox' },
   { id: 'window', label: 'Window' },
   { id: 'spot', label: 'Hard spot' },
   { id: 'rim', label: 'Rim' },
+  { id: 'morning', label: 'Morning' },
+  { id: 'sunset', label: 'Sunset' },
+  { id: 'gallery', label: 'Gallery' },
+  { id: 'hdri', label: 'HDRI' },
 ];
 const LENSES = [35, 50, 85, 135];
 const SIZES = [
@@ -103,9 +115,33 @@ function Editor({ p, q }: { p: Project; q: URLSearchParams }) {
     }
   };
 
+  // a project without a palette yet: take one from its cover (or first image), once
+  useEffect(() => {
+    if (projectPalette(p).length) return;
+    const a = p.assets.find((x) => x.id === p.coverAssetId && x.kind === 'image') ?? p.assets.find((x) => x.kind === 'image');
+    if (!a) return;
+    let live = true;
+    assetUrl(a, 'thumb')
+      .then((u) => (u ? extractPalette(u, 6) : []))
+      .then((cols) => live && cols.length && ws.setPalette(p.id, cols, undefined));
+    return () => {
+      live = false;
+    };
+  }, [p.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const mode: StudioMode = (MODES.find((m) => m.id === q.get('m'))?.id ?? 'object') as StudioMode;
+  const setMode = (m: StudioMode) => setQ({ m: m === 'object' ? undefined : m });
+  useStudioCommands(p, stored, mode, setMode);
+
   return (
     <div className="lg lg-studio fixed inset-0 overflow-hidden" dir={dir}>
-      {stored ? (
+      {mode === 'image' ? (
+        <ImageMode p={p} q={q} setQ={setQ} />
+      ) : mode === 'canvas' ? (
+        <CanvasMode p={p} q={q} setQ={setQ} />
+      ) : mode === 'motion' ? (
+        <MotionMode p={p} o={stored} />
+      ) : stored ? (
         <ObjectEditor key={stored.id} p={p} o={stored} narrow={narrow} onImport={importModel} onAddVessel={addVessel} onPick={(oid) => setQ({ o: oid })} />
       ) : (
         <div className="flex h-full items-center justify-center p-6">
@@ -124,38 +160,39 @@ function Editor({ p, q }: { p: Project; q: URLSearchParams }) {
           </Pane>
         </div>
       )}
-      <TopBar p={p} o={stored} />
+      <TopBar p={p} o={stored} mode={mode} onMode={setMode} />
+      <ShortcutsHelp mode={mode} />
     </div>
   );
 }
 
 /* ───────── top bar ───────── */
 
-function TopBar({ p, o }: { p: Project; o?: StudioObject }) {
+function TopBar({ p, o, mode, onMode }: { p: Project; o?: StudioObject; mode: StudioMode; onMode: (m: StudioMode) => void }) {
   const { t } = useI18n();
   return (
     <header className="absolute inset-x-3 top-3 z-30 flex items-center gap-2 sm:inset-x-4 sm:top-4">
-      <Pane className="flex min-w-0 items-center gap-1 rounded-full py-1 pe-4 ps-1">
+      <Pane className="flex min-w-0 items-center gap-1 rounded-full py-1 ps-1 max-sm:pe-1 sm:pe-4">
         <button type="button" onClick={() => go(`/p/${p.id}`)} className="lg-btn lg-btn-plain lg-icon" aria-label={t('Back to the project')}>
           <ArrowLeft size={18} className="rtl:-scale-x-100" />
         </button>
-        <span dir="auto" className="truncate text-[15px] font-bold">
+        <span dir="auto" className="truncate text-[15px] font-bold max-sm:hidden">
           {p.title}
         </span>
         <span className="ms-2 hidden text-[12.5px] text-white/65 lg:inline">{t('Studio')}</span>
       </Pane>
-      <Pane as="nav" aria-label={t('Editor mode')} className="mx-auto hidden items-center gap-1 rounded-full p-1 md:flex">
+      <Pane as="nav" aria-label={t('Editor mode')} className="mx-auto flex items-center gap-0.5 rounded-full p-1">
         {MODES.map((m) => (
           <button
             key={m.id}
             type="button"
-            disabled={!m.ready}
-            aria-pressed={m.id === 'object'}
-            title={m.ready ? undefined : t('Coming next')}
-            className={`relative flex min-h-[40px] items-center gap-1.5 rounded-full px-4 text-[13.5px] font-bold ${m.id === 'object' ? 'bg-white text-[#11151a]' : 'text-white/55'}`}
+            onClick={() => onMode(m.id)}
+            aria-pressed={m.id === mode}
+            title={`${t(m.label)} (${m.key})`}
+            aria-label={t(m.label)}
+            className={`relative flex min-h-[40px] min-w-[40px] items-center justify-center gap-1.5 rounded-full px-2.5 text-[13.5px] font-bold transition-colors lg:px-4 ${m.id === mode ? 'bg-white text-[#11151a]' : 'text-white/75 hover:bg-white/10'}`}
           >
-            <m.icon size={15} /> {t(m.label)}
-            {!m.ready && <Lock size={11} className="opacity-70" />}
+            <m.icon size={15} /> <span className="hidden lg:inline">{t(m.label)}</span>
           </button>
         ))}
       </Pane>
@@ -167,22 +204,24 @@ function TopBar({ p, o }: { p: Project; o?: StudioObject }) {
               const l = undo();
               toast(l ? t('Undone: {what}', { what: t(l) }) : t('Nothing to undo'));
             }}
-            className="lg-btn lg-btn-plain lg-icon"
+            className="lg-btn lg-btn-plain lg-icon max-md:!hidden"
             aria-label={t('Undo')}
           >
             <Undo2 size={17} />
           </button>
-          <button type="button" onClick={openPalette} className="lg-btn lg-btn-plain hidden min-h-[40px] text-[13px] sm:inline-flex" aria-label={t('Search or run a command')}>
+          <button type="button" onClick={openPalette} className="lg-btn lg-btn-plain min-h-[40px] text-[13px] max-md:!hidden" aria-label={t('Search or run a command')}>
             <Search size={15} /> <span className="text-white/60">⌘K</span>
           </button>
           <ThemeSwitch />
         </Pane>
         {o && (
-          <button type="button" onClick={() => go(`/o/${p.id}/${o.id}`)} className="lg-btn lg-btn-primary">
-            <Eye size={16} /> <span className="hidden sm:inline">{t('Showroom')}</span>
+          <button type="button" onClick={() => go(`/o/${p.id}/${o.id}`)} className="lg-btn lg-btn-primary max-md:w-11 max-md:px-0" aria-label={t('Showroom')}>
+            <Eye size={16} /> <span className="hidden lg:inline">{t('Showroom')}</span>
           </button>
         )}
-        <GlassAccount />
+        <div className="max-md:hidden">
+          <GlassAccount />
+        </div>
       </div>
     </header>
   );
@@ -209,6 +248,14 @@ function ObjectEditor({ p, o, narrow, onImport, onAddVessel, onPick }: { p: Proj
   const thumbTimer = useRef<number | undefined>(undefined);
   const modelAsset = draft.source.kind === 'model' ? p.assets.find((a) => a.id === (draft.source as { assetId: string }).assetId) : undefined;
   const modelUrl = useAssetUrl(modelAsset, 'full').url;
+  const hdriAsset = draft.light.hdriAssetId ? p.assets.find((a) => a.id === draft.light.hdriAssetId) : undefined;
+  const hdriUrl = useAssetUrl(hdriAsset, 'full').url;
+  const [compareId, setCompareId] = useState<string | null>(null);
+  const [split, setSplit] = useState(0.5);
+  const [rec, setRec] = useState<number | null>(null);
+  const recAbort = useRef<AbortController | null>(null);
+  const [ideas, setIdeas] = useState<MaterialVariant[] | null>(null);
+  const palette = projectPalette(p);
 
   // outside changes (undo, sync) win when nothing is being edited here
   useEffect(() => {
@@ -269,6 +316,17 @@ function ObjectEditor({ p, o, narrow, onImport, onAddVessel, onPick }: { p: Proj
     return () => cancelAnimationFrame(id);
   }, [variantKey, ready]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => sceneRef.current?.setLight(draft.light), [JSON.stringify(draft.light)]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!ready) return;
+    sceneRef.current?.setHDRI(draft.light.preset === 'hdri' && hdriUrl ? hdriUrl : null).catch(() => toast(t('This environment could not be read.'), { tone: 'error' }));
+  }, [hdriUrl, draft.light.preset === 'hdri', ready]); // eslint-disable-line react-hooks/exhaustive-deps
+  // A/B: the left side keeps the variant you compare against
+  const compareVariant = compareId ? draft.variants.find((v) => v.id === compareId && v.id !== variant.id) : undefined;
+  useEffect(() => {
+    if (!ready) return;
+    const id = requestAnimationFrame(() => sceneRef.current?.setCompare(compareVariant ?? null, split));
+    return () => cancelAnimationFrame(id);
+  }, [compareVariant && JSON.stringify(compareVariant), split, ready]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => sceneRef.current?.setLens(draft.camera.lens), [draft.camera.lens, ready]);
   useEffect(() => sceneRef.current?.setView(view), [view, ready]);
   useEffect(() => sceneRef.current?.setTurntable(spin, draft.turntable.seconds), [spin, draft.turntable.seconds]);
@@ -312,6 +370,100 @@ function ObjectEditor({ p, o, narrow, onImport, onAddVessel, onPick }: { p: Proj
       /* a thumbnail is a nicety */
     }
   }
+
+  async function recordTurntable(target: 'project' | 'download') {
+    const s = sceneRef.current;
+    if (!s || rec != null) return;
+    if (!canRecord()) {
+      toast(t('This browser cannot record video from the page. Try Chrome, Edge or Safari.'), { tone: 'error' });
+      return;
+    }
+    const ac = new AbortController();
+    recAbort.current = ac;
+    const start = s.getPose();
+    setSpin(false);
+    s.setRecording(true, draft.background);
+    setRec(0);
+    try {
+      const { blob, ext } = await recordCanvas(
+        s.canvas,
+        draft.turntable.seconds,
+        (f) => {
+          s.setPose({ ...start, az: start.az + 360 * f });
+          s.draw();
+        },
+        ac.signal,
+        (f) => setRec(f)
+      );
+      const name = `${draft.title.replace(/[^\w\- ]+/g, '').trim() || 'object'}-turntable.${ext}`;
+      await deliverVideo(blob, name, target);
+    } catch (e) {
+      if ((e as Error).name !== 'AbortError') toast(t('Recording failed.'), { tone: 'error' });
+    } finally {
+      s.setRecording(false);
+      s.setPose(start);
+      setRec(null);
+      recAbort.current = null;
+    }
+  }
+  async function deliverVideo(blob: Blob, name: string, target: 'project' | 'download') {
+    if (target === 'download') {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      return;
+    }
+    const asset = await ingest(new File([blob], name, { type: blob.type }), { isReference: false });
+    ws.addAsset(p.id, asset);
+    const wid = ws.workFromAsset(p.id, asset.id);
+    toast(t('Video added to the project as a new work'));
+    go(`/p/${p.id}?s=make&i=${wid}`);
+  }
+  const addIdea = (v: MaterialVariant) => {
+    flush();
+    const nv = { ...v, id: v.id };
+    const variants = [...draftRef.current.variants, nv];
+    ws.patchObject(p.id, o.id, { variants, variantId: nv.id }, 'Variant added');
+    setDraft((d) => ({ ...d, variants, variantId: nv.id }));
+    setIdeas((xs) => xs?.filter((x) => x.id !== v.id) ?? null);
+  };
+  const importHDRI = async (files: FileList) => {
+    const f = files[0];
+    if (!f) return;
+    try {
+      const a = await ingestHDRI(f);
+      ws.addAsset(p.id, a);
+      edit({ light: { ...draft.light, preset: 'hdri', hdriAssetId: a.id } }, 'Light changed');
+      toast(t('Environment added'));
+    } catch (e) {
+      toast(e instanceof UploadError ? e.message : t('This environment could not be read.'), { tone: 'error' });
+    }
+  };
+
+  useCmd((c) => {
+    const vs = draftRef.current.variants;
+    const i = vs.findIndex((v) => v.id === draftRef.current.variantId);
+    if (c === 'view-render') setView('render');
+    else if (c === 'view-clay') setView('clay');
+    else if (c === 'view-wire') setView('wire');
+    else if (c === 'turntable') setSpin((v) => !v);
+    else if (c === 'reset-camera') sceneRef.current?.resetCamera();
+    else if (c === 'variant-prev' || c === 'variant-next') edit({ variantId: vs[(i + (c === 'variant-next' ? 1 : -1) + vs.length) % vs.length].id }, 'Variant changed');
+    else if (c === 'variant-dup') addVariantNow();
+    else if (c === 'variations') setIdeas(ideas ? null : variations(variant, palette));
+    else if (c === 'compare') setCompareId(compareId ? null : vs.find((v) => v.id !== variant.id)?.id ?? null);
+    else if (c === 'render-project') void renderStill('project');
+    else if (c === 'render-png') void renderStill('download');
+    else if (c === 'video-project') void recordTurntable('project');
+    else if (c === 'video-download') void recordTurntable('download');
+  });
+  const addVariantNow = () => {
+    flush();
+    const vid = ws.addVariant(p.id, o.id, variant);
+    setDraft((d) => ({ ...d, variants: [...d.variants, { ...variant, id: vid, name: variant.name + ' 2' }], variantId: vid }));
+  };
 
   const [size, setSize] = useState(SIZES[0]);
   const [busy, setBusy] = useState(false);
@@ -368,14 +520,24 @@ function ObjectEditor({ p, o, narrow, onImport, onAddVessel, onPick }: { p: Proj
       setSize={setSize}
       busy={busy}
       onRender={renderStill}
-      onAddVariant={() => {
-        flush();
-        const vid = ws.addVariant(p.id, o.id, variant);
-        setDraft((d) => ({ ...d, variants: [...d.variants, { ...variant, id: vid, name: variant.name + ' 2' }], variantId: vid }));
-      }}
+      onAddVariant={addVariantNow}
       onRemoveVariant={() => {
         flush();
         ws.removeVariant(p.id, o.id, variant.id);
+      }}
+      x={{
+        palette,
+        ideas,
+        onIdeas: () => setIdeas(ideas ? null : variations(variant, palette)),
+        onAddIdea: addIdea,
+        compareId: compareVariant?.id ?? null,
+        onCompare: (id) => setCompareId(id),
+        rec,
+        onRecord: recordTurntable,
+        onStopRecord: () => recAbort.current?.abort(),
+        hdri: hdriAsset,
+        envs: p.assets.filter((a) => a.kind === 'env'),
+        onImportHDRI: importHDRI,
       }}
     />
   );
@@ -385,6 +547,12 @@ function ObjectEditor({ p, o, narrow, onImport, onAddVessel, onPick }: { p: Proj
       {/* the work: viewport fills the window */}
       <div className="absolute inset-0" style={bgStyle}>
         <canvas ref={canvasRef} style={{ opacity: ready ? 1 : 0, transition: 'opacity .35s ease' }} className="absolute inset-0 h-full w-full touch-none outline-none" aria-label={t('3D viewport: drag to orbit, pinch or scroll to zoom')} />
+        {compareVariant && <SplitHandle split={split} onSplit={setSplit} a={t(compareVariant.name)} b={t(variant.name)} />}
+        {rec != null && (
+          <p className="lg-glass absolute start-1/2 top-[84px] z-30 flex -translate-x-1/2 items-center gap-2 rounded-full px-4 py-2 text-[13px] font-bold rtl:translate-x-1/2" role="status">
+            <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-[#ff5a4f]" /> {t('Recording')} · {Math.round(rec * 100)}%
+          </p>
+        )}
         {!ready && !error && <p className="lg-glass absolute start-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full px-4 py-2 text-[13px] rtl:translate-x-1/2">{t('Preparing the object…')}</p>}
         {error && (
           <Pane className="absolute start-1/2 top-1/2 max-w-[380px] -translate-x-1/2 -translate-y-1/2 rounded-[22px] p-5 text-center rtl:translate-x-1/2">
@@ -454,6 +622,48 @@ function ObjectEditor({ p, o, narrow, onImport, onAddVessel, onPick }: { p: Proj
   );
 }
 
+/** the A/B line over the viewport: drag, or use the arrow keys */
+function SplitHandle({ split, onSplit, a, b }: { split: number; onSplit: (v: number) => void; a: string; b: string }) {
+  const { t } = useI18n();
+  const ref = useRef<HTMLDivElement>(null);
+  const move = (clientX: number) => {
+    const r = ref.current!.parentElement!.getBoundingClientRect();
+    onSplit(Math.max(0.05, Math.min(0.95, (clientX - r.left) / r.width)));
+  };
+  return (
+    <div ref={ref} className="pointer-events-none absolute inset-0 z-10" dir="ltr">
+      <div className="absolute inset-y-0 w-px bg-white/90 shadow-[0_0_0_1px_rgba(0,0,0,.15)]" style={{ left: `${split * 100}%` }} />
+      <span className="lg-glass absolute top-[84px] rounded-full px-3 py-1 text-[12px] font-bold" style={{ right: `calc(${(1 - split) * 100}% + 12px)` }}>
+        A · {a}
+      </span>
+      <span className="lg-glass absolute top-[84px] rounded-full px-3 py-1 text-[12px] font-bold" style={{ left: `calc(${split * 100}% + 12px)` }}>
+        B · {b}
+      </span>
+      <button
+        type="button"
+        role="slider"
+        aria-label={t('Compare A/B')}
+        aria-valuemin={5}
+        aria-valuemax={95}
+        aria-valuenow={Math.round(split * 100)}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowLeft') onSplit(Math.max(0.05, split - 0.03));
+          if (e.key === 'ArrowRight') onSplit(Math.min(0.95, split + 0.03));
+        }}
+        onPointerDown={(e) => {
+          e.preventDefault();
+          (e.target as HTMLElement).setPointerCapture(e.pointerId);
+        }}
+        onPointerMove={(e) => e.buttons && move(e.clientX)}
+        className="pointer-events-auto absolute top-1/2 flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize items-center justify-center rounded-full bg-white text-[#11151a] shadow-lg"
+        style={{ left: `${split * 100}%` }}
+      >
+        <Columns2 size={16} />
+      </button>
+    </div>
+  );
+}
+
 function ObjectsList({ p, active, onPick, onImport, onAddVessel }: { p: Project; active: string; onPick: (id: string) => void; onImport: (f: FileList) => void; onAddVessel: () => void }) {
   const { t } = useI18n();
   return (
@@ -514,54 +724,24 @@ interface InspectorProps {
   onAddVariant: () => void;
   onRemoveVariant: () => void;
   only?: 'material' | 'light' | 'shape' | 'render';
-}
-
-function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <section className="space-y-3 border-t border-white/15 pt-4 first:border-0 first:pt-0">
-      <h3 className="flex items-center gap-2 text-[15px] font-extrabold tracking-[-0.01em]">
-        {icon}
-        {title}
-      </h3>
-      {children}
-    </section>
-  );
-}
-
-function Slider({ label, value, min, max, step = 0.01, fmt, onChange }: { label: string; value: number; min: number; max: number; step?: number; fmt?: (v: number) => string; onChange: (v: number) => void }) {
-  const id = useMemo(() => `s-${Math.random().toString(36).slice(2, 8)}`, []);
-  return (
-    <div>
-      <div className="flex justify-between text-[12.5px]">
-        <label htmlFor={id} className="text-white/75">
-          {label}
-        </label>
-        <span className="font-semibold tabular-nums">{fmt ? fmt(value) : value.toFixed(2)}</span>
-      </div>
-      <input id={id} type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(parseFloat(e.target.value))} className="mt-1.5 w-full accent-white" />
-    </div>
-  );
-}
-
-function Seg<T extends string | number>({ label, value, options, onChange }: { label: string; value: T; options: { id: T; label: string }[]; onChange: (v: T) => void }) {
-  return (
-    <div role="radiogroup" aria-label={label} className="grid gap-1 rounded-[14px] bg-white/10 p-1" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
-      {options.map((o) => (
-        <button key={String(o.id)} type="button" role="radio" aria-checked={o.id === value} onClick={() => onChange(o.id)} className={`min-h-[36px] rounded-[10px] px-1 text-[12.5px] font-bold ${o.id === value ? 'bg-white text-[#11151a]' : 'text-white/85 hover:bg-white/10'}`}>
-          {o.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function Swatch({ v }: { v: MaterialVariant }) {
-  const bg = v.blend >= 1 ? v.baseColor : `linear-gradient(0deg, ${v.baseColor} 0 ${Math.round((v.blend - v.softness / 2) * 100)}%, ${v.topColor} ${Math.round((v.blend + v.softness / 2) * 100)}% 100%)`;
-  return <span className="block h-full w-full rounded-[inherit]" style={{ background: bg }} />;
+  x: {
+    palette: string[];
+    ideas: MaterialVariant[] | null;
+    onIdeas: () => void;
+    onAddIdea: (v: MaterialVariant) => void;
+    compareId: string | null;
+    onCompare: (id: string | null) => void;
+    rec: number | null;
+    onRecord: (target: 'project' | 'download') => void;
+    onStopRecord: () => void;
+    hdri?: Asset;
+    envs: Asset[];
+    onImportHDRI: (f: FileList) => void;
+  };
 }
 
 function Inspector(props: InspectorProps) {
-  const { draft, variant, edit, editVariant, size, setSize, busy, onRender, onAddVariant, onRemoveVariant, only } = props;
+  const { draft, variant, edit, editVariant, size, setSize, busy, onRender, onAddVariant, onRemoveVariant, only, x } = props;
   const { t } = useI18n();
   const show = (k: 'material' | 'light' | 'shape' | 'render') => !only || only === k || (only === 'material' && k === 'shape');
   const vessel = draft.source.kind === 'vessel' ? draft.source : null;
@@ -614,10 +794,61 @@ function Inspector(props: InspectorProps) {
             <ColorField label={t('Base colour')} value={variant.baseColor} onChange={(c) => editVariant({ baseColor: c })} />
             <ColorField label={t('Glaze colour')} value={variant.topColor} onChange={(c) => editVariant({ topColor: c })} />
           </div>
+          {x.palette.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-[12px] text-white/70">{t('Project palette · click for glaze, Shift+click for base')}</p>
+              <PaletteRow colors={x.palette} label={t('Project palette')} active={variant.topColor} onPick={(c, shift) => editVariant(shift ? { baseColor: c } : { topColor: c })} />
+            </div>
+          )}
           <Slider label={t('Glaze starts at')} value={variant.blend} min={0} max={1} fmt={(v) => `${Math.round(v * 100)}%`} onChange={(v) => editVariant({ blend: v })} />
           <Slider label={t('Transition')} value={variant.softness} min={0.01} max={0.8} fmt={(v) => `${Math.round(v * 100)}%`} onChange={(v) => editVariant({ softness: v })} />
           <Slider label={t('Roughness')} value={variant.roughness} min={0.02} max={1} onChange={(v) => editVariant({ roughness: v })} />
           <Slider label={t('Gloss coat')} value={variant.gloss} min={0} max={1} onChange={(v) => editVariant({ gloss: v })} />
+          {draft.source.kind === 'vessel' && (
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" onClick={x.onIdeas} aria-expanded={!!x.ideas} className={`lg-btn min-h-[38px] px-2 text-[12.5px] ${x.ideas ? 'lg-btn-primary' : 'lg-btn-ghost'}`}>
+                <Wand2 size={14} /> {t('Variations')}
+              </button>
+              <button
+                type="button"
+                disabled={draft.variants.length < 2}
+                onClick={() => x.onCompare(x.compareId ? null : (draft.variants.find((v) => v.id !== variant.id)?.id ?? null))}
+                aria-pressed={!!x.compareId}
+                className={`lg-btn min-h-[38px] px-2 text-[12.5px] disabled:opacity-40 ${x.compareId ? 'lg-btn-primary' : 'lg-btn-ghost'}`}
+              >
+                <Columns2 size={14} /> {t('Compare A/B')}
+              </button>
+            </div>
+          )}
+          {x.compareId && (
+            <div>
+              <p className="mb-1.5 text-[12px] text-white/70">{t('Left side (A) · drag the line in the view')}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {draft.variants
+                  .filter((v) => v.id !== variant.id)
+                  .map((v) => (
+                    <button key={v.id} type="button" onClick={() => x.onCompare(v.id)} aria-pressed={v.id === x.compareId} title={t(v.name)} aria-label={t(v.name)} className={`h-9 w-9 overflow-hidden rounded-[10px] ${v.id === x.compareId ? 'ring-2 ring-white' : 'ring-1 ring-white/25'}`}>
+                      <Swatch v={v} />
+                    </button>
+                  ))}
+              </div>
+            </div>
+          )}
+          {x.ideas && (
+            <div className="space-y-2">
+              <p className="text-[12px] leading-[1.45] text-white/70">{x.palette.length >= 2 ? t('Built from the project palette and colour harmonies. Click to add as a variant.') : t('Built from colour harmonies of the current glaze. Click to add as a variant.')}</p>
+              <div className="grid grid-cols-3 gap-2">
+                {x.ideas.map((v) => (
+                  <button key={v.id} type="button" onClick={() => x.onAddIdea(v)} className="group text-start" aria-label={t('Add {name}', { name: t(v.name) })}>
+                    <span className="block h-14 overflow-hidden rounded-[12px] ring-1 ring-white/25 transition group-hover:ring-white">
+                      <Swatch v={v} />
+                    </span>
+                    <span className="mt-1 block truncate text-[11px] text-white/80">{t(v.name)}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </Section>
       )}
 
@@ -631,7 +862,24 @@ function Inspector(props: InspectorProps) {
 
       {show('light') && (
         <Section title={t('Light & camera')} icon={<SunMedium size={16} />}>
-          <Seg label={t('Light')} value={draft.light.preset} options={LIGHTS.map((l) => ({ id: l.id, label: t(l.label) }))} onChange={(v) => edit({ light: { ...draft.light, preset: v } }, 'Light changed')} />
+          <Seg cols={4} label={t('Light')} value={draft.light.preset} options={LIGHTS.map((l) => ({ id: l.id, label: t(l.label) }))} onChange={(v) => edit({ light: { ...draft.light, preset: v } }, 'Light changed')} />
+          {draft.light.preset === 'hdri' && (
+            <div className="space-y-2 rounded-[14px] bg-white/10 p-2.5">
+              {x.envs.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {x.envs.map((a) => (
+                    <button key={a.id} type="button" onClick={() => edit({ light: { ...draft.light, hdriAssetId: a.id } }, 'Light changed')} aria-pressed={a.id === x.hdri?.id} className={`max-w-full truncate rounded-full px-3 py-1.5 text-[12px] font-bold ${a.id === x.hdri?.id ? 'bg-white text-[#11151a]' : 'bg-white/10'}`}>
+                      {a.title}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <FilePick onFiles={x.onImportHDRI} multiple={false} accept=".hdr" className="lg-btn lg-btn-ghost min-h-[36px] w-full text-[12.5px]">
+                <Upload size={14} /> {t('Import .hdr')}
+              </FilePick>
+              {!x.hdri && <p className="text-[11.5px] leading-[1.45] text-white/65">{t('Without a file the studio room lights the object. Free .hdr environments: polyhaven.com')}</p>}
+            </div>
+          )}
           <Slider label={t('Light direction')} value={draft.light.angle} min={-180} max={180} step={1} fmt={(v) => `${Math.round(v)}°`} onChange={(v) => edit({ light: { ...draft.light, angle: v } }, 'Light changed')} />
           <Slider label={t('Intensity')} value={draft.light.intensity} min={0.2} max={2} onChange={(v) => edit({ light: { ...draft.light, intensity: v } }, 'Light changed')} />
           <div>
@@ -677,18 +925,34 @@ function Inspector(props: InspectorProps) {
             </button>
           </div>
           <p className="text-[12px] leading-[1.45] text-white/65">{t('“To project” adds the still as a new work, ready for notes and review.')}</p>
+          <div className="space-y-2 border-t border-white/15 pt-3">
+            <p className="flex items-center gap-1.5 text-[13px] font-bold">
+              <Video size={14} /> {t('Turntable video')} <span className="font-normal text-white/65">· {draft.turntable.seconds} s · {videoFormat()?.ext.toUpperCase() ?? '—'}</span>
+            </p>
+            {x.rec != null ? (
+              <div className="flex items-center gap-2">
+                <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/15" role="progressbar" aria-valuenow={Math.round(x.rec * 100)} aria-valuemin={0} aria-valuemax={100} aria-label={t('Recording')}>
+                  <div className="h-full bg-white" style={{ width: `${x.rec * 100}%` }} />
+                </div>
+                <button type="button" onClick={x.onStopRecord} className="lg-btn lg-btn-ghost min-h-[34px] px-3 text-[12.5px]">
+                  {t('Stop')}
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" onClick={() => x.onRecord('download')} className="lg-btn lg-btn-ghost min-h-[38px] text-[12.5px]">
+                  <Download size={14} /> {t('Video')}
+                </button>
+                <button type="button" onClick={() => x.onRecord('project')} className="lg-btn lg-btn-ghost min-h-[38px] text-[12.5px]">
+                  {t('Video to project')}
+                </button>
+              </div>
+            )}
+            <p className="text-[11.5px] leading-[1.45] text-white/60">{t('One full turn at the size of the view. Keep this tab in front while it records.')}</p>
+          </div>
         </Section>
       )}
     </div>
   );
 }
 
-function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (c: string) => void }) {
-  const id = useMemo(() => `c-${Math.random().toString(36).slice(2, 8)}`, []);
-  return (
-    <label htmlFor={id} className="flex min-h-[40px] cursor-pointer items-center gap-2 rounded-[12px] bg-white/10 px-2 text-[12px] font-semibold">
-      <input id={id} type="color" value={value} onChange={(e) => onChange(e.target.value)} className="h-6 w-6 cursor-pointer rounded-full border-0 bg-transparent p-0" />
-      <span className="truncate">{label}</span>
-    </label>
-  );
-}

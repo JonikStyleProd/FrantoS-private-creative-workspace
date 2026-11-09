@@ -126,6 +126,17 @@ function loadUrl(key: string) {
   return pending.get(key)!;
 }
 
+/** the same lookup as useAssetUrl, outside React (exports, composites) */
+export async function assetUrl(a: Asset, size: 'full' | 'thumb' = 'full'): Promise<string | undefined> {
+  const staticUrl = size === 'thumb' ? a.thumb ?? a.src : a.src;
+  if (staticUrl) return staticUrl;
+  const key = size === 'thumb' ? a.thumbKey ?? a.blobKey : a.blobKey;
+  const local = key ? await loadUrl(key) : undefined;
+  if (local) return local;
+  const cloudPath = size === 'thumb' ? a.thumbPath ?? a.storagePath : a.storagePath;
+  return cloudPath ? (await signedUrl(cloudPath)) ?? undefined : undefined;
+}
+
 export function useAssetUrl(a: Asset | undefined, size: 'full' | 'thumb' = 'full') {
   const staticUrl = a ? (size === 'thumb' ? a.thumb ?? a.src : a.src) : undefined;
   const key = a ? (size === 'thumb' ? a.thumbKey ?? a.blobKey : a.blobKey) : undefined;

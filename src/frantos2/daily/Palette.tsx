@@ -5,7 +5,17 @@ import { useWs, ws } from '../ws/store';
 import { go } from '../route';
 import { LANGS, setLang, tr as t } from '../i18n';
 
-type Item = { id: string; kind: 'project' | 'asset' | 'note' | 'tag' | 'command'; title: string; sub?: string; run: () => void };
+type Item = { id: string; kind: 'project' | 'asset' | 'note' | 'tag' | 'command'; title: string; sub?: string; kbd?: string; run: () => void };
+
+/** commands the current screen adds to ⌘K (the studio registers its tools here) */
+export type PaletteCommand = { id: string; title: string; sub?: string; kbd?: string; run: () => void };
+const extra = new Map<string, PaletteCommand[]>();
+export function registerCommands(scope: string, cmds: PaletteCommand[]) {
+  extra.set(scope, cmds);
+  return () => {
+    if (extra.get(scope) === cmds) extra.delete(scope);
+  };
+}
 
 /** ⌘K / Ctrl+K: jump to any project, file, note or tag; run common commands. */
 export function Palette() {
@@ -45,6 +55,7 @@ export function Palette() {
   const items = useMemo<Item[]>(() => {
     const out: Item[] = [];
     const cmds: Item[] = [
+      ...[...extra.values()].flat().map((c) => ({ ...c, kind: 'command' as const })),
       { id: 'c-home', kind: 'command', title: t('Go to workspace'), run: () => go('/app') },
       { id: 'c-new', kind: 'command', title: t('New project'), run: () => (go('/app'), setTimeout(() => window.dispatchEvent(new Event('frantos:new')), 50)) },
       { id: 'c-team', kind: 'command', title: t('Studio & team'), run: () => go('/team') },
@@ -62,11 +73,11 @@ export function Palette() {
     }
     for (const [tg, n] of tags) out.push({ id: `t-${tg}`, kind: 'tag', title: `#${tg}`, sub: t('{n} files', { n }), run: () => setQ(`#${tg}`) });
     const needle = q.trim().toLowerCase();
-    if (!needle) return [...cmds, ...out.filter((x) => x.kind === 'project')].slice(0, 12);
+    if (!needle) return [...cmds, ...out.filter((x) => x.kind === 'project')].slice(0, 24);
     const tagQ = needle.startsWith('#') ? needle.slice(1) : null;
     const hit = (x: Item) => (tagQ ? x.kind === 'asset' && (x.sub ?? '').toLowerCase().includes(`#${tagQ}`) : `${x.title} ${x.sub ?? ''}`.toLowerCase().includes(needle));
     return [...cmds.filter(hit), ...out.filter(hit)].slice(0, 30);
-  }, [state.projects, q]);
+  }, [state.projects, q, open]);
 
   const run = (it?: Item) => {
     if (!it) return;
@@ -118,6 +129,7 @@ export function Palette() {
                       <span className="block truncate text-[14px] font-medium">{it.title}</span>
                       {it.sub && <span className="block truncate text-[12px] text-[var(--ink-2)]">{it.sub}</span>}
                     </span>
+                    {it.kbd && <kbd className="rounded border border-[var(--rule)] px-1.5 text-[11px] text-[var(--ink-2)]">{it.kbd}</kbd>}
                     {k === i && <ArrowRight size={14} className="text-[var(--ink-2)]" />}
                   </button>
                 </li>

@@ -33,7 +33,7 @@ export function itemsOf(p: Project): Record<Stage, Item[]> {
   const out: Record<Stage, Item[]> = { collect: [], make: [], review: [], show: [] };
   const byNew = <T extends { createdAt: number }>(a: T, b: T) => b.createdAt - a.createdAt;
   for (const a of [...p.assets].sort(byNew)) {
-    if (a.kind === 'model') continue;
+    if (a.kind === 'model' || a.kind === 'env') continue;
     if (a.isReference) out.collect.push({ kind: 'asset', id: a.id, title: a.title, asset: a });
     else if (!inWorks.has(a.id)) out.make.push({ kind: 'asset', id: a.id, title: a.title, asset: a });
   }

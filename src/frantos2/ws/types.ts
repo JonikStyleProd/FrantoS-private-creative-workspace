@@ -1,6 +1,7 @@
 /** FrantoS workspace data model (local-first, stored in IndexedDB). */
 
-export type MediaKind = 'image' | 'video' | 'model';
+/** 'model' = GLB for the studio, 'env' = an .hdr environment for studio lighting */
+export type MediaKind = 'image' | 'video' | 'model' | 'env';
 
 export interface Asset {
   id: string;
@@ -135,7 +136,18 @@ export interface MaterialVariant {
   gloss: number;
 }
 
-export type LightPreset = 'softbox' | 'window' | 'spot' | 'rim';
+export type LightPreset = 'softbox' | 'window' | 'spot' | 'rim' | 'morning' | 'sunset' | 'gallery' | 'hdri';
+
+/** a camera pose around the object: azimuth and elevation in degrees, zoom 1 = framed */
+export interface CameraKey {
+  id: string;
+  /** seconds from the start */
+  t: number;
+  az: number;
+  el: number;
+  zoom: number;
+  variantId?: string;
+}
 
 export interface StudioObject {
   id: string;
@@ -144,13 +156,54 @@ export interface StudioObject {
   source: { kind: 'vessel'; twist: number; height: number; waist: number } | { kind: 'model'; assetId: string };
   variants: MaterialVariant[];
   variantId: string;
-  light: { preset: LightPreset; angle: number; intensity: number };
+  light: { preset: LightPreset; angle: number; intensity: number; hdriAssetId?: string };
   camera: { lens: number };
   background: { kind: 'studio' | 'color' | 'transparent'; color: string };
   turntable: { seconds: number };
+  /** Motion mode: a camera move through keyframes */
+  motion?: { seconds: number; keys: CameraKey[] };
   /** small preview, a data URL or a static path */
   thumb?: string;
   note?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/* ───────── studio: canvas boards ───────── */
+
+export type LayerKind = 'image' | 'object' | 'text' | 'rect' | 'palette';
+
+export interface BoardLayer {
+  id: string;
+  kind: LayerKind;
+  /** position and size in board pixels */
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  rot?: number;
+  opacity?: number;
+  assetId?: string;
+  objectId?: string;
+  /** image crop: how the picture fills its frame */
+  fit?: 'cover' | 'contain';
+  text?: string;
+  size?: number;
+  weight?: number;
+  color?: string;
+  align?: 'start' | 'center' | 'end';
+  fill?: string;
+  radius?: number;
+  colors?: string[];
+}
+
+export interface Board {
+  id: string;
+  title: string;
+  w: number;
+  h: number;
+  bg: string;
+  layers: BoardLayer[];
   createdAt: number;
   updatedAt: number;
 }
@@ -184,6 +237,10 @@ export interface Project {
   decisions?: Decision[];
   /** 3D objects made in the studio */
   objects?: StudioObject[];
+  /** compositions made in the studio's Canvas mode */
+  boards?: Board[];
+  /** the project palette, picked in the studio */
+  palette?: string[];
   notes?: CanvasNote[];
   groups?: CanvasGroup[];
   tags?: string[];
