@@ -7,6 +7,7 @@ import { go } from '../route';
 import { Backdrop, Credits, GlassLang, Mark, Pane, ThemeSwitch, lgEase } from './kit';
 import { STAGES, STAGE_LABEL, Stage } from './stages';
 import { InstallButton } from './install';
+import { Assemble, LensStage, StudioModes } from './LandingFx';
 
 const P = '/projects/form-01/';
 const AH = '/series/after-hours/';
@@ -48,7 +49,7 @@ export function GlassLanding() {
     <div className="lg min-h-full" dir={dir}>
       {/* ───────── hero: the work is the page ───────── */}
       <section className="relative isolate flex min-h-[100svh] flex-col overflow-hidden" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}>
-        <Backdrop src={scene.src} alt={t(scene.alt)} id={stage} tint={0.3} shade="start" />
+        <LensStage src={scene.src} alt={t(scene.alt)} id={stage} />
 
         <header className="relative z-10 px-4 pt-4 sm:px-6 sm:pt-5">
           <Pane as="nav" className="mx-auto flex max-w-[1360px] items-center gap-2 rounded-full py-1.5 pe-1.5 ps-5" aria-label={t('Main')}>
@@ -60,6 +61,9 @@ export function GlassLanding() {
               <a href="#studio" className="lg-btn lg-btn-plain">
                 {t('For studios')}
               </a>
+              <button type="button" onClick={() => go('/s/form-01')} className="lg-btn lg-btn-plain">
+                {t('Studio')}
+              </button>
             </div>
             <div className="ms-auto flex items-center gap-1.5 md:ms-2">
               <span className="hidden sm:block">
@@ -138,6 +142,12 @@ export function GlassLanding() {
           </div>
         </div>
       </section>
+
+      {/* ───────── references → board → object, driven by scroll ───────── */}
+      <Assemble />
+
+      {/* ───────── the studio, four modes ───────── */}
+      <StudioModes />
 
       {/* ───────── how it works ───────── */}
       <section id="how" className="relative isolate overflow-hidden">

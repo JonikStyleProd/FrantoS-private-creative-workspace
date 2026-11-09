@@ -42,53 +42,58 @@ export function AppHeader({ action }: { action?: React.ReactNode }) {
           aria-current={on ? 'page' : undefined}
           title={t(s.label)}
           aria-label={t(s.label)}
-          className={`flex min-h-[38px] items-center gap-2 rounded-full text-[13.5px] font-bold transition-colors ${vertical ? 'w-full justify-start px-3.5' : 'min-w-[38px] justify-center px-2.5 2xl:px-3.5'} ${on ? 'bg-white text-[#11151a]' : 'text-white/75 hover:bg-white/10 hover:text-white'}`}
+          className={`flex h-10 shrink-0 items-center gap-2 rounded-full text-[13.5px] font-bold transition-colors ${vertical ? 'w-full justify-start px-3.5' : 'w-10 justify-center min-[1720px]:w-auto min-[1720px]:px-3.5'} ${on ? 'bg-white text-[#11151a]' : 'text-white/75 hover:bg-white/10 hover:text-white'}`}
         >
-          <s.icon size={15} /> <span className={vertical ? '' : 'hidden 2xl:inline'}>{t(s.label)}</span>
+          <s.icon size={16} className="shrink-0" /> <span className={vertical ? '' : 'hidden whitespace-nowrap min-[1720px]:inline'}>{t(s.label)}</span>
         </button>
       );
     });
   return (
     <>
-      <Pane as="header" className="relative z-40 flex items-center gap-2 rounded-full py-1.5 pe-1.5 ps-4">
-        <Mark onClick={() => go('/')} />
-        <nav aria-label={t('Sections')} className="ms-3 hidden items-center gap-0.5 lg:flex">
+      <Pane as="header" className="relative z-40 flex h-[60px] items-center gap-2 rounded-full pe-2 ps-5">
+        <span className="shrink-0">
+          <Mark onClick={() => go('/')} />
+        </span>
+        <nav aria-label={t('Sections')} className="mx-auto hidden min-w-0 items-center gap-1 lg:flex">
           {nav()}
         </nav>
-        <div className="ms-auto flex shrink-0 items-center gap-1.5">
+        <div className="ms-auto flex shrink-0 items-center gap-1 lg:ms-0">
           <SyncBadge />
-          <button type="button" onClick={() => go('/new')} className="lg-btn lg-btn-plain lg-icon relative max-sm:!hidden" aria-label={t("What's new")} title={t("What's new")}>
-            <Sparkles size={16} />
-            {unseen && <span className="absolute end-2 top-2 h-2 w-2 rounded-full bg-[var(--lg-accent)]" />}
+          <button type="button" onClick={openPalette} className="lg-btn lg-btn-plain lg-icon max-md:!hidden" aria-label={t('Search or run a command')} title={`${t('Search or run a command')} (⌘K)`}>
+            <Search size={17} />
           </button>
-          <button type="button" onClick={openPalette} className="lg-btn lg-btn-plain max-md:!hidden" aria-label={t('Search or run a command')}>
-            <Search size={15} /> <span className="text-white/60">⌘K</span>
-          </button>
-          <span className="hidden 2xl:block">
-            <GlassLang />
-          </span>
           <ThemeSwitch />
-          <InstallButton compact />
           <span className="max-sm:hidden">
+            <InstallButton compact />
+          </span>
+          <span className="hidden xl:block">
             <GlassAccount />
           </span>
           {action}
-          <button type="button" onClick={() => setMenu((v) => !v)} aria-expanded={menu} className="lg-btn lg-btn-plain lg-icon 2xl:!hidden" aria-label={t('Sections')}>
+          <button type="button" onClick={() => setMenu((v) => !v)} aria-expanded={menu} className="lg-btn lg-btn-plain lg-icon relative" aria-label={t('Menu')} title={t('Menu')}>
             {menu ? <X size={18} /> : <Menu size={18} />}
+            {unseen && !menu && <span className="absolute end-2 top-2 h-2 w-2 rounded-full bg-[var(--lg-accent)]" />}
           </button>
         </div>
       </Pane>
       <AnimatePresence>
         {menu && (
-          <Pane strong key="menu" className="absolute inset-x-3 top-[72px] z-50 flex flex-col gap-1 rounded-[26px] p-2 sm:inset-x-6 2xl:hidden">
-            {nav(true)}
-            <div className="mt-1 flex items-center justify-between gap-2 border-t border-white/15 px-1 pt-2">
+          <Pane strong key="menu" className="absolute end-3 top-[72px] z-50 flex w-[min(360px,calc(100vw-24px))] flex-col gap-1 rounded-[26px] p-2 sm:end-6">
+            <div className="flex flex-col gap-1 lg:hidden">{nav(true)}</div>
+            <button type="button" onClick={() => go('/new')} className="flex h-11 items-center gap-2 rounded-full px-3.5 text-[13.5px] font-bold hover:bg-white/10">
+              <Sparkles size={16} /> {t("What's new")}
+              {unseen && <span className="ms-auto h-2 w-2 rounded-full bg-[var(--lg-accent)]" />}
+            </button>
+            <button type="button" onClick={openPalette} className="flex h-11 items-center gap-2 rounded-full px-3.5 text-[13.5px] font-bold hover:bg-white/10">
+              <Search size={16} /> {t('Search or run a command')} <kbd className="ms-auto text-[11.5px] text-white/50">⌘K</kbd>
+            </button>
+            <div className="mt-1 flex items-center justify-between gap-2 border-t border-white/15 px-1.5 pt-2">
               <GlassLang />
-              <button type="button" onClick={() => go('/new')} className="lg-btn lg-btn-plain min-h-[38px] text-[13px]">
-                <Sparkles size={14} /> {t("What's new")}
-              </button>
+              <span className="sm:hidden">
+                <InstallButton compact />
+              </span>
             </div>
-            <div className="sm:hidden">
+            <div className="px-1.5 pb-1 xl:hidden">
               <GlassAccount />
             </div>
           </Pane>

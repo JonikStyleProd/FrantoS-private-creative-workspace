@@ -8,6 +8,7 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { LightPreset, MaterialVariant, StageProp, StudioObject } from '../ws/types';
 import { buildVessel, VesselMaterial } from './vessel';
+import { isLite } from '../glass/perf';
 
 export type ViewMode = 'render' | 'clay' | 'wire';
 export interface Pose {
@@ -87,11 +88,13 @@ const softShadow = () => {
 };
 
 export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive?: boolean; pixelRatio?: number } = {}): ObjectScene {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(opts.pixelRatio ?? Math.min(window.devicePixelRatio, 1.5));
+  // without a GPU (software WebGL) every pixel costs processor time: fewer pixels, no MSAA, no shadow maps
+  const lite = isLite();
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: !lite, alpha: true, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
+  renderer.setPixelRatio(opts.pixelRatio ?? (lite ? 0.75 : Math.min(window.devicePixelRatio, 1.5)));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NeutralToneMapping;
-  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.enabled = !lite;
   renderer.shadowMap.type = THREE.VSMShadowMap;
   // the light and the object only change on edits: orbiting never needs a new shadow map
   renderer.shadowMap.autoUpdate = false;
@@ -317,7 +320,7 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
     });
     const floorY = base - propH;
     blob.position.y = catcher.position.y = floorY + 0.001;
-    blob.visible = kind === 'none';
+    blob.visible = kind === 'none' || lite;
     target.set(0, -propH / 2, 0);
     controls.target.copy(target);
     key.target.position.set(0, base + 0.3, 0);
@@ -328,9 +331,9 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
     clear();
     if (o.source.kind === 'vessel') {
       height = o.source.height;
-      const geo = buildVessel({ twist: o.source.twist, height: o.source.height, waist: o.source.waist }, quality === 'draft' ? 72 : window.innerWidth < 700 ? 110 : 150);
+      const geo = buildVessel({ twist: o.source.twist, height: o.source.height, waist: o.source.waist }, quality === 'draft' || lite ? 72 : window.innerWidth < 700 ? 110 : 150);
       const v = o.variants.find((x) => x.id === o.variantId) ?? o.variants[0];
-      if (!vesselMat) vesselMat = new VesselMaterial(v);
+      if (!vesselMat) vesselMat = new VesselMaterial(v, lite);
       else if (quality === 'full') vesselMat.update(v);
       const m = new THREE.Mesh(geo, vesselMat.material);
       m.castShadow = true;
@@ -410,7 +413,7 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
 
   // Adaptive resolution: while frames keep coming (orbit, turntable) and the GPU can't keep
   // up, render fewer pixels; climb back once it has headroom. Stills always render at full size.
-  const maxRatio = opts.pixelRatio ?? Math.min(window.devicePixelRatio, 1.5);
+  const maxRatio = opts.pixelRatio ?? (lite ? 0.75 : Math.min(window.devicePixelRatio, 1.5));
   let ratio = maxRatio;
   let last = 0;
   let slow = 0;
@@ -421,8 +424,8 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
     if (dt > 120 || recording) return; // a pause, not a slow frame; recording keeps full size
     if (dt > 24) (slow++, (fast = 0));
     else if (dt < 18) (fast++, (slow = 0));
-    if (slow > 8 && ratio > 0.75) {
-      ratio = Math.max(0.75, ratio - 0.25);
+    if (slow > 8 && ratio > 0.5) {
+      ratio = Math.max(0.5, ratio - 0.25);
       slow = 0;
       renderer.setPixelRatio(ratio);
       resize();
@@ -542,7 +545,7 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
       if (!a) {
         compareMat?.dispose();
         compareMat = null;
-      } else if (!compareMat) compareMat = new VesselMaterial(a);
+      } else if (!compareMat) compareMat = new VesselMaterial(a, lite);
       else compareMat.update(a);
       dirty = true;
     },
@@ -591,6 +594,8 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
       roomEnv.dispose();
       pmrem.dispose();
       renderer.dispose();
+      // give the WebGL context back now: browsers keep only a handful, software ones are expensive
+      renderer.forceContextLoss();
     },
   };
 }

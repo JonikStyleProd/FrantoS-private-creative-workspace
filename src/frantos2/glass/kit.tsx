@@ -3,6 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Moon, Sun } from 'lucide-react';
 import { LANGS, useI18n } from '../i18n';
 import { useTheme } from './theme';
+import { useQuality } from './perf';
 
 export const lgEase = [0.22, 1, 0.36, 1] as const;
 
@@ -54,6 +55,7 @@ export function Credits({ className = '' }: { className?: string }) {
  */
 export function Backdrop({ src, alt = '', tint = 0.32, blur = false, fit = 'cover', id, shade }: { src?: string; alt?: string; tint?: number; blur?: boolean; fit?: 'cover' | 'contain'; id?: string; shade?: 'start' }) {
   const reduce = useReducedMotion();
+  const { lite } = useQuality();
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden bg-[var(--lg-bg)]" aria-hidden={alt ? undefined : true}>
       <AnimatePresence initial={false}>
@@ -66,8 +68,8 @@ export function Backdrop({ src, alt = '', tint = 0.32, blur = false, fit = 'cove
             exit={{ opacity: 0 }}
             transition={{ opacity: { duration: reduce ? 0 : 0.9, ease: lgEase }, scale: { duration: reduce ? 0 : 2.4, ease: lgEase } }}
           >
-            {fit === 'contain' && <img src={src} alt="" className="absolute inset-0 h-full w-full scale-110 object-cover opacity-70 blur-[48px]" />}
-            <img src={src} alt={alt} className={`absolute inset-0 h-full w-full ${fit === 'cover' ? 'object-cover' : 'object-contain'} ${blur ? 'scale-105 blur-[30px]' : ''}`} />
+            {fit === 'contain' && !lite && <img src={src} alt="" className="absolute inset-0 h-full w-full scale-110 object-cover opacity-70 blur-[48px]" />}
+            <img src={src} alt={alt} className={`absolute inset-0 h-full w-full ${fit === 'cover' || lite ? 'object-cover' : 'object-contain'} ${blur && !lite ? 'scale-105 blur-[30px]' : ''} ${blur && lite ? 'opacity-40' : ''}`} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -87,12 +89,15 @@ export function Pane({
   ...rest
 }: { children: React.ReactNode; className?: string; strong?: boolean; delay?: number; as?: 'div' | 'section' | 'aside' | 'nav' | 'header' } & Omit<React.HTMLAttributes<HTMLElement>, 'onAnimationStart' | 'onDrag' | 'onDragStart' | 'onDragEnd' | 'style'> & { style?: React.CSSProperties }) {
   const reduce = useReducedMotion();
+  const { lite } = useQuality();
   const M = motion[as] as typeof motion.div;
+  // without a GPU an animated blur costs a frame each step: panes then only fade and settle
+  const soft = reduce || lite;
   return (
     <M
-      initial={reduce ? { opacity: 0 } : { opacity: 0, y: 14, scale: 0.97, filter: 'blur(6px)' }}
-      animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-      exit={reduce ? { opacity: 0, pointerEvents: 'none' } : { opacity: 0, y: 8, scale: 0.98, filter: 'blur(4px)', pointerEvents: 'none' }}
+      initial={soft ? { opacity: 0, y: reduce ? 0 : 8 } : { opacity: 0, y: 14, scale: 0.97, filter: 'blur(6px)' }}
+      animate={soft ? { opacity: 1, y: 0 } : { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+      exit={soft ? { opacity: 0, pointerEvents: 'none' } : { opacity: 0, y: 8, scale: 0.98, filter: 'blur(4px)', pointerEvents: 'none' }}
       transition={{ duration: 0.55, ease: lgEase, delay }}
       className={`${strong ? 'lg-glass-strong' : 'lg-glass'} ${className}`}
       {...(rest as object)}

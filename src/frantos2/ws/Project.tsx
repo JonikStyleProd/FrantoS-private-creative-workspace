@@ -25,7 +25,9 @@ import { AssetThumb, PrivateChip, SaveBadge, ago, ease, toast, useMedia } from '
 import { Inspector, Act } from './Inspector';
 import { Orbit } from './Orbit';
 import { FilePick, upload, useDropZone } from './uploads';
-import { ACCEPT } from './media';
+import { ACCEPT, useAssetUrl } from './media';
+import '../glass/glass.css';
+import { Backdrop, Mark, ThemeSwitch } from '../glass/kit';
 import { Review } from './Review';
 import { Wordmark } from '../ui';
 import { Canvas } from './Canvas';
@@ -62,8 +64,12 @@ export function ProjectPage({ id, tab, sub, q }: { id: string; tab: ProjectTab; 
       </div>
     );
 
+  const cover = assetOf(p, p.coverAssetId);
   return (
-    <div className="flex min-h-full flex-col bg-[var(--paper)] lg:h-full lg:min-h-0">
+    <div className="lg f2-glass relative flex min-h-full flex-col lg:h-full lg:min-h-0">
+      <div className="pointer-events-none fixed inset-0">
+        <GlassBackdropOf asset={cover} />
+      </div>
       <ProjectHeader p={p} tab={tab} />
       <div className="flex min-h-0 flex-1 flex-col">
         {tab === 'overview' && <Overview p={p} q={q} />}
@@ -83,74 +89,85 @@ function ProjectHeader({ p, tab }: { p: P; tab: ProjectTab }) {
   useEffect(() => setTitle(p.title), [p.title]);
   const open = openComments(p).length;
   return (
-    <header className="sticky top-0 z-30 shrink-0 border-b border-[var(--rule)] bg-[var(--paper)]">
-      <div className="flex h-[58px] items-center justify-between gap-3 px-3 md:px-5">
-        <div className="flex min-w-0 items-center gap-2 md:gap-3">
-          <a href="#/app" className="flex shrink-0 items-center gap-1.5 rounded-full px-2 py-2 hover:bg-black/5" aria-label={t('Back to workspace')}>
-            <ArrowLeft size={16} className="text-[var(--ink-2)]" />
-            <span className="hidden sm:inline">
-              <Wordmark small />
-            </span>
-          </a>
-          <span className="hidden h-6 w-px bg-[var(--rule)] sm:block" />
-          <div className="min-w-0">
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              onBlur={() => title.trim() !== p.title && ws.renameProject(p.id, title)}
-              onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-              aria-label={t('Project title')}
-              className="f2-display w-full min-w-0 max-w-[46vw] truncate rounded bg-transparent text-[20px] leading-tight outline-none focus:bg-black/[0.04] md:max-w-[360px] md:text-[23px]"
-            />
-            <div className="flex items-center gap-2">
-              <SaveBadge />
-            </div>
+    <header className="sticky top-0 z-30 shrink-0 px-3 pb-2 pt-3 md:px-5">
+      <div className="lg-glass flex h-[60px] items-center gap-2 rounded-full pe-2 ps-2">
+        <a href={`#/p/${p.id}`} className="flex h-11 shrink-0 items-center gap-2 rounded-full px-3 hover:bg-white/10" aria-label={t('Back to the project')}>
+          <ArrowLeft size={17} className="rtl:-scale-x-100" />
+          <span className="hidden sm:inline">
+            <Mark />
+          </span>
+        </a>
+        <span className="hidden h-6 w-px bg-white/20 sm:block" />
+        <div className="min-w-0 flex-1 md:flex-none">
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onBlur={() => title.trim() !== p.title && ws.renameProject(p.id, title)}
+            onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+            aria-label={t('Project title')}
+            dir="auto"
+            className="w-full min-w-0 truncate rounded-lg bg-transparent px-1 text-[16px] font-extrabold tracking-[-0.02em] outline-none focus:bg-white/10 md:w-[260px] md:text-[17px]"
+          />
+          <div className="flex items-center gap-2 px-1">
+            <SaveBadge />
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="hidden md:inline-flex">
-            {p.cloud ? null : <PrivateChip />}
-          </span>
-          <span className="hidden xl:inline-flex">
-            <LangSwitch />
-          </span>
-          <AccountButton />
+        <nav className="f2-noscrollbar mx-auto hidden min-w-0 items-center gap-0.5 overflow-x-auto rounded-full p-1 lg-soft lg:flex" role="tablist" aria-label={t('Project')}>
+          {TABS().map((tb) => (
+            <TabLink key={tb.id} p={p} tb={tb} on={tab === tb.id} open={open} />
+          ))}
+        </nav>
+        <div className="ms-auto flex shrink-0 items-center gap-1 lg:ms-0">
           {p.kind === 'demo' && (
             <button
               onClick={() => {
                 ws.resetDemo(p.id);
                 toast(t('Demo project reset'), { undo: true });
               }}
-              className="hidden h-9 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium text-[var(--ink-2)] hover:bg-black/5 hover:text-[var(--ink)] lg:inline-flex"
+              className="lg-btn lg-btn-plain lg-icon max-xl:!hidden"
+              aria-label={t('Reset demo')}
               title={t('Restore FORM / 01 to its original state. Your own projects are not touched.')}
             >
-              <RotateCcw size={14} /> {t('Reset demo')}
+              <RotateCcw size={16} />
             </button>
           )}
-          <button onClick={() => go(`/p/${p.id}/present/0`)} disabled={!p.presentation.length} className="f2-btn f2-btn-signal !min-h-[40px] !px-4 !text-[14px] disabled:opacity-40" title={p.presentation.length ? 'Present' : 'Add works to the presentation first'}>
+          <ThemeSwitch />
+          <span className="hidden xl:block">
+            <AccountButton />
+          </span>
+          <button onClick={() => go(`/p/${p.id}/present/0`)} disabled={!p.presentation.length} className="lg-btn lg-btn-primary disabled:opacity-40" title={p.presentation.length ? t('Present') : t('Add works to the presentation first')}>
             <Play size={14} fill="currentColor" /> <span className="hidden sm:inline">{t('Present')}</span>
           </button>
         </div>
       </div>
-      <nav className="f2-noscrollbar flex gap-1 overflow-x-auto px-2 md:px-4" role="tablist" aria-label={t('Project')}>
+      <nav className="f2-noscrollbar mt-2 flex gap-1 overflow-x-auto rounded-full p-1 lg-glass lg:hidden" role="tablist" aria-label={t('Project')}>
         {TABS().map((tb) => (
-          <a
-            key={tb.id}
-            href={`#/p/${p.id}${tb.id === 'overview' ? '' : `/${tb.id}`}`}
-            role="tab"
-            aria-selected={tab === tb.id}
-            className="relative shrink-0 px-3 py-2.5 text-[13.5px] font-semibold"
-            style={{ color: tab === tb.id ? 'var(--ink)' : 'var(--ink-2)' }}
-          >
-            {tb.label}
-            {tb.id === 'review' && open > 0 && <span className="ms-1.5 rounded-full bg-[var(--signal)] px-1.5 py-[1px] text-[10.5px] font-bold text-[var(--signal-ink)]">{open}</span>}
-            {tb.id === 'materials' && <span className="ms-1 text-[11px] font-medium text-[var(--ink-2)]">{p.assets.length}</span>}
-            {tab === tb.id && <motion.span layoutId="ptab" className="absolute inset-x-2 bottom-0 h-[2px] bg-[var(--ink)]" transition={{ duration: 0.25, ease }} />}
-          </a>
+          <TabLink key={tb.id} p={p} tb={tb} on={tab === tb.id} open={open} />
         ))}
       </nav>
     </header>
   );
+}
+
+function TabLink({ p, tb, on, open }: { p: P; tb: ReturnType<typeof TABS>[number]; on: boolean; open: number }) {
+  return (
+    <a
+      href={`#/p/${p.id}${tb.id === 'overview' ? '' : `/${tb.id}`}`}
+      role="tab"
+      aria-selected={on}
+      className={`flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-bold transition-colors ${on ? 'bg-white text-[#11151a]' : 'text-white/75 hover:bg-white/10 hover:text-white'}`}
+    >
+      {tb.label}
+      {tb.id === 'review' && open > 0 && <span className="rounded-full bg-[var(--lg-accent)] px-1.5 py-[1px] text-[10.5px] font-bold text-white">{open}</span>}
+      {tb.id === 'materials' && <span className="text-[11px] font-semibold opacity-60">{p.assets.length}</span>}
+    </a>
+  );
+}
+
+/** the project's cover, softened, behind every legacy tab — the same backdrop as the glass screens */
+function GlassBackdropOf({ asset }: { asset?: Asset }) {
+  const { url } = useAssetUrl(asset, 'thumb');
+  return <Backdrop src={url} tint={0.62} blur />;
 }
 
 /* ───────────────────────── overview ───────────────────────── */

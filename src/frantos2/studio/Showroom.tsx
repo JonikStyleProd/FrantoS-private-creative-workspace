@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Box, Copy, Pause, Play, Smartphone, Wand2 } from 'lucide-react';
 import '../glass/glass.css';
 import { useI18n } from '../i18n';
+import { GpuChip } from '../glass/GpuNotice';
 import { go } from '../route';
 import { useProject, ensureLoaded } from '../ws/store';
 import type { MaterialVariant, StudioObject } from '../ws/types';
@@ -114,7 +115,8 @@ function Room({ pid, title, o }: { pid: string; title: string; o: StudioObject }
         </Pane>
         <div className="ms-auto flex items-center gap-2">
           <span className="lg-glass rounded-full p-0.5">
-            <ThemeSwitch />
+            <GpuChip />
+          <ThemeSwitch />
           </span>
           <button
             type="button"

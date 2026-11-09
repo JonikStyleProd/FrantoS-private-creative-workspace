@@ -177,21 +177,17 @@ export function Root() {
     <MotionConfig reducedMotion="user">
       <div className="f2" lang={lang} dir={dir}>
         <LayoutGroup>
-          <AnimatePresence initial={false}>
-            <motion.div
-              key={baseKey}
-              layoutScroll
-              className="f2-scroll fixed inset-0 overflow-y-auto overflow-x-hidden"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0, pointerEvents: 'none', transition: { duration: 0.25, delay: 0.1 } }}
-              transition={{ duration: 0.3 }}
-              aria-hidden={overlay ? true : undefined}
-              inert={overlay ? true : undefined}
-            >
-              <Suspense fallback={<Blank dark={GLASS.has(route.name)} />}>{base}</Suspense>
-            </motion.div>
-          </AnimatePresence>
+          {/* One page at a time: the new page fades in with CSS, the old one is gone at once.
+              No two full-screen layers to blend — cheap without a GPU, and nothing can stall halfway. */}
+          <motion.div
+            key={baseKey}
+            layoutScroll
+            className="f2-scroll lg-route-in fixed inset-0 overflow-y-auto overflow-x-hidden"
+            aria-hidden={overlay ? true : undefined}
+            inert={overlay ? true : undefined}
+          >
+            <Suspense fallback={<Blank dark={GLASS.has(route.name)} />}>{base}</Suspense>
+          </motion.div>
           <AnimatePresence>{overlay && <Suspense fallback={<Blank dark />}>{overlay}</Suspense>}</AnimatePresence>
         </LayoutGroup>
         {route.name !== 'landing' && route.name !== 'afterhours' && route.name !== 'story' && (

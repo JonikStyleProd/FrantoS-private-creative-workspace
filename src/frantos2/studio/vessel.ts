@@ -234,7 +234,7 @@ export class VesselMaterial {
   readonly material: THREE.MeshPhysicalMaterial;
   private canvases = [make(), make(), make(), make()] as const;
   private maps: PaintedMaps;
-  constructor(v: MaterialVariant) {
+  constructor(v: MaterialVariant, private lite = false) {
     const tex = (c: HTMLCanvasElement, srgb = false) => {
       const t = new THREE.CanvasTexture(c);
       t.wrapS = THREE.RepeatWrapping;
@@ -248,11 +248,16 @@ export class VesselMaterial {
       ...this.maps,
       roughness: 1,
       metalness: 0,
-      clearcoat: 1,
+      // lite: no clearcoat layer and no bump, the two most expensive parts of the shader
+      clearcoat: lite ? 0 : 1,
       bumpScale: 0.35,
       envMapIntensity: 0.6,
       side: THREE.DoubleSide,
     });
+    if (lite) {
+      this.material.bumpMap = null;
+      this.material.clearcoatMap = null;
+    }
     this.update(v);
   }
   update(v: MaterialVariant) {

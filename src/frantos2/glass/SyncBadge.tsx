@@ -48,10 +48,9 @@ export function SyncBadge() {
     label = t('Synced to your studio');
   }
   return (
-    <span role="status" aria-live="polite" title={label} className={`flex h-9 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-semibold lg-soft ${tone}`}>
+    <span role="status" aria-live="polite" title={label} className={`flex h-10 w-10 items-center justify-center rounded-full ${tone}`}>
       {icon}
-      <span className="hidden 2xl:inline">{label}</span>
-      <span className="sr-only 2xl:hidden">{label}</span>
+      <span className="sr-only">{label}</span>
     </span>
   );
 }

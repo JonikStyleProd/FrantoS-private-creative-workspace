@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { Root } from './frantos2/Root';
 import './index.css';
 import './frantos2/glass/theme';
+import './frantos2/glass/perf';
 import { captureInstall } from './frantos2/glass/install';
 
 captureInstall();

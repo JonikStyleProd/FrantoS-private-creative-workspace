@@ -8,6 +8,7 @@ import { toast } from '../ws/kit';
 import { FilePick } from '../ws/uploads';
 import { GlassPage } from '../glass/Shell';
 import { GlassLang, Pane, ThemeSwitch } from '../glass/kit';
+import { useQuality } from '../glass/perf';
 import { DEFAULT_BRAND, FONTS, fontCss } from '../studio/brand';
 import { projectPalette } from '../studio/palette';
 
@@ -15,6 +16,7 @@ import { projectPalette } from '../studio/palette';
 export function SettingsPage() {
   const { t } = useI18n();
   const { state } = useWs();
+  const quality = useQuality();
   const brand = { ...DEFAULT_BRAND, ...state.brand };
   const profile = { name: '', handle: '', ...state.profile };
   const [usage, setUsage] = useState<{ used: number; quota: number } | null>(null);
@@ -177,6 +179,20 @@ export function SettingsPage() {
           <div className="flex flex-wrap items-center gap-3">
             <GlassLang />
             <ThemeSwitch />
+          </div>
+          <div>
+            <p className="lg-label mb-1.5">{t('Graphics')}</p>
+            <div role="radiogroup" aria-label={t('Graphics')} className="grid grid-cols-3 gap-1 rounded-[14px] p-1 lg-soft">
+              {(['auto', 'full', 'lite'] as const).map((q) => (
+                <button key={q} type="button" role="radio" aria-checked={quality.pref === q} onClick={() => quality.setQuality(q)} className={`min-h-[38px] rounded-[10px] text-[13px] font-bold ${quality.pref === q ? 'bg-white text-[#11151a]' : 'hover:bg-white/10'}`}>
+                  {t(q === 'auto' ? 'Automatic' : q === 'full' ? 'Full' : 'Lite')}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-[12.5px] leading-[1.5] text-white/70">
+              {quality.lite ? t('Lite: solid glass, simpler 3D, no live blur.') : t('Full: glass blur, soft shadows, full-resolution 3D.')} {quality.gpu?.software ? t('This browser draws without the graphics card, so Automatic means Lite.') : ''}
+            </p>
+            <p className="mt-1 font-mono text-[11px] text-white/45">{quality.gpu?.renderer}</p>
           </div>
         </Pane>
 

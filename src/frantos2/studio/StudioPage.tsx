@@ -23,6 +23,7 @@ import { ImageMode } from './ImageMode';
 import { CanvasMode } from './CanvasMode';
 import { MotionMode } from './MotionMode';
 import { ShortcutsHelp, useCmd, useStudioCommands } from './commands';
+import { GpuChip } from '../glass/GpuNotice';
 
 /**
  * FrantoS Studio — editor. Phase 1: 3D · Object mode.
@@ -239,6 +240,7 @@ function TopBar({ p, o, mode, onMode }: { p: Project; o?: StudioObject; mode: St
           <button type="button" onClick={openPalette} className="lg-btn lg-btn-plain min-h-[40px] text-[13px] max-md:!hidden" aria-label={t('Search or run a command')}>
             <Search size={15} /> <span className="text-white/60">⌘K</span>
           </button>
+          <GpuChip />
           <ThemeSwitch />
         </Pane>
         {o && (
