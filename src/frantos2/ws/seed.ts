@@ -1,4 +1,4 @@
-import { Project } from './types';
+import { MaterialVariant, Project, StudioObject } from './types';
 
 /**
  * FORM / 01 — demo project. An identity built around one sculptural object.
@@ -12,7 +12,32 @@ const T0 = Date.UTC(2026, 10, 2, 9, 30);
 
 export const DEMO_ID = 'form-01';
 /** bump when the demo's files or copy change: open browsers refresh the demo's text on next load */
-export const DEMO_REV = 2;
+export const DEMO_REV = 3;
+
+/** The FORM / 01 vessel as a live 3D object: the same thing the renders show. */
+export const VESSEL_VARIANTS: MaterialVariant[] = [
+  { id: 'mv-terracotta', name: 'Terracotta on travertine', base: 'travertine', baseColor: '#d6c3a2', topColor: '#9a4223', blend: 0.5, softness: 0.24, roughness: 0.5, gloss: 0.3 },
+  { id: 'mv-lacquer', name: 'Lacquer (v1)', base: 'glaze', baseColor: '#ece0cb', topColor: '#a5482a', blend: 0.42, softness: 0.3, roughness: 0.08, gloss: 1 },
+  { id: 'mv-clay', name: 'Raw clay', base: 'clay', baseColor: '#ece6da', topColor: '#ece6da', blend: 1, softness: 0.1, roughness: 0.85, gloss: 0 },
+  { id: 'mv-ultramarine', name: 'Ultramarine satin', base: 'glaze', baseColor: '#2337b8', topColor: '#2337b8', blend: 1, softness: 0.1, roughness: 0.3, gloss: 0.5 },
+];
+export function demoObject(now = T0 + 5 * day): StudioObject {
+  return {
+    id: 'o-vessel',
+    title: 'Vessel · 225° twist',
+    source: { kind: 'vessel', twist: 0.62, height: 1.25, waist: 0.08 },
+    variants: VESSEL_VARIANTS,
+    variantId: 'mv-terracotta',
+    light: { preset: 'softbox', angle: -35, intensity: 1 },
+    camera: { lens: 85 },
+    background: { kind: 'studio', color: '#e7e3d8' },
+    turntable: { seconds: 12 },
+    thumb: `${P}form-v2-sm.webp`,
+    note: 'Travertine base fading into a terracotta satin glaze. One twisted rounded square, made for the FORM / 01 identity.',
+    createdAt: T0 + day,
+    updatedAt: now,
+  };
+}
 
 export function demoProject(now = Date.now()): Project {
   return {
@@ -212,6 +237,7 @@ export function demoProject(now = Date.now()): Project {
       { id: 's4', assetId: 'render-v2', caption: 'v2: satin glaze, one soft key. Approved.' },
       { id: 's5', assetId: 'poster', caption: 'FORM / 01 — launch poster.' },
     ],
+    objects: [demoObject()],
     presentation: ['poster', 'render-v2', 'loop', 'clay'],
     portfolio: ['poster'],
   };

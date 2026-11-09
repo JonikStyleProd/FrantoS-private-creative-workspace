@@ -93,7 +93,10 @@ export function GlassLanding() {
               <button type="button" onClick={openDemo} className="lg-btn lg-btn-primary min-h-[52px] px-6 text-[15px]">
                 {t('Open the demo project')} <ArrowRight size={17} className="rtl:-scale-x-100" />
               </button>
-              <button type="button" onClick={() => go('/app')} className="lg-btn lg-btn-ghost min-h-[52px] px-6 text-[15px]">
+              <button type="button" onClick={() => go('/o/form-01/o-vessel')} className="lg-btn lg-btn-ghost min-h-[52px] px-6 text-[15px]">
+                {t('The object in 3D')}
+              </button>
+              <button type="button" onClick={() => go('/app')} className="lg-btn lg-btn-plain min-h-[52px] px-5 text-[15px]">
                 {t('Start your own')}
               </button>
             </motion.div>

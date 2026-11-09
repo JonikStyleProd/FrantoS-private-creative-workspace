@@ -7,6 +7,8 @@ import {
   Columns2,
   Copy,
   Crosshair,
+  Box,
+  Eye,
   ExternalLink,
   FileText,
   Image as ImageIcon,
@@ -114,7 +116,8 @@ function Screen({ p, q }: { p: Project; q: URLSearchParams }) {
   };
   const drop = useDropZone(addFiles);
   const img = item ? itemImage(item) : undefined;
-  const bg = useAssetUrl(img, img?.kind === 'video' ? 'thumb' : 'full').url;
+  const bgAsset = useAssetUrl(img, img?.kind === 'video' ? 'thumb' : 'full').url;
+  const bg = item?.kind === 'object' ? item.object.thumb : bgAsset;
 
   // keyboard: 1–4 stages, ↑/↓ items, Esc closes the panel on phones
   useEffect(() => {
@@ -154,6 +157,9 @@ function Screen({ p, q }: { p: Project; q: URLSearchParams }) {
               <GlassLang />
             </span>
           </Pane>
+          <button type="button" onClick={() => go(`/s/${p.id}`)} className="lg-glass lg-btn">
+            <Box size={15} /> <span className="hidden sm:inline">{t('Studio')}</span>
+          </button>
           <ShareButton p={p} item={item} />
           <GlassAccount />
         </div>
@@ -267,7 +273,8 @@ function Rail({ p, stage, list, active, onPick, onAdd, narrow }: { p: Project; s
 function RailItem({ p, item, on, onClick, narrow }: { p: Project; item: Item; on: boolean; onClick: () => void; narrow: boolean }) {
   const { t } = useI18n();
   const a = itemImage(item);
-  const { url } = useAssetUrl(a, 'thumb');
+  const assetThumb = useAssetUrl(a, 'thumb').url;
+  const url = item.kind === 'object' ? item.object.thumb : assetThumb;
   const badge = item.kind === 'work' && item.open ? item.open : null;
   return (
     <button type="button" onClick={onClick} aria-current={on ? 'true' : undefined} title={t(item.title)} className={`group relative shrink-0 rounded-[16px] p-0.5 text-start transition-transform active:scale-[0.97] ${narrow ? 'h-[70px] w-[70px]' : 'w-full'}`}>
@@ -315,6 +322,23 @@ function currentVersion(w: Work, q: URLSearchParams, p?: Project) {
 function Stagepiece({ p, item, q, setQ }: { p: Project; item: Item; q: URLSearchParams; setQ: (x: Record<string, string | undefined>, r?: boolean) => void }) {
   const { t } = useI18n();
   const video = useRef<VideoHandle>(null);
+  if (item.kind === 'object') {
+    return (
+      <div className="relative flex h-full items-center justify-center p-4">
+        {item.object.thumb && <img src={item.object.thumb} alt="" className="max-h-full max-w-full rounded-[6px] object-contain" />}
+        <div className="absolute inset-x-0 bottom-6 flex justify-center">
+          <Pane className="flex flex-wrap items-center justify-center gap-2 rounded-full p-1.5">
+            <button type="button" onClick={() => go(`/o/${p.id}/${item.object.id}`)} className="lg-btn lg-btn-ghost">
+              <Eye size={16} /> {t('Showroom')}
+            </button>
+            <button type="button" onClick={() => go(`/s/${p.id}?o=${item.object.id}`)} className="lg-btn lg-btn-primary">
+              <Box size={16} /> {t('Edit in studio')}
+            </button>
+          </Pane>
+        </div>
+      </div>
+    );
+  }
   if (item.kind === 'story' || item.kind === 'case') {
     const a = itemImage(item);
     return (
@@ -460,7 +484,7 @@ function Panel({ p, item, q, setQ, onClose }: { p: Project; item: Item; q: URLSe
     <>
       <div className="flex items-start gap-2 px-5 pb-3 pt-4">
         <div className="min-w-0 flex-1">
-          <p className="lg-label">{item.kind === 'asset' ? (item.asset.isReference ? t('Reference') : t('File')) : item.kind === 'work' ? t('Work') : item.kind === 'story' ? t('Story') : t('Case page')}</p>
+          <p className="lg-label">{item.kind === 'asset' ? (item.asset.isReference ? t('Reference') : t('File')) : item.kind === 'work' ? t('Work') : item.kind === 'story' ? t('Story') : item.kind === 'object' ? t('3D object') : t('Case page')}</p>
           <h2 dir="auto" className="mt-0.5 truncate text-start text-[20px] font-extrabold tracking-[-0.02em]">{t(item.title)}</h2>
         </div>
         {onClose && (
@@ -474,6 +498,7 @@ function Panel({ p, item, q, setQ, onClose }: { p: Project; item: Item; q: URLSe
         {item.kind === 'work' && <WorkPanel key={item.id} p={p} w={item.work} q={q} setQ={setQ} />}
         {item.kind === 'story' && <StoryPanel p={p} />}
         {item.kind === 'case' && <CasePanel p={p} />}
+        {item.kind === 'object' && <ObjectPanel p={p} o={item.object} />}
       </div>
     </>
   );
@@ -793,6 +818,37 @@ function StoryPanel({ p }: { p: Project }) {
       >
         <Wand2 size={15} /> {t('Build from the trail')}
       </button>
+    </div>
+  );
+}
+
+function ObjectPanel({ p, o }: { p: Project; o: import('../ws/types').StudioObject }) {
+  const { t } = useI18n();
+  const v = o.variants.find((x) => x.id === o.variantId) ?? o.variants[0];
+  return (
+    <div className="space-y-4">
+      {o.note && (
+        <p dir="auto" className="text-[14.5px] leading-[1.5] text-white/85">
+          {t(o.note)}
+        </p>
+      )}
+      <div className="flex justify-between text-[13px]">
+        <span className="text-white/70">{t('Material')}</span>
+        <span className="font-semibold">{t(v.name)}</span>
+      </div>
+      <div className="flex justify-between text-[13px]">
+        <span className="text-white/70">{t('Variants')}</span>
+        <span className="font-semibold">{o.variants.length}</span>
+      </div>
+      <p className="text-[12.5px] leading-[1.5] text-white/65">{t('The showroom shows the object live: visitors turn it, try the variants and place it in their room with AR.')}</p>
+      <div className="grid grid-cols-2 gap-2">
+        <button type="button" onClick={() => go(`/o/${p.id}/${o.id}`)} className="lg-btn lg-btn-ghost">
+          {t('Showroom')}
+        </button>
+        <button type="button" onClick={() => go(`/s/${p.id}?o=${o.id}`)} className="lg-btn lg-btn-primary">
+          {t('Edit in studio')}
+        </button>
+      </div>
     </div>
   );
 }

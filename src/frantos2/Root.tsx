@@ -11,6 +11,8 @@ const AfterHoursLanding = lazy(() => import('./Landing').then((m) => ({ default:
 const Present = lazy(() => import('./Present').then((m) => ({ default: m.Present })));
 const HomeGlass = lazy(() => import('./glass/HomeGlass').then((m) => ({ default: m.HomeGlass })));
 const ProjectGlass = lazy(() => import('./glass/ProjectGlass').then((m) => ({ default: m.ProjectGlass })));
+const StudioPage = lazy(() => import('./studio/StudioPage').then((m) => ({ default: m.StudioPage })));
+const Showroom = lazy(() => import('./studio/Showroom').then((m) => ({ default: m.Showroom })));
 const ProjectPage = lazy(() => import('./ws/Project').then((m) => ({ default: m.ProjectPage })));
 const Show = lazy(() => import('./ws/Show').then((m) => ({ default: m.Show })));
 const GuestReview = lazy(() => import('./cloud/GuestReview').then((m) => ({ default: m.GuestReview })));
@@ -33,12 +35,14 @@ const TITLES: Record<string, string> = {
   join: 'Join a studio — FrantoS',
   guest: 'Review — FrantoS',
   case: 'Case — FrantoS',
+  editor: 'Studio — FrantoS',
+  showroom: 'Showroom — FrantoS',
   pcase: 'Case — FrantoS',
 };
 
 const Blank = ({ dark }: { dark?: boolean }) => <div className={`fixed inset-0 ${dark ? 'bg-[#0e0e10]' : 'bg-[#eee8dd]'}`} />;
-const APP_ROUTES = new Set(['app', 'project', 'pshow', 'team', 'join']);
-const GLASS = new Set(['landing', 'app', 'project']);
+const APP_ROUTES = new Set(['app', 'project', 'pshow', 'team', 'join', 'editor', 'showroom']);
+const GLASS = new Set(['landing', 'app', 'project', 'editor', 'showroom']);
 
 export function Root() {
   const hash = useHash();
@@ -87,6 +91,14 @@ export function Root() {
       baseKey = `p-${route.id}`;
       base = <ProjectPage id={route.id} tab={route.mode === 'story' ? 'stories' : 'overview'} q={new URLSearchParams()} />;
       overlay = <Show key="pshow" id={route.id} mode={route.mode} slide={route.slide} />;
+      break;
+    case 'editor':
+      baseKey = `s-${route.id}`;
+      base = <StudioPage id={route.id} q={route.q} />;
+      break;
+    case 'showroom':
+      baseKey = `o-${route.id}-${route.oid}`;
+      base = <Showroom pid={route.id} oid={route.oid} />;
       break;
     case 'pcase':
       baseKey = `case-${route.id}`;

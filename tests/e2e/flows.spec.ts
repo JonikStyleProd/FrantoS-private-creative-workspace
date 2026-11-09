@@ -81,3 +81,34 @@ test('a bad review link explains itself', async ({ page }) => {
   await page.goto('/#/r/not-a-real-token-123456');
   await expect(page.getByText(/not valid|no studio server/)).toBeVisible();
 });
+
+test('studio: change the material, it survives a reload and shows in the showroom', async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.goto('/#/s/form-01');
+  await expect(page.locator('canvas').first()).toBeVisible({ timeout: 20000 });
+  await expect(page.getByText('Preparing the object…')).toBeHidden({ timeout: 15000 });
+  if (isPhone(page)) await page.getByRole('button', { name: 'Material' }).click();
+  await page.getByRole('radio', { name: 'Raw clay' }).click();
+  await expect(page.getByRole('radio', { name: 'Raw clay' })).toHaveAttribute('aria-checked', 'true');
+  await page.waitForTimeout(2000); // the edit is saved after a short pause
+  await page.reload();
+  await expect(page.getByText('Preparing the object…')).toBeHidden({ timeout: 20000 });
+  if (isPhone(page)) await page.getByRole('button', { name: 'Material' }).click();
+  await expect(page.getByRole('radio', { name: 'Raw clay' })).toHaveAttribute('aria-checked', 'true', { timeout: 15000 });
+  await page.goto('/#/o/form-01/o-vessel');
+  await expect(page.getByRole('radio', { name: 'Raw clay', checked: true })).toBeVisible({ timeout: 20000 });
+});
+
+test('studio: import a GLB, render it into the project as a new work', async ({ page }) => {
+  test.setTimeout(120_000);
+  test.skip(isPhone(page), 'desktop flow');
+  await page.goto('/#/s/form-01');
+  await expect(page.getByText('Preparing the object…')).toBeHidden({ timeout: 15000 });
+  await page.locator('button[aria-label="Import GLB"] + input[type=file]').setInputFiles(fixture('pyramid.glb'));
+  await expect(page.getByText('Model imported')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'pyramid Imported GLB' })).toBeVisible();
+  await expect(page.getByText('Preparing the object…')).toBeHidden({ timeout: 15000 });
+  await page.getByRole('button', { name: 'To project' }).click();
+  await expect(page).toHaveURL(/#\/p\/form-01\?s=make&i=w-/, { timeout: 15000 });
+  await expect(page.getByRole('heading', { name: /pyramid/ })).toBeVisible({ timeout: 15000 });
+});

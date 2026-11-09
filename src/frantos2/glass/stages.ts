@@ -1,4 +1,4 @@
-import { Asset, Project, Work } from '../ws/types';
+import { Asset, Project, StudioObject, Work } from '../ws/types';
 
 /**
  * The four stages are views of one project, derived from its data:
@@ -16,7 +16,8 @@ export type Item =
   | { kind: 'asset'; id: string; title: string; asset: Asset }
   | { kind: 'work'; id: string; title: string; work: Work; asset?: Asset; open: number; versions: number }
   | { kind: 'story'; id: 'story'; title: string; asset?: Asset; frames: number }
-  | { kind: 'case'; id: 'case'; title: string; asset?: Asset };
+  | { kind: 'case'; id: 'case'; title: string; asset?: Asset }
+  | { kind: 'object'; id: string; title: string; object: StudioObject; asset?: undefined };
 
 export const latest = (w: Work) => w.versions[w.versions.length - 1];
 export const assetById = (p: Project, id?: string) => (id ? p.assets.find((a) => a.id === id) : undefined);
@@ -32,6 +33,7 @@ export function itemsOf(p: Project): Record<Stage, Item[]> {
   const out: Record<Stage, Item[]> = { collect: [], make: [], review: [], show: [] };
   const byNew = <T extends { createdAt: number }>(a: T, b: T) => b.createdAt - a.createdAt;
   for (const a of [...p.assets].sort(byNew)) {
+    if (a.kind === 'model') continue;
     if (a.isReference) out.collect.push({ kind: 'asset', id: a.id, title: a.title, asset: a });
     else if (!inWorks.has(a.id)) out.make.push({ kind: 'asset', id: a.id, title: a.title, asset: a });
   }
@@ -39,6 +41,7 @@ export function itemsOf(p: Project): Record<Stage, Item[]> {
     const v = w.approvedVersionId ? w.versions.find((x) => x.id === w.approvedVersionId) ?? latest(w) : latest(w);
     out[stageOf(p, w)].push({ kind: 'work', id: w.id, title: w.title, work: w, asset: assetById(p, v?.assetId), open: openOn(p, w), versions: w.versions.length });
   }
+  for (const o of p.objects ?? []) out.show.push({ kind: 'object', id: o.id, title: o.title, object: o });
   const first = p.story[0];
   if (p.story.length) out.show.push({ kind: 'story', id: 'story', title: 'Story', asset: assetById(p, first?.assetId), frames: p.story.length });
   out.show.push({ kind: 'case', id: 'case', title: 'Case page', asset: assetById(p, p.coverAssetId) ?? assetById(p, first?.assetId) });

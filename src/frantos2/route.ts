@@ -22,7 +22,9 @@ export type Route =
   | { name: 'case'; slug: string }
   | { name: 'pcase'; id: string }
   | { name: 'project'; id: string; tab: ProjectTab; sub?: string; q: URLSearchParams }
-  | { name: 'pshow'; id: string; mode: 'presentation' | 'story'; slide: number };
+  | { name: 'pshow'; id: string; mode: 'presentation' | 'story'; slide: number }
+  | { name: 'editor'; id: string; q: URLSearchParams }
+  | { name: 'showroom'; id: string; oid: string };
 
 export type ProjectTab = 'overview' | 'materials' | 'moodboard' | 'review' | 'stories';
 const TABS: ProjectTab[] = ['overview', 'materials', 'moodboard', 'review', 'stories'];
@@ -41,6 +43,8 @@ export function parse(hash: string): Route {
   if (a === 'join' && b) return { name: 'join', token: b };
   if (a === 'r' && b) return { name: 'guest', token: b, workId: c, q: new URLSearchParams(query) };
   if (a === 'c' && b) return { name: 'case', slug: b };
+  if (a === 's' && b) return { name: 'editor', id: b, q: new URLSearchParams(query) };
+  if (a === 'o' && b && c) return { name: 'showroom', id: b, oid: c };
   if (a === 'p' && b) {
     if (c === 'present') return { name: 'pshow', id: b, mode: 'presentation', slide: num(d) };
     if (c === 'stories' && d === 'play') return { name: 'pshow', id: b, mode: 'story', slide: num(parts[4]) };

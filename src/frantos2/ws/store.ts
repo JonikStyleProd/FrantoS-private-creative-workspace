@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { get, set, del, keys } from 'idb-keyval';
-import { Asset, CanvasGroup, CanvasNote, Comment, Decision, MoodItem, Project, WsState, Work } from './types';
+import { Asset, CanvasGroup, CanvasNote, Comment, Decision, MaterialVariant, MoodItem, Project, StudioObject, WsState, Work } from './types';
 import { AH_ID, DEMO_ID, DEMO_REV, afterHoursProject, demoProject } from './seed';
 
 /**
@@ -122,6 +122,7 @@ function refreshDemo(p: Project): Project {
     ...p,
     seedRev: DEMO_REV,
     brief: fresh.brief,
+    objects: p.objects?.length ? p.objects : fresh.objects,
     assets: p.assets.map((a) => {
       const f = byId.get(a.id);
       return f ? { ...a, title: f.title, note: f.note, source: f.source, influences: f.influences, w: f.w, h: f.h, src: f.src, thumb: f.thumb } : a;
@@ -417,6 +418,39 @@ export const ws = {
     const copy: Project = { ...structuredClone(src), id, kind: 'user', title: title ?? src.title, createdAt: now, updatedAt: now, cloud: undefined, visibility: 'private', publicSlug: undefined, lastView: undefined };
     commit({ ...state, projects: [copy, ...state.projects] });
     return id;
+  },
+
+  /* studio objects */
+  addObject(pid: string, o: Omit<StudioObject, 'id' | 'createdAt' | 'updatedAt'>): string {
+    const id = uid('o-');
+    const now = Date.now();
+    updateProject(pid, (p) => ({ ...p, objects: [...(p.objects ?? []), { ...o, id, createdAt: now, updatedAt: now }] }), 'Object added');
+    return id;
+  },
+  patchObject(pid: string, oid: string, patch: Partial<StudioObject>, undoLabel?: string) {
+    updateProject(pid, (p) => ({ ...p, objects: (p.objects ?? []).map((o) => (o.id === oid ? { ...o, ...patch, updatedAt: Date.now() } : o)) }), undoLabel);
+  },
+  patchVariant(pid: string, oid: string, vid: string, patch: Partial<MaterialVariant>, undoLabel?: string) {
+    updateProject(
+      pid,
+      (p) => ({ ...p, objects: (p.objects ?? []).map((o) => (o.id === oid ? { ...o, updatedAt: Date.now(), variants: o.variants.map((v) => (v.id === vid ? { ...v, ...patch } : v)) } : o)) }),
+      undoLabel
+    );
+  },
+  addVariant(pid: string, oid: string, from: MaterialVariant): string {
+    const id = uid('mv-');
+    updateProject(pid, (p) => ({ ...p, objects: (p.objects ?? []).map((o) => (o.id === oid ? { ...o, variants: [...o.variants, { ...from, id, name: from.name + ' 2' }], variantId: id } : o)) }), 'Variant added');
+    return id;
+  },
+  removeVariant(pid: string, oid: string, vid: string) {
+    updateProject(
+      pid,
+      (p) => ({ ...p, objects: (p.objects ?? []).map((o) => (o.id === oid && o.variants.length > 1 ? { ...o, variants: o.variants.filter((v) => v.id !== vid), variantId: o.variantId === vid ? o.variants.find((v) => v.id !== vid)!.id : o.variantId } : o)) }),
+      'Variant removed'
+    );
+  },
+  removeObject(pid: string, oid: string) {
+    updateProject(pid, (p) => ({ ...p, objects: (p.objects ?? []).filter((o) => o.id !== oid) }), 'Object removed');
   },
 
   /* moodboard */

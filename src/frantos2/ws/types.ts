@@ -1,6 +1,6 @@
 /** FrantoS workspace data model (local-first, stored in IndexedDB). */
 
-export type MediaKind = 'image' | 'video';
+export type MediaKind = 'image' | 'video' | 'model';
 
 export interface Asset {
   id: string;
@@ -119,6 +119,42 @@ export interface CanvasGroup {
   label: string;
 }
 
+/* ───────── studio: 3D objects ───────── */
+
+/** How a surface looks. Two zones (base and top) meet at `blend`, like stone fading into glaze. */
+export interface MaterialVariant {
+  id: string;
+  name: string;
+  base: 'travertine' | 'clay' | 'glaze';
+  baseColor: string;
+  topColor: string;
+  /** 0 = all top colour, 1 = all base; where the two meet, measured from the bottom */
+  blend: number;
+  softness: number;
+  roughness: number;
+  gloss: number;
+}
+
+export type LightPreset = 'softbox' | 'window' | 'spot' | 'rim';
+
+export interface StudioObject {
+  id: string;
+  title: string;
+  /** 'vessel' = the procedural FORM / 01 vessel; 'model' = an imported GLB/GLTF asset */
+  source: { kind: 'vessel'; twist: number; height: number; waist: number } | { kind: 'model'; assetId: string };
+  variants: MaterialVariant[];
+  variantId: string;
+  light: { preset: LightPreset; angle: number; intensity: number };
+  camera: { lens: number };
+  background: { kind: 'studio' | 'color' | 'transparent'; color: string };
+  turntable: { seconds: number };
+  /** small preview, a data URL or a static path */
+  thumb?: string;
+  note?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface StoryFrame {
   id: string;
   assetId: string;
@@ -146,6 +182,8 @@ export interface Project {
   presentation: string[];
   portfolio: string[];
   decisions?: Decision[];
+  /** 3D objects made in the studio */
+  objects?: StudioObject[];
   notes?: CanvasNote[];
   groups?: CanvasGroup[];
   tags?: string[];
