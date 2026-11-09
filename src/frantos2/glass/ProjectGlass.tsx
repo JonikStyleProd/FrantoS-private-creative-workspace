@@ -21,6 +21,8 @@ import {
   Upload,
   Wand2,
   X,
+  PanelRightClose,
+  PanelRightOpen,
   CalendarDays,
   Mic,
   Square as StopIcon,
@@ -87,8 +89,14 @@ function Screen({ p, q }: { p: Project; q: URLSearchParams }) {
   const stage = home ?? ((STAGES as string[]).includes(q.get('s') ?? '') ? (q.get('s') as Stage) : defaultStage(items));
   const list = items[stage];
   const item = list.find((i) => i.id === q.get('i')) ?? list[0];
-  const [panelOpen, setPanelOpen] = useState(!narrow || !!q.get('c'));
-  useEffect(() => setPanelOpen(!narrow), [narrow]);
+  // the details panel: on wide screens it remembers whether you folded it away
+  const [panelOpen, setPanelOpenRaw] = useState(() => (narrow ? !!q.get('c') : localStorage.getItem('frantos-panel') !== 'closed' || !!q.get('c')));
+  const setPanelOpen = (v: boolean) => {
+    setPanelOpenRaw(v);
+    if (!narrow) localStorage.setItem('frantos-panel', v ? 'open' : 'closed');
+  };
+  // phone ↔ desktop: phones start with the panel closed; desktops keep what you chose
+  useEffect(() => setPanelOpenRaw(narrow ? false : localStorage.getItem('frantos-panel') !== 'closed'), [narrow]);
   // a chosen note or a new mark always brings the panel back
   const noteId = q.get('c');
   useEffect(() => {
@@ -146,7 +154,7 @@ function Screen({ p, q }: { p: Project; q: URLSearchParams }) {
       <Backdrop src={bg} id={img?.id ?? stage} tint={0.42} blur />
 
       {/* top bar */}
-      <header className="absolute inset-x-3 top-3 z-30 flex items-center gap-2 sm:inset-x-4 sm:top-4">
+      <header className="absolute inset-x-3 top-3 z-40 flex items-center gap-2 sm:inset-x-4 sm:top-4">
         <Pane className="flex min-w-0 items-center gap-1 rounded-full py-1 pe-4 ps-1">
           <button type="button" onClick={() => go('/app')} className="lg-btn lg-btn-plain lg-icon" aria-label={t('All projects')}>
             <ArrowLeft size={18} className="rtl:-scale-x-100" />
@@ -197,13 +205,13 @@ function Screen({ p, q }: { p: Project; q: URLSearchParams }) {
               className={`z-30 flex flex-col overflow-hidden ${narrow ? 'fixed inset-x-2 bottom-[80px] top-[30%] rounded-[26px]' : 'absolute bottom-[96px] end-4 top-[84px] w-[372px] rounded-[26px]'}`}
               aria-label={t('Details')}
             >
-              <Panel p={p} item={item} q={q} setQ={setQ} onClose={narrow ? () => setPanelOpen(false) : undefined} />
+              <Panel p={p} item={item} q={q} setQ={setQ} onClose={() => setPanelOpen(false)} collapse={!narrow} />
             </Pane>
           )}
         </AnimatePresence>
         {item && !panelOpen && (
-          <button type="button" onClick={() => setPanelOpen(true)} className={`lg-glass lg-btn absolute z-20 ${narrow ? 'end-3 top-[76px]' : 'end-4 top-[84px]'}`}>
-            <MessageSquare size={15} /> {t('Details')}
+          <button type="button" onClick={() => setPanelOpen(true)} className={`lg-glass lg-btn absolute z-20 ${narrow ? 'end-3 top-[76px]' : 'end-4 top-[84px]'}`} title={t('Show the panel')}>
+            {narrow ? <MessageSquare size={15} /> : <PanelRightOpen size={16} className="rtl:-scale-x-100" />} {t('Details')}
           </button>
         )}
 
@@ -519,7 +527,7 @@ function WorkPiece({ p, w, q, setQ }: { p: Project; w: Work; q: URLSearchParams;
 
 /* ───────── the panel ───────── */
 
-function Panel({ p, item, q, setQ, onClose }: { p: Project; item: Item; q: URLSearchParams; setQ: (x: Record<string, string | undefined>, r?: boolean) => void; onClose?: () => void }) {
+function Panel({ p, item, q, setQ, onClose, collapse }: { p: Project; item: Item; q: URLSearchParams; setQ: (x: Record<string, string | undefined>, r?: boolean) => void; onClose?: () => void; collapse?: boolean }) {
   const { t } = useI18n();
   return (
     <>
@@ -529,8 +537,8 @@ function Panel({ p, item, q, setQ, onClose }: { p: Project; item: Item; q: URLSe
           <h2 dir="auto" className="mt-0.5 truncate text-start text-[20px] font-extrabold tracking-[-0.02em]">{t(item.title)}</h2>
         </div>
         {onClose && (
-          <button type="button" onClick={onClose} className="lg-btn lg-btn-plain lg-icon -me-2" aria-label={t('Close')}>
-            <X size={18} />
+          <button type="button" onClick={onClose} className="lg-btn lg-btn-plain lg-icon -me-2 -mt-1" aria-label={collapse ? t('Fold the panel away') : t('Close')} title={collapse ? t('Fold the panel away') : t('Close')}>
+            {collapse ? <PanelRightClose size={18} className="rtl:-scale-x-100" /> : <X size={18} />}
           </button>
         )}
       </div>
@@ -1045,6 +1053,19 @@ function ShareButton({ p, item }: { p: Project; item?: Item }) {
       setBusy(false);
     }
   };
+  // closes on Esc and on a click anywhere outside it
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const key = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    const down = (e: PointerEvent) => !box.current?.contains(e.target as Node) && setOpen(false);
+    window.addEventListener('keydown', key);
+    window.addEventListener('pointerdown', down);
+    return () => {
+      window.removeEventListener('keydown', key);
+      window.removeEventListener('pointerdown', down);
+    };
+  }, [open]);
   const workId = item?.kind === 'work' ? item.id : undefined;
   const make = async () => {
     setBusy(true);
@@ -1061,7 +1082,7 @@ function ShareButton({ p, item }: { p: Project; item?: Item }) {
     }
   };
   return (
-    <div className="relative">
+    <div className="relative" ref={box}>
       <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="lg-btn lg-btn-primary">
         <Link2 size={15} /> <span className="hidden sm:inline">{t('Share')}</span>
       </button>

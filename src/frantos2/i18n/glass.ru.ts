@@ -688,4 +688,6 @@ export const glassRu: Record<string, string> = {
   "This browser draws without the graphics card, so Automatic means Lite.": "Этот браузер рисует без видеокарты, поэтому «Авто» — это облегчённый режим.",
   "Turn it in 3D": "Покрутите в 3D",
   "Lite graphics": "Облегчённая графика",
+  "Fold the panel away": "Свернуть панель",
+  "Show the panel": "Показать панель",
 };

@@ -688,4 +688,6 @@ export const glassHe: Record<string, string> = {
   "This browser draws without the graphics card, so Automatic means Lite.": "הדפדפן הזה מצייר בלי כרטיס מסך, ולכן „אוטומטי” פירושו קלה.",
   "Turn it in 3D": "סובבו בתלת־ממד",
   "Lite graphics": "גרפיקה קלה",
+  "Fold the panel away": "קיפול הלוח",
+  "Show the panel": "הצגת הלוח",
 };
