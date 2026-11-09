@@ -6,10 +6,11 @@ import { useI18n } from './i18n';
 
 // Every surface is its own chunk: the landing page loads only what it shows.
 const LegacyShell = lazy(() => import('./LegacyShell').then((m) => ({ default: m.LegacyShell })));
-const BehindTheWork = lazy(() => import('./landing/BehindTheWork').then((m) => ({ default: m.BehindTheWork })));
+const GlassLanding = lazy(() => import('./glass/Landing').then((m) => ({ default: m.GlassLanding })));
 const AfterHoursLanding = lazy(() => import('./Landing').then((m) => ({ default: m.Landing })));
 const Present = lazy(() => import('./Present').then((m) => ({ default: m.Present })));
-const Home = lazy(() => import('./ws/Home').then((m) => ({ default: m.Home })));
+const HomeGlass = lazy(() => import('./glass/HomeGlass').then((m) => ({ default: m.HomeGlass })));
+const ProjectGlass = lazy(() => import('./glass/ProjectGlass').then((m) => ({ default: m.ProjectGlass })));
 const ProjectPage = lazy(() => import('./ws/Project').then((m) => ({ default: m.ProjectPage })));
 const Show = lazy(() => import('./ws/Show').then((m) => ({ default: m.Show })));
 const GuestReview = lazy(() => import('./cloud/GuestReview').then((m) => ({ default: m.GuestReview })));
@@ -37,6 +38,7 @@ const TITLES: Record<string, string> = {
 
 const Blank = ({ dark }: { dark?: boolean }) => <div className={`fixed inset-0 ${dark ? 'bg-[#0e0e10]' : 'bg-[#eee8dd]'}`} />;
 const APP_ROUTES = new Set(['app', 'project', 'pshow', 'team', 'join']);
+const GLASS = new Set(['landing', 'app', 'project']);
 
 export function Root() {
   const hash = useHash();
@@ -48,7 +50,7 @@ export function Root() {
   }, [route.name]);
 
   useEffect(() => {
-    document.body.style.background = route.name === 'legacy' ? '' : '#eee8dd';
+    document.body.style.background = route.name === 'legacy' ? '' : GLASS.has(route.name) ? '#101418' : '#eee8dd';
   }, [route.name]);
 
   if (route.name === 'legacy') {
@@ -65,7 +67,7 @@ export function Root() {
   switch (route.name) {
     case 'landing':
       baseKey = 'landing';
-      base = <BehindTheWork />;
+      base = <GlassLanding />;
       break;
     case 'afterhours':
     case 'story':
@@ -75,11 +77,11 @@ export function Root() {
       break;
     case 'app':
       baseKey = 'app';
-      base = <Home />;
+      base = <HomeGlass />;
       break;
     case 'project':
       baseKey = `p-${route.id}`;
-      base = <ProjectPage id={route.id} tab={route.tab} sub={route.sub} q={route.q} />;
+      base = route.tab === 'overview' && !route.sub ? <ProjectGlass id={route.id} q={route.q} /> : <ProjectPage id={route.id} tab={route.tab} sub={route.sub} q={route.q} />;
       break;
     case 'pshow':
       baseKey = `p-${route.id}`;
@@ -108,7 +110,7 @@ export function Root() {
       break;
     default:
       baseKey = 'landing';
-      base = <BehindTheWork />;
+      base = <GlassLanding />;
   }
   const inApp = APP_ROUTES.has(route.name);
 
@@ -128,7 +130,7 @@ export function Root() {
               aria-hidden={overlay ? true : undefined}
               inert={overlay ? true : undefined}
             >
-              <Suspense fallback={<Blank />}>{base}</Suspense>
+              <Suspense fallback={<Blank dark={GLASS.has(route.name)} />}>{base}</Suspense>
             </motion.div>
           </AnimatePresence>
           <AnimatePresence>{overlay && <Suspense fallback={<Blank dark />}>{overlay}</Suspense>}</AnimatePresence>

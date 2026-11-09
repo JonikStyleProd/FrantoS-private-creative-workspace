@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { get, set, del, keys } from 'idb-keyval';
 import { Asset, CanvasGroup, CanvasNote, Comment, Decision, MoodItem, Project, WsState, Work } from './types';
-import { AH_ID, DEMO_ID, afterHoursProject, demoProject } from './seed';
+import { AH_ID, DEMO_ID, DEMO_REV, afterHoursProject, demoProject } from './seed';
 
 /**
  * Local-first workspace store.
@@ -96,6 +96,7 @@ export function ensureLoaded() {
         if (saved && saved.v === 1 && Array.isArray(saved.projects)) {
           state = saved;
           if (!state.projects.some((p) => p.id === DEMO_ID)) state.projects.push(demoProject());
+          else state = { ...state, projects: state.projects.map((p) => (p.id === DEMO_ID && (p.seedRev ?? 1) < DEMO_REV ? refreshDemo(p) : p)) };
           if (!state.projects.some((p) => p.id === AH_ID)) state.projects.push(afterHoursProject());
           gcBlobs();
         } else {
@@ -111,6 +112,21 @@ export function ensureLoaded() {
     })();
   }
   return loading;
+}
+
+/** Bring an older demo copy up to date: new copy for the demo's own files, the visitor's notes stay. */
+function refreshDemo(p: Project): Project {
+  const fresh = demoProject();
+  const byId = new Map(fresh.assets.map((a) => [a.id, a]));
+  return {
+    ...p,
+    seedRev: DEMO_REV,
+    brief: fresh.brief,
+    assets: p.assets.map((a) => {
+      const f = byId.get(a.id);
+      return f ? { ...a, title: f.title, note: f.note, source: f.source, influences: f.influences, w: f.w, h: f.h, src: f.src, thumb: f.thumb } : a;
+    }),
+  };
 }
 
 async function gcBlobs() {

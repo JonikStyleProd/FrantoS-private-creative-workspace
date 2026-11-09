@@ -2,7 +2,8 @@ import { Project } from './types';
 
 /**
  * FORM / 01 — demo project. An identity built around one sculptural object.
- * Every material shows the same procedural object (src/frantos2/form/formScene.ts).
+ * One vessel — travertine base, terracotta satin lip — in clay, lacquer (v1) and satin (v2).
+ * Renders, references and the turntable were generated for the demo (Higgsfield) and live in public/projects/form-01.
  */
 const P = '/projects/form-01/';
 const img = (name: string) => ({ src: `${P}${name}.webp`, thumb: `${P}${name}-sm.webp` });
@@ -10,6 +11,8 @@ const day = 86400000;
 const T0 = Date.UTC(2026, 10, 2, 9, 30);
 
 export const DEMO_ID = 'form-01';
+/** bump when the demo's files or copy change: open browsers refresh the demo's text on next load */
+export const DEMO_REV = 2;
 
 export function demoProject(now = Date.now()): Project {
   return {
@@ -17,6 +20,7 @@ export function demoProject(now = Date.now()): Project {
     title: 'FORM / 01',
     brief: 'Object identity for a ceramics studio: one sculptural form carries the poster, the motion loop and the launch story.',
     kind: 'demo',
+    seedRev: DEMO_REV,
     status: 'review',
     createdAt: T0,
     updatedAt: now - 2 * 3600000,
@@ -80,14 +84,14 @@ export function demoProject(now = Date.now()): Project {
       {
         id: 'ref-glaze',
         kind: 'image',
-        title: 'Cobalt glaze, satin',
+        title: 'Terracotta glaze, satin',
         ...img('ref-glaze'),
         w: 1792,
         h: 2240,
         createdAt: T0 + 3 * day,
         isReference: true,
         source: 'Client sample box',
-        note: 'Their real glaze. Satin, pools in the grooves, never mirrors.',
+        note: 'Their real glaze. Satin, darker where it pools in the grooves, never mirrors.',
         influences: { assetId: 'render-v2', text: 'Lacquer → satin glaze. Roughness 0.06 → 0.30, the highlight spreads instead of clipping.' },
       },
       {
@@ -113,8 +117,8 @@ export function demoProject(now = Date.now()): Project {
         createdAt: T0 + 4 * day,
         isReference: true,
         source: 'Showroom visit',
-        note: 'Warm stone, not white: the blue needs a warm ground.',
-        influences: { assetId: 'poster', text: 'Set the warm paper ground of the poster (#E8E2D6).' },
+        note: 'Warm stone with open pores — the base should feel quarried, not cast.',
+        influences: { assetId: 'render-v2', text: 'Travertine for the lower half of the vessel; the glaze fades into the stone toward the base.' },
       },
     ],
     works: [

@@ -1,6 +1,8 @@
 import { useSyncExternalStore } from 'react';
 import { ru } from './ru';
 import { he } from './he';
+import { glassRu } from './glass.ru';
+import { glassHe } from './glass.he';
 
 /**
  * FrantoS i18n: English source strings are the keys.
@@ -15,7 +17,7 @@ export const LANGS: { id: Lang; label: string; name: string }[] = [
   { id: 'he', label: 'עב', name: 'עברית' },
 ];
 
-const DICTS: Record<Lang, Record<string, string>> = { en: {}, ru, he };
+const DICTS: Record<Lang, Record<string, string>> = { en: {}, ru: { ...ru, ...glassRu }, he: { ...he, ...glassHe } };
 const KEY = 'frantos-lang';
 
 function detect(): Lang {

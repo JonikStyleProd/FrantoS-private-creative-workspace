@@ -132,6 +132,8 @@ export interface Project {
   title: string;
   brief?: string;
   kind: 'demo' | 'user';
+  /** demo only: which revision of the seed this copy came from */
+  seedRev?: number;
   status: ProjectStatus;
   createdAt: number;
   updatedAt: number;
