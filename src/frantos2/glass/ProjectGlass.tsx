@@ -43,7 +43,7 @@ import { WorkCanvas, Anchor, PinView, Tool } from '../ws/WorkCanvas';
 import { VideoWork, VideoHandle } from '../ws/VideoWork';
 import { autoStory } from '../tell/autoStory';
 import { openPalette } from '../daily/Palette';
-import { cloudEnabled, useAuth } from '../cloud/client';
+import { cloudEnabled, getAuth, sb, useAuth } from '../cloud/client';
 import { createReviewLink, moveToStudio } from '../cloud/sync';
 import { useStudioId } from '../cloud/Account';
 import { Backdrop, GlassLang, Pane, ThemeSwitch, lgEase } from './kit';
@@ -753,7 +753,13 @@ function WorkPanel({ p, w, q, setQ }: { p: Project; w: Work; q: URLSearchParams;
         </button>
         <button
           type="button"
-          onClick={() => {
+          onClick={async () => {
+            // a client's approval goes through the server, which checks the project was shared with them
+            if (p.cloud && getAuth().role === 'client') {
+              if (approved) return;
+              const { error } = await sb!.rpc('client_approve', { p_project: p.id, p_work: w.id, p_version: cur.id });
+              if (error) return toast(t('Could not approve. Ask the studio to check your access.'), { tone: 'error' });
+            }
             ws.approve(p.id, w.id, approved ? undefined : cur.id);
             toast(approved ? t('Approval removed') : t('Approved — moved to Show'));
             if (!approved) setQ({ s: 'show', i: w.id, v: cur.id });

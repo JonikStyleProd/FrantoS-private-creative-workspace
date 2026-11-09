@@ -13,6 +13,9 @@ import { DEFAULT_BRAND, FONTS, fontCss } from '../studio/brand';
 import { projectPalette } from '../studio/palette';
 
 /** Profile, brand kit, language and theme, storage, export. Everything here stays in this browser until you publish. */
+import { SecurityPanel } from '../cloud/Security';
+import { cloudEnabled } from '../cloud/client';
+
 export function SettingsPage() {
   const { t } = useI18n();
   const { state } = useWs();
@@ -22,6 +25,12 @@ export function SettingsPage() {
   const [usage, setUsage] = useState<{ used: number; quota: number } | null>(null);
   useEffect(() => {
     navigator.storage?.estimate?.().then((e) => e.usage != null && e.quota && setUsage({ used: e.usage, quota: e.quota }));
+  }, []);
+  // #/settings?security=1 opens on the security panel (account menu, password reset link)
+  useEffect(() => {
+    if (!/security=1/.test(window.location.hash)) return;
+    const id = window.setTimeout(() => document.getElementById('security')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 400);
+    return () => window.clearTimeout(id);
   }, []);
   const mb = (n: number) => (n > 1e9 ? `${(n / 1e9).toFixed(1)} GB` : `${Math.round(n / 1e6)} MB`);
   const allColours = [...new Set(state.projects.flatMap((p) => projectPalette(p)))].slice(0, 24);
@@ -73,6 +82,7 @@ export function SettingsPage() {
   return (
     <GlassPage kicker={t('Settings')} title={t('Your studio')} lead={t('Who you are on your portfolio, how your work is dressed, and where it is stored.')} bg="/projects/form-01/ref-silk.webp">
       <div className="grid gap-5 lg:grid-cols-2">
+        {cloudEnabled && <SecurityPanel />}
         <Pane className="space-y-4 rounded-[28px] p-5">
           <h2 className="flex items-center gap-2 text-[18px] font-extrabold">
             <UserRound size={18} /> {t('Profile')}

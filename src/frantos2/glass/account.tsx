@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { Cloud, CloudOff, LogOut, Users } from 'lucide-react';
+import { Cloud, CloudOff, LogOut, ShieldCheck, UserCog, Users } from 'lucide-react';
 import { useI18n } from '../i18n';
 import { useAuth, cloudEnabled, signOut } from '../cloud/client';
-import { SignIn, useSync } from '../cloud/Account';
+import { useSync } from '../cloud/Account';
+import { GlassSignIn } from '../cloud/Security';
 import { go } from '../route';
 import { Pane } from './kit';
 
@@ -28,7 +29,7 @@ export function GlassAccount() {
         <button type="button" onClick={() => setSignin(true)} className="lg-btn lg-btn-ghost">
           <Cloud size={15} /> {t('Sign in')}
         </button>
-        <AnimatePresence>{signin && <SignIn onClose={() => setSignin(false)} />}</AnimatePresence>
+        <AnimatePresence>{signin && <GlassSignIn onClose={() => setSignin(false)} />}</AnimatePresence>
       </>
     );
   const initial = (a.name || a.session.user.email || '?').slice(0, 1).toUpperCase();
@@ -52,8 +53,18 @@ export function GlassAccount() {
                 {sync === 'syncing' ? t('Syncing…') : sync === 'offline' ? t('Offline — changes wait here') : sync === 'error' ? t('Sync paused, retrying') : t('In sync with your studio')}
               </p>
             </div>
-            <button role="menuitem" onClick={() => (setOpen(false), go('/team'))} className="flex min-h-[44px] w-full items-center gap-2 rounded-[14px] px-3 text-start text-[14px] hover:bg-white/10">
-              <Users size={16} /> {t('Studio & team')}
+            {a.role === 'admin' && (
+              <button role="menuitem" onClick={() => (setOpen(false), go('/admin'))} className="flex min-h-[44px] w-full items-center gap-2 rounded-[14px] px-3 text-start text-[14px] hover:bg-white/10">
+                <UserCog size={16} /> {t('Accounts & access')}
+              </button>
+            )}
+            {a.role !== 'client' && (
+              <button role="menuitem" onClick={() => (setOpen(false), go('/team'))} className="flex min-h-[44px] w-full items-center gap-2 rounded-[14px] px-3 text-start text-[14px] hover:bg-white/10">
+                <Users size={16} /> {t('Studio & team')}
+              </button>
+            )}
+            <button role="menuitem" onClick={() => (setOpen(false), go('/settings?security=1'))} className="flex min-h-[44px] w-full items-center gap-2 rounded-[14px] px-3 text-start text-[14px] hover:bg-white/10">
+              <ShieldCheck size={16} /> {t('Security')}
             </button>
             <button role="menuitem" onClick={() => (setOpen(false), signOut())} className="flex min-h-[44px] w-full items-center gap-2 rounded-[14px] px-3 text-start text-[14px] text-white/80 hover:bg-white/10">
               <LogOut size={16} /> {t('Sign out')}

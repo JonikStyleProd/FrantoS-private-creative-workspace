@@ -128,6 +128,8 @@ const pushing = new Set<string>();
 
 async function push(pid: string) {
   if (!sb || !getAuth().session) return;
+  // clients read shared projects and write comments; the project itself is the studio's (RLS refuses it anyway)
+  if (getAuth().role === 'client') return;
   if (pushing.has(pid)) {
     queue(pid);
     return;

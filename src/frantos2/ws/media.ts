@@ -1,3 +1,4 @@
+import { stripMetadata } from './stripMeta';
 import { useEffect, useState } from 'react';
 import { get, set } from 'idb-keyval';
 import { Asset } from './types';
@@ -71,8 +72,10 @@ async function videoMeta(file: Blob) {
 }
 
 /** Validate, read and store a file. Returns an Asset ready to add to a project. */
-export async function ingest(file: File, opts: { isReference: boolean }): Promise<Asset> {
-  const isImage = file.type.startsWith('image/');
+export async function ingest(input: File, opts: { isReference: boolean }): Promise<Asset> {
+  const isImage = input.type.startsWith('image/');
+  // location and camera data never leave the photo's owner: stripped before anything is stored
+  const file = isImage ? await stripMetadata(input) : input;
   const isVideo = file.type.startsWith('video/');
   if (!isImage && !isVideo) throw new UploadError('type', tr('{name}: only images (JPG, PNG, WebP, GIF, AVIF) and video (MP4, WebM, MOV) can be added.', { name: file.name }));
   if (isImage && file.size > IMAGE_MAX) throw new UploadError('size', tr('{name} is {size}. Images up to {max}.', { name: file.name, size: mb(file.size), max: mb(IMAGE_MAX) }));

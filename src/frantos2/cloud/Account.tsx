@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, Check, Cloud, CloudOff, Copy, LogOut, Mail, Plus, Users, X } from 'lucide-react';
-import { cloudEnabled, getAuth, refreshStudios, sb, signInWithEmail, signOut, useAuth } from './client';
+import { cloudEnabled, getAuth, refreshStudios, sb, signOut, useAuth } from './client';
+import { GlassSignIn } from './Security';
 import { getSyncState, onSync, pullAll } from './sync';
 import { useI18n } from '../i18n';
 import { LangSwitch } from '../i18n/LangSwitch';
@@ -102,62 +103,9 @@ export function AccountButton() {
   );
 }
 
+/** Kept for older pages: the same password sign-in as the glass header. */
 export function SignIn({ onClose }: { onClose: () => void }) {
-  const { t } = useI18n();
-  const [email, setEmail] = useState('');
-  const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
-  const [err, setErr] = useState('');
-  return (
-    <motion.div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/30 p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
-      <motion.form
-        role="dialog"
-        aria-modal
-        aria-label={t('Sign in')}
-        onClick={(e) => e.stopPropagation()}
-        initial={{ y: 16 }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.22, ease }}
-        className="w-full max-w-[420px] rounded-[12px] bg-[var(--paper)] p-6 shadow-[0_40px_80px_-30px_rgba(0,0,0,0.5)]"
-        onSubmit={async (e) => {
-          e.preventDefault();
-          setState('sending');
-          try {
-            await signInWithEmail(email.trim());
-            setState('sent');
-          } catch (e: any) {
-            setErr(e?.message ?? '');
-            setState('error');
-          }
-        }}
-        onKeyDown={(e) => e.key === 'Escape' && onClose()}
-      >
-        <div className="flex items-start justify-between">
-          <h2 className="f2-display text-[32px] leading-none">{t('Sign in to your studio')}</h2>
-          <button type="button" onClick={onClose} aria-label={t('Close')} className="rounded-full p-1.5 hover:bg-black/5">
-            <X size={16} />
-          </button>
-        </div>
-        {state === 'sent' ? (
-          <div className="mt-5 flex gap-3 rounded-[8px] border border-[var(--rule)] p-4">
-            <Mail size={18} className="mt-0.5 shrink-0" />
-            <p className="text-[14px] leading-relaxed">{t('Check {email}: we sent a sign-in link. Open it on this device.', { email })}</p>
-          </div>
-        ) : (
-          <>
-            <p className="mt-3 text-[14px] leading-relaxed text-[var(--ink-2)]">{t('We will email you a one-time link. No password. Your local projects stay where they are until you move them to the studio.')}</p>
-            <label className="mt-4 block">
-              <span className="f2-mono text-[var(--ink-2)]">Email</span>
-              <input autoFocus type="email" required dir="ltr" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@studio.com" className="mt-1.5 w-full rounded-[6px] border border-[var(--rule)] bg-white/50 px-3 py-2.5 text-[16px] outline-none focus:border-[var(--ink)]" />
-            </label>
-            {state === 'error' && <p className="mt-2 text-[13px] text-[var(--signal)]">{t('Could not send the link.')} {err}</p>}
-            <button type="submit" disabled={state === 'sending'} className="f2-btn f2-btn-signal mt-5 w-full justify-center disabled:opacity-60">
-              {state === 'sending' ? t('Sending…') : t('Email me a link')}
-            </button>
-          </>
-        )}
-      </motion.form>
-    </motion.div>
-  );
+  return <GlassSignIn onClose={onClose} />;
 }
 
 /* ───────── studio & team ───────── */
@@ -265,39 +213,13 @@ export function TeamPage() {
         <p className="mt-3 text-[12.5px] leading-relaxed text-[var(--ink-2)]">{t('Owner: everything, including people. Editor: projects, files, review, publishing. Client: can see studio projects and leave notes.')}</p>
       </section>
 
-      {owner && (
+      {a.role === 'admin' && (
         <section className="mt-10">
-          <h2 className="text-[13px] font-semibold">{t('Invite')}</h2>
-          <p className="mt-1 text-[13px] text-[var(--ink-2)]">{t('Create a one-time link and send it yourself. The person signs in with their email and joins the studio.')}</p>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <select value={role} onChange={(e) => setRole(e.target.value as 'editor' | 'client')} className="rounded-full border border-[var(--rule)] bg-transparent px-3 py-2 text-[13.5px]" aria-label={t('Role')}>
-              <option value="editor">{t('Editor')}</option>
-              <option value="client">{t('Client')}</option>
-            </select>
-            <button
-              onClick={async () => {
-                const { data, error } = await sb!.from('invites').insert({ studio_id: studio!.id, role, created_by: a.session!.user.id }).select('token').single();
-                if (error) return toast(t('Could not create the invite'), { tone: 'error' });
-                const url = `${window.location.origin}/#/join/${data.token}`;
-                setInvite(url);
-                navigator.clipboard?.writeText(url).catch(() => {});
-                toast(t('Invite link copied'));
-              }}
-              className="inline-flex h-10 items-center gap-1.5 rounded-full bg-[var(--ink)] px-4 text-[13.5px] font-semibold text-[var(--paper)]"
-            >
-              <Plus size={15} /> {t('Create invite link')}
-            </button>
-          </div>
-          {invite && (
-            <div className="mt-3 flex items-center gap-2 rounded-[8px] border border-[var(--rule)] p-2.5">
-              <span className="f2-mono min-w-0 flex-1 truncate !text-[11px]" dir="ltr">
-                {invite}
-              </span>
-              <button onClick={() => navigator.clipboard?.writeText(invite).then(() => toast(t('Copied')))} className="inline-flex items-center gap-1 rounded-full border border-[var(--rule)] px-2.5 py-1 text-[12px]">
-                <Copy size={12} /> {t('Copy')}
-              </button>
-            </div>
-          )}
+          <h2 className="text-[13px] font-semibold">{t('People')}</h2>
+          <p className="mt-1 text-[13px] text-[var(--ink-2)]">{t('FrantoS is private: accounts for developers and clients are created on the admin page.')}</p>
+          <button onClick={() => go('/admin')} className="mt-3 inline-flex h-10 items-center gap-1.5 rounded-full bg-[var(--ink)] px-4 text-[13.5px] font-semibold text-[var(--paper)]">
+            <Users size={15} /> {t('Accounts & access')}
+          </button>
         </section>
       )}
 

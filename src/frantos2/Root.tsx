@@ -23,6 +23,7 @@ const CasePage = lazy(() => import('./tell/CasePage').then((m) => ({ default: m.
 const LibraryPage = lazy(() => import('./pages/LibraryPage').then((m) => ({ default: m.LibraryPage })));
 const ObjectsPage = lazy(() => import('./pages/ObjectsPage').then((m) => ({ default: m.ObjectsPage })));
 const TemplatesPage = lazy(() => import('./pages/TemplatesPage').then((m) => ({ default: m.TemplatesPage })));
+const AdminPage = lazy(() => import('./pages/AdminPage').then((m) => ({ default: m.AdminPage })));
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then((m) => ({ default: m.SettingsPage })));
 const NewsPage = lazy(() => import('./pages/NewsPage').then((m) => ({ default: m.NewsPage })));
 const PortfolioPage = lazy(() => import('./pages/Portfolio').then((m) => ({ default: m.PortfolioPage })));
@@ -53,6 +54,7 @@ const TITLES: Record<string, string> = {
   objects: 'Objects — FrantoS',
   templates: 'Templates — FrantoS',
   settings: 'Settings — FrantoS',
+  admin: 'Accounts & access — FrantoS',
   news: "What's new — FrantoS",
   portfolio: 'Portfolio — FrantoS',
   folio: 'Portfolio — FrantoS',
@@ -62,8 +64,8 @@ const TITLES: Record<string, string> = {
 };
 
 const Blank = ({ dark }: { dark?: boolean }) => <div className={`fixed inset-0 ${dark ? (document.documentElement.dataset.theme === 'light' ? 'bg-[#f3f1ec]' : 'bg-[#0e0e10]') : 'bg-[#eee8dd]'}`} />;
-const APP_ROUTES = new Set(['app', 'project', 'pshow', 'team', 'join', 'editor', 'showroom', 'library', 'objects', 'templates', 'settings', 'news', 'portfolio', 'share', 'deck', 'guide']);
-const GLASS = new Set(['landing', 'app', 'project', 'editor', 'showroom', 'library', 'objects', 'templates', 'settings', 'news', 'portfolio', 'folio', 'share', 'deck']);
+const APP_ROUTES = new Set(['app', 'project', 'pshow', 'team', 'join', 'editor', 'showroom', 'library', 'objects', 'templates', 'settings', 'admin', 'news', 'portfolio', 'share', 'deck', 'guide']);
+const GLASS = new Set(['landing', 'app', 'project', 'editor', 'showroom', 'library', 'objects', 'templates', 'settings', 'admin', 'news', 'portfolio', 'folio', 'share', 'deck']);
 
 export function Root() {
   const hash = useHash();
@@ -162,6 +164,10 @@ export function Root() {
     case 'deck':
       baseKey = `deck-${route.id}`;
       base = <DeckPage id={route.id} slide={route.slide} presenter={route.presenter} />;
+      break;
+    case 'admin':
+      baseKey = 'admin';
+      base = <AdminPage />;
       break;
     case 'guide':
       baseKey = `guide-${route.id}`;

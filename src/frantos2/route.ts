@@ -31,6 +31,7 @@ export type Route =
   | { name: 'objects' }
   | { name: 'templates' }
   | { name: 'settings' }
+  | { name: 'admin' }
   | { name: 'news' }
   | { name: 'portfolio' }
   | { name: 'folio'; handle: string }
@@ -52,6 +53,7 @@ export function parse(hash: string): Route {
   if (a === 'objects') return { name: 'objects' };
   if (a === 'templates') return { name: 'templates' };
   if (a === 'settings') return { name: 'settings' };
+  if (a === 'admin') return { name: 'admin' };
   if (a === 'new') return { name: 'news' };
   if (a === 'portfolio') return { name: 'portfolio' };
   if (a === 'u' && b) return { name: 'folio', handle: b };
