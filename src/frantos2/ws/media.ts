@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { get, set } from 'idb-keyval';
 import { Asset } from './types';
 import { uid } from './store';
+import { signedUrl } from '../cloud/client';
+import { tr } from '../i18n';
 
 export const ACCEPT = 'image/jpeg,image/png,image/webp,image/gif,image/avif,video/mp4,video/webm,video/quicktime';
 const IMAGE_MAX = 40 * 1024 * 1024;
@@ -28,7 +30,7 @@ async function imageMeta(file: Blob) {
     const thumb = await new Promise<Blob | null>((r) => c.toBlob(r, 'image/webp', 0.8));
     return { w, h, thumb };
   } catch {
-    throw new UploadError('decode', 'This image could not be read. It may be damaged or in an unsupported format.');
+    throw new UploadError('decode', tr('This image could not be read. It may be damaged or in an unsupported format.'));
   }
 }
 
@@ -62,7 +64,7 @@ async function videoMeta(file: Blob) {
     const thumb = await new Promise<Blob | null>((r) => c.toBlob(r, 'image/webp', 0.8));
     return { w, h, duration, thumb };
   } catch {
-    throw new UploadError('decode', 'This video could not be read in the browser. Try MP4 (H.264) or WebM.');
+    throw new UploadError('decode', tr('This video could not be read in the browser. Try MP4 (H.264) or WebM.'));
   } finally {
     URL.revokeObjectURL(url);
   }
@@ -72,9 +74,9 @@ async function videoMeta(file: Blob) {
 export async function ingest(file: File, opts: { isReference: boolean }): Promise<Asset> {
   const isImage = file.type.startsWith('image/');
   const isVideo = file.type.startsWith('video/');
-  if (!isImage && !isVideo) throw new UploadError('type', `${file.name}: only images (JPG, PNG, WebP, GIF, AVIF) and video (MP4, WebM, MOV) can be added.`);
-  if (isImage && file.size > IMAGE_MAX) throw new UploadError('size', `${file.name} is ${mb(file.size)}. Images up to ${mb(IMAGE_MAX)}.`);
-  if (isVideo && file.size > VIDEO_MAX) throw new UploadError('size', `${file.name} is ${mb(file.size)}. Video up to ${mb(VIDEO_MAX)}.`);
+  if (!isImage && !isVideo) throw new UploadError('type', tr('{name}: only images (JPG, PNG, WebP, GIF, AVIF) and video (MP4, WebM, MOV) can be added.', { name: file.name }));
+  if (isImage && file.size > IMAGE_MAX) throw new UploadError('size', tr('{name} is {size}. Images up to {max}.', { name: file.name, size: mb(file.size), max: mb(IMAGE_MAX) }));
+  if (isVideo && file.size > VIDEO_MAX) throw new UploadError('size', tr('{name} is {size}. Video up to {max}.', { name: file.name, size: mb(file.size), max: mb(VIDEO_MAX) }));
 
   const meta = isImage ? await imageMeta(file) : await videoMeta(file);
   const id = uid('a-');
@@ -84,10 +86,12 @@ export async function ingest(file: File, opts: { isReference: boolean }): Promis
     await set(blobKey, file);
     if (thumbKey && meta.thumb) await set(thumbKey, meta.thumb);
   } catch {
-    throw new UploadError('storage', 'The browser refused to store this file (storage is full or blocked). Free some space or try a smaller file.');
+    throw new UploadError('storage', tr('The browser refused to store this file (storage is full or blocked). Free some space or try a smaller file.'));
   }
+  const palette = meta.thumb ? await extractPalette(meta.thumb) : [];
   return {
     id,
+    palette,
     kind: isImage ? 'image' : 'video',
     title: file.name.replace(/\.[a-z0-9]+$/i, ''),
     blobKey,
@@ -125,6 +129,7 @@ function loadUrl(key: string) {
 export function useAssetUrl(a: Asset | undefined, size: 'full' | 'thumb' = 'full') {
   const staticUrl = a ? (size === 'thumb' ? a.thumb ?? a.src : a.src) : undefined;
   const key = a ? (size === 'thumb' ? a.thumbKey ?? a.blobKey : a.blobKey) : undefined;
+  const cloudPath = a ? (size === 'thumb' ? a.thumbPath ?? a.storagePath : a.storagePath) : undefined;
   const [url, setUrl] = useState<string | undefined>(() => staticUrl ?? (key ? urlCache.get(key) : undefined));
   const [missing, setMissing] = useState(false);
   useEffect(() => {
@@ -132,18 +137,60 @@ export function useAssetUrl(a: Asset | undefined, size: 'full' | 'thumb' = 'full
       setUrl(staticUrl);
       return;
     }
-    if (!key) return;
     let live = true;
+    const fromCloud = () =>
+      cloudPath
+        ? signedUrl(cloudPath).then((u) => live && (u ? setUrl(u) : setMissing(true)))
+        : live && setMissing(true);
+    if (!key) {
+      fromCloud();
+      return () => {
+        live = false;
+      };
+    }
     loadUrl(key).then((u) => {
       if (!live) return;
       if (u) setUrl(u);
-      else setMissing(true);
+      else fromCloud();
     });
     return () => {
       live = false;
     };
-  }, [staticUrl, key]);
+  }, [staticUrl, key, cloudPath]);
   return { url, missing };
+}
+
+/** dominant colours of an image, for the project palette */
+export async function extractPalette(src: Blob | string, n = 5): Promise<string[]> {
+  try {
+    const bmp = typeof src === 'string' ? await fetch(src).then((r) => r.blob()).then((b) => createImageBitmap(b)) : await createImageBitmap(src);
+    const c = document.createElement('canvas');
+    c.width = 48;
+    c.height = 48;
+    const ctx = c.getContext('2d', { willReadFrequently: true })!;
+    ctx.drawImage(bmp, 0, 0, 48, 48);
+    const d = ctx.getImageData(0, 0, 48, 48).data;
+    const buckets = new Map<string, { r: number; g: number; b: number; n: number }>();
+    for (let i = 0; i < d.length; i += 4) {
+      const r = d[i], g = d[i + 1], b = d[i + 2];
+      const k = `${r >> 5}-${g >> 5}-${b >> 5}`;
+      const e = buckets.get(k) ?? { r: 0, g: 0, b: 0, n: 0 };
+      e.r += r; e.g += g; e.b += b; e.n++;
+      buckets.set(k, e);
+    }
+    const hex = (v: number) => Math.round(v).toString(16).padStart(2, '0');
+    const sorted = [...buckets.values()].sort((a, b) => b.n - a.n);
+    const out: { r: number; g: number; b: number }[] = [];
+    for (const e of sorted) {
+      const col = { r: e.r / e.n, g: e.g / e.n, b: e.b / e.n };
+      // keep colours that are visibly different
+      if (out.every((o) => Math.abs(o.r - col.r) + Math.abs(o.g - col.g) + Math.abs(o.b - col.b) > 60)) out.push(col);
+      if (out.length >= n) break;
+    }
+    return out.map((o) => `#${hex(o.r)}${hex(o.g)}${hex(o.b)}`);
+  } catch {
+    return [];
+  }
 }
 
 export function fmtTime(t: number) {

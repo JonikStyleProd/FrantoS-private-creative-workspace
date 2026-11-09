@@ -2,43 +2,50 @@ import React, { Suspense, lazy, useEffect } from 'react';
 import { AnimatePresence, LayoutGroup, MotionConfig, motion } from 'framer-motion';
 import './f2.css';
 import { parse, useHash } from './route';
-import { useCopy } from './copy';
-import { Landing as AfterHoursLanding } from './Landing';
-import { Studio } from './Studio';
-import { Present } from './Present';
-import { Toaster } from './ws/kit';
-import { UploadTray } from './ws/uploads';
+import { useI18n } from './i18n';
 
-// Each surface is loaded when someone opens it.
-const LegacyApp = lazy(() => import('../App').then((m) => ({ default: m.App })));
+// Every surface is its own chunk: the landing page loads only what it shows.
+const LegacyShell = lazy(() => import('./LegacyShell').then((m) => ({ default: m.LegacyShell })));
 const BehindTheWork = lazy(() => import('./landing/BehindTheWork').then((m) => ({ default: m.BehindTheWork })));
+const AfterHoursLanding = lazy(() => import('./Landing').then((m) => ({ default: m.Landing })));
+const Present = lazy(() => import('./Present').then((m) => ({ default: m.Present })));
 const Home = lazy(() => import('./ws/Home').then((m) => ({ default: m.Home })));
 const ProjectPage = lazy(() => import('./ws/Project').then((m) => ({ default: m.ProjectPage })));
 const Show = lazy(() => import('./ws/Show').then((m) => ({ default: m.Show })));
+const GuestReview = lazy(() => import('./cloud/GuestReview').then((m) => ({ default: m.GuestReview })));
+const TeamPage = lazy(() => import('./cloud/Account').then((m) => ({ default: m.TeamPage })));
+const JoinPage = lazy(() => import('./cloud/Account').then((m) => ({ default: m.JoinPage })));
+const CasePage = lazy(() => import('./tell/CasePage').then((m) => ({ default: m.CasePage })));
+const CloudLayer = lazy(() => import('./cloud/CloudLayer'));
+const AppChrome = lazy(() => import('./AppChrome'));
+const Palette = lazy(() => import('./daily/Palette').then((m) => ({ default: m.Palette })));
 
 const TITLES: Record<string, string> = {
   landing: 'FrantoS — the private workspace behind the work',
   afterhours: 'After Hours / Tel Aviv — FrantoS',
   story: 'After Hours / Tel Aviv — FrantoS',
-  studio: 'Demo story editor — FrantoS',
-  present: 'After Hours / Tel Aviv — FrantoS',
   legacy: 'FrantoS — Private Creative Workspace (v1)',
   app: 'Workspace — FrantoS',
   project: 'Project — FrantoS',
   pshow: 'Presentation — FrantoS',
+  team: 'Studio — FrantoS',
+  join: 'Join a studio — FrantoS',
+  guest: 'Review — FrantoS',
+  case: 'Case — FrantoS',
+  pcase: 'Case — FrantoS',
 };
 
 const Blank = ({ dark }: { dark?: boolean }) => <div className={`fixed inset-0 ${dark ? 'bg-[#0e0e10]' : 'bg-[#eee8dd]'}`} />;
+const APP_ROUTES = new Set(['app', 'project', 'pshow', 'team', 'join']);
 
 export function Root() {
   const hash = useHash();
   const route = parse(hash);
-  const { lang } = useCopy();
+  const { lang, dir } = useI18n();
 
   useEffect(() => {
-    document.title = TITLES[route.name];
-    document.documentElement.lang = lang;
-  }, [route.name, lang]);
+    document.title = TITLES[route.name] ?? 'FrantoS';
+  }, [route.name]);
 
   useEffect(() => {
     document.body.style.background = route.name === 'legacy' ? '' : '#eee8dd';
@@ -47,13 +54,11 @@ export function Root() {
   if (route.name === 'legacy') {
     return (
       <Suspense fallback={<div className="fixed inset-0 bg-[#07080E]" />}>
-        <LegacyApp />
+        <LegacyShell />
       </Suspense>
     );
   }
 
-  // Overlays (presentation, story playback) sit on top of the screen they belong to,
-  // so the work can travel between the two and come back.
   let baseKey = '';
   let base: React.ReactNode = null;
   let overlay: React.ReactNode = null;
@@ -68,12 +73,6 @@ export function Root() {
       base = <AfterHoursLanding receded={route.name === 'story'} />;
       if (route.name === 'story') overlay = <Present key="ah-present" mode="viewer" slide={route.slide} />;
       break;
-    case 'studio':
-    case 'present':
-      baseKey = 'studio';
-      base = <Studio />;
-      if (route.name === 'present') overlay = <Present key="ah-present" mode="editor" slide={route.slide} />;
-      break;
     case 'app':
       baseKey = 'app';
       base = <Home />;
@@ -87,11 +86,35 @@ export function Root() {
       base = <ProjectPage id={route.id} tab={route.mode === 'story' ? 'stories' : 'overview'} q={new URLSearchParams()} />;
       overlay = <Show key="pshow" id={route.id} mode={route.mode} slide={route.slide} />;
       break;
+    case 'pcase':
+      baseKey = `case-${route.id}`;
+      base = <CasePage projectId={route.id} />;
+      break;
+    case 'case':
+      baseKey = `case-${route.slug}`;
+      base = <CasePage slug={route.slug} />;
+      break;
+    case 'team':
+      baseKey = 'team';
+      base = <TeamPage />;
+      break;
+    case 'join':
+      baseKey = 'join';
+      base = <JoinPage token={route.token} />;
+      break;
+    case 'guest':
+      baseKey = `r-${route.token}`;
+      base = <GuestReview token={route.token} workId={route.workId} q={route.q} />;
+      break;
+    default:
+      baseKey = 'landing';
+      base = <BehindTheWork />;
   }
+  const inApp = APP_ROUTES.has(route.name);
 
   return (
     <MotionConfig reducedMotion="user">
-      <div className="f2" lang={lang}>
+      <div className="f2" lang={lang} dir={dir}>
         <LayoutGroup>
           <AnimatePresence initial={false}>
             <motion.div
@@ -110,8 +133,17 @@ export function Root() {
           </AnimatePresence>
           <AnimatePresence>{overlay && <Suspense fallback={<Blank dark />}>{overlay}</Suspense>}</AnimatePresence>
         </LayoutGroup>
-        <Toaster />
-        <UploadTray />
+        {route.name !== 'landing' && route.name !== 'afterhours' && route.name !== 'story' && (
+          <Suspense fallback={null}>
+            <AppChrome />
+          </Suspense>
+        )}
+        {inApp && (
+          <Suspense fallback={null}>
+            <CloudLayer />
+            <Palette />
+          </Suspense>
+        )}
       </div>
     </MotionConfig>
   );

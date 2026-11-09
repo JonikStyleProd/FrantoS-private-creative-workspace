@@ -16,6 +16,11 @@ export type Route =
   | { name: 'legacy' }
   | { name: 'app' }
   | { name: 'afterhours' }
+  | { name: 'team' }
+  | { name: 'join'; token: string }
+  | { name: 'guest'; token: string; workId?: string; q: URLSearchParams }
+  | { name: 'case'; slug: string }
+  | { name: 'pcase'; id: string }
   | { name: 'project'; id: string; tab: ProjectTab; sub?: string; q: URLSearchParams }
   | { name: 'pshow'; id: string; mode: 'presentation' | 'story'; slide: number };
 
@@ -32,16 +37,22 @@ export function parse(hash: string): Route {
   if (!a) return { name: 'landing' };
   if (a === 'app') return { name: 'app' };
   if (a === 'after-hours') return { name: 'afterhours' };
+  if (a === 'team') return { name: 'team' };
+  if (a === 'join' && b) return { name: 'join', token: b };
+  if (a === 'r' && b) return { name: 'guest', token: b, workId: c, q: new URLSearchParams(query) };
+  if (a === 'c' && b) return { name: 'case', slug: b };
   if (a === 'p' && b) {
     if (c === 'present') return { name: 'pshow', id: b, mode: 'presentation', slide: num(d) };
     if (c === 'stories' && d === 'play') return { name: 'pshow', id: b, mode: 'story', slide: num(parts[4]) };
+    if (c === 'case') return { name: 'pcase', id: b };
     const tab = (TABS as string[]).includes(c ?? '') ? (c as ProjectTab) : 'overview';
     return { name: 'project', id: b, tab, sub: d, q: new URLSearchParams(query) };
   }
   if (a === 'story') return { name: 'story', slide: num(b) };
   if (a === 'studio') {
-    if (b === 'present') return { name: 'present', slide: num(c) };
-    return { name: 'studio' };
+    // the stage-1 sequence editor now lives in the project model
+    if (b === 'present') return { name: 'pshow', id: 'after-hours', mode: 'story', slide: num(c) };
+    return { name: 'project', id: 'after-hours', tab: 'stories', q: new URLSearchParams() };
   }
   if (LEGACY.has(a)) return { name: 'legacy' };
   return { name: 'landing' };

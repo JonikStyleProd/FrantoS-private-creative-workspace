@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { get, set, del, keys } from 'idb-keyval';
-import { Asset, Comment, MoodItem, Project, WsState, Work } from './types';
-import { DEMO_ID, demoProject } from './seed';
+import { Asset, CanvasGroup, CanvasNote, Comment, Decision, MoodItem, Project, WsState, Work } from './types';
+import { AH_ID, DEMO_ID, afterHoursProject, demoProject } from './seed';
 
 /**
  * Local-first workspace store.
@@ -10,6 +10,17 @@ import { DEMO_ID, demoProject } from './seed';
  * on the next start, so an undone delete always gets its file back.
  */
 const KEY = 'frantos-ws-v1';
+
+/** set by cloud/sync.ts — keeps server copies of cloud projects in step */
+export interface Syncer {
+  changed: (pid: string) => void;
+  comment: (pid: string, op: 'upsert' | 'delete', cid: string) => void;
+  reconcile: (pid: string) => void;
+}
+let syncer: Syncer | null = null;
+export function setSyncer(s: Syncer) {
+  syncer = s;
+}
 export type SaveStatus = 'loading' | 'idle' | 'saving' | 'saved' | 'error';
 
 let state: WsState = { v: 1, projects: [], you: 'You' };
@@ -33,7 +44,8 @@ function schedule() {
   window.clearTimeout(saveTimer);
   saveTimer = window.setTimeout(async () => {
     try {
-      await set(KEY, state);
+      await set(KEY, { ...state, savedAt: Date.now() });
+      localStorage.removeItem(JOURNAL);
       status = 'saved';
       lastSavedAt = Date.now();
     } catch (e) {
@@ -44,12 +56,22 @@ function schedule() {
   }, 220);
 }
 
-/** flush pending writes when the tab is hidden or closed */
+/**
+ * Flush pending writes when the tab is hidden or closed. IndexedDB writes may not finish
+ * during unload, so the latest metadata also goes to a small synchronous journal
+ * (localStorage) that wins on the next start if it is newer.
+ */
+const JOURNAL = 'frantos-ws-journal';
 if (typeof window !== 'undefined') {
   const flush = () => {
     if (status === 'saving') {
       window.clearTimeout(saveTimer);
-      set(KEY, state).catch(() => {});
+      try {
+        localStorage.setItem(JOURNAL, JSON.stringify({ at: Date.now(), state }));
+      } catch {
+        /* too big for localStorage: rely on IndexedDB */
+      }
+      set(KEY, { ...state, savedAt: Date.now() }).catch(() => {});
     }
   };
   window.addEventListener('pagehide', flush);
@@ -61,13 +83,23 @@ export function ensureLoaded() {
   if (!loading) {
     loading = (async () => {
       try {
-        const saved = (await get(KEY)) as WsState | undefined;
+        let saved = (await get(KEY)) as (WsState & { savedAt?: number }) | undefined;
+        try {
+          const j = JSON.parse(localStorage.getItem(JOURNAL) ?? 'null') as { at: number; state: WsState } | null;
+          if (j?.state?.v === 1 && (!saved || j.at > (saved.savedAt ?? 0))) {
+            saved = j.state;
+            set(KEY, { ...j.state, savedAt: Date.now() }).then(() => localStorage.removeItem(JOURNAL));
+          }
+        } catch {
+          /* ignore a broken journal */
+        }
         if (saved && saved.v === 1 && Array.isArray(saved.projects)) {
           state = saved;
           if (!state.projects.some((p) => p.id === DEMO_ID)) state.projects.push(demoProject());
+          if (!state.projects.some((p) => p.id === AH_ID)) state.projects.push(afterHoursProject());
           gcBlobs();
         } else {
-          state = { v: 1, projects: [demoProject()], you: 'You' };
+          state = { v: 1, projects: [demoProject(), afterHoursProject()], you: 'You' };
         }
         status = 'idle';
       } catch (e) {
@@ -106,13 +138,40 @@ function commit(next: WsState, undoLabel?: string) {
 function updateProject(id: string, fn: (p: Project) => Project, undoLabel?: string, touch = true) {
   const projects = state.projects.map((p) => (p.id === id ? { ...fn(p), updatedAt: touch ? Date.now() : p.updatedAt } : p));
   commit({ ...state, projects }, undoLabel);
+  if (touch && state.projects.find((p) => p.id === id)?.cloud) syncer?.changed(id);
+}
+
+/** server → local, no undo, no echo back to the server */
+export function replaceFromServer(projects: Project[], removeIds: string[] = []) {
+  const byId = new Map(state.projects.map((p) => [p.id, p]));
+  for (const p of projects) byId.set(p.id, p);
+  removeIds.forEach((id) => byId.delete(id));
+  state = { ...state, projects: Array.from(byId.values()) };
+  schedule();
+}
+export function patchLocal(id: string, fn: (p: Project) => Project) {
+  state = { ...state, projects: state.projects.map((p) => (p.id === id ? fn(p) : p)) };
+  schedule();
+}
+export function setStudio(studioId: string) {
+  state = { ...state, studioId };
+  schedule();
 }
 
 export function undo(): string | null {
   const last = undoStack.pop();
   if (!last) return null;
+  const before = state;
   state = last.snap;
   schedule();
+  // cloud projects: send the restored state back to the studio
+  for (const p of state.projects) {
+    const prev = before.projects.find((x) => x.id === p.id);
+    if (p.cloud && prev !== p) {
+      syncer?.changed(p.id);
+      syncer?.reconcile(p.id);
+    }
+  }
   return last.label;
 }
 
@@ -156,8 +215,8 @@ export const ws = {
     commit({ ...state, projects: state.projects.filter((p) => p.id !== id), lastProjectId: state.lastProjectId === id ? undefined : state.lastProjectId }, 'Project deleted');
   },
 
-  resetDemo() {
-    const projects = state.projects.map((p) => (p.id === DEMO_ID ? demoProject() : p));
+  resetDemo(id: string = DEMO_ID) {
+    const projects = state.projects.map((p) => (p.id !== id ? p : id === DEMO_ID ? demoProject() : id === AH_ID ? afterHoursProject() : p));
     commit({ ...state, projects }, 'Demo project reset');
   },
 
@@ -241,20 +300,107 @@ export const ws = {
   /* review */
   addComment(pid: string, c: Omit<Comment, 'id' | 'createdAt' | 'resolved' | 'replies' | 'author'>): string {
     const id = uid('c-');
-    updateProject(pid, (p) => ({ ...p, comments: [...p.comments, { ...c, id, createdAt: Date.now(), resolved: false, replies: [], author: state.you }] }));
+    updateProject(pid, (p) => ({ ...p, comments: [...p.comments, { ...c, id, createdAt: Date.now(), resolved: false, replies: [], author: state.you }] }), undefined, false);
+    syncer?.comment(pid, 'upsert', id);
     return id;
   },
   resolve(pid: string, cid: string, resolved: boolean) {
-    updateProject(pid, (p) => ({ ...p, comments: p.comments.map((c) => (c.id === cid ? { ...c, resolved, resolvedAt: resolved ? Date.now() : undefined } : c)) }));
+    updateProject(pid, (p) => ({ ...p, comments: p.comments.map((c) => (c.id === cid ? { ...c, resolved, resolvedAt: resolved ? Date.now() : undefined } : c)) }), undefined, false);
+    syncer?.comment(pid, 'upsert', cid);
+  },
+  setTask(pid: string, cid: string, isTask: boolean) {
+    updateProject(pid, (p) => ({ ...p, comments: p.comments.map((c) => (c.id === cid ? { ...c, isTask } : c)) }), undefined, false);
+    syncer?.comment(pid, 'upsert', cid);
   },
   reply(pid: string, cid: string, text: string) {
+    const rid = uid('r-');
     updateProject(pid, (p) => ({
       ...p,
-      comments: p.comments.map((c) => (c.id === cid ? { ...c, replies: [...c.replies, { id: uid('r-'), text, author: state.you, createdAt: Date.now() }] } : c)),
-    }));
+      comments: p.comments.map((c) => (c.id === cid ? { ...c, replies: [...c.replies, { id: rid, text, author: state.you, createdAt: Date.now() }] } : c)),
+    }), undefined, false);
+    syncer?.comment(pid, 'upsert', rid);
   },
   deleteComment(pid: string, cid: string) {
-    updateProject(pid, (p) => ({ ...p, comments: p.comments.filter((c) => c.id !== cid) }), 'Comment deleted');
+    updateProject(pid, (p) => ({ ...p, comments: p.comments.filter((c) => c.id !== cid) }), 'Comment deleted', false);
+    syncer?.comment(pid, 'delete', cid);
+  },
+  setYou(name: string) {
+    state = { ...state, you: name };
+    schedule();
+  },
+
+  /* decisions log: what was decided on a version and what it rests on */
+  decide(pid: string, d: Omit<Decision, 'id' | 'createdAt' | 'author'>) {
+    updateProject(pid, (p) => ({ ...p, decisions: [...(p.decisions ?? []), { ...d, id: uid('d-'), createdAt: Date.now(), author: state.you }] }));
+  },
+  removeDecision(pid: string, id: string) {
+    updateProject(pid, (p) => ({ ...p, decisions: (p.decisions ?? []).filter((d) => d.id !== id) }), 'Decision removed');
+  },
+
+  /* canvas: notes, groups */
+  addNote(pid: string, x: number, y: number, text = ''): string {
+    const id = uid('n-');
+    updateProject(pid, (p) => ({ ...p, notes: [...(p.notes ?? []), { id, x, y, w: 0.16, text, z: Math.max(0, ...p.moodboard.map((m) => m.z), ...(p.notes ?? []).map((n) => n.z)) + 1 }] }));
+    return id;
+  },
+  patchNote(pid: string, id: string, patch: Partial<CanvasNote>) {
+    updateProject(pid, (p) => ({ ...p, notes: (p.notes ?? []).map((n) => (n.id === id ? { ...n, ...patch } : n)) }));
+  },
+  removeNote(pid: string, id: string) {
+    updateProject(pid, (p) => ({ ...p, notes: (p.notes ?? []).filter((n) => n.id !== id) }), 'Note removed');
+  },
+  addGroup(pid: string, g: Omit<CanvasGroup, 'id'>): string {
+    const id = uid('g-');
+    updateProject(pid, (p) => ({ ...p, groups: [...(p.groups ?? []), { ...g, id }] }));
+    return id;
+  },
+  patchGroup(pid: string, id: string, patch: Partial<CanvasGroup>) {
+    updateProject(pid, (p) => ({ ...p, groups: (p.groups ?? []).map((g) => (g.id === id ? { ...g, ...patch } : g)) }));
+  },
+  removeGroup(pid: string, id: string) {
+    updateProject(pid, (p) => ({ ...p, groups: (p.groups ?? []).filter((g) => g.id !== id) }), 'Group removed');
+  },
+  linkInfluence(pid: string, refId: string, targetId: string | null, text = '') {
+    updateProject(pid, (p) => ({ ...p, assets: p.assets.map((a) => (a.id === refId ? { ...a, influences: targetId ? { assetId: targetId, text: text || a.influences?.text || '' } : undefined } : a)) }));
+  },
+  setTags(pid: string, aid: string, tags: string[]) {
+    updateProject(pid, (p) => ({ ...p, assets: p.assets.map((a) => (a.id === aid ? { ...a, tags } : a)) }));
+  },
+  setProjectTags(pid: string, tags: string[]) {
+    updateProject(pid, (p) => ({ ...p, tags }));
+  },
+  setBrief(pid: string, brief: string) {
+    updateProject(pid, (p) => ({ ...p, brief }));
+  },
+  setVisibility(pid: string, visibility: 'private' | 'public') {
+    updateProject(pid, (p) => ({
+      ...p,
+      visibility,
+      publicSlug:
+        p.publicSlug ??
+        `${p.title
+          .toLowerCase()
+          .normalize('NFKD')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '')
+          .slice(0, 40) || 'case'}-${Math.random().toString(36).slice(2, 6)}`,
+    }));
+  },
+  setCaseText(pid: string, caseText: Project['caseText']) {
+    updateProject(pid, (p) => ({ ...p, caseText }));
+  },
+  /** replace the story with an ordered list (auto-story) */
+  setStory(pid: string, frames: { assetId: string; caption?: string }[]) {
+    updateProject(pid, (p) => ({ ...p, story: frames.map((f) => ({ id: uid('s-'), ...f })) }), 'Story replaced');
+  },
+  /** duplicate a project (e.g. copy the demo into a studio) */
+  duplicate(pid: string, title?: string): string {
+    const src = state.projects.find((p) => p.id === pid)!;
+    const id = uid('p-');
+    const now = Date.now();
+    const copy: Project = { ...structuredClone(src), id, kind: 'user', title: title ?? src.title, createdAt: now, updatedAt: now, cloud: undefined, visibility: 'private', publicSlug: undefined, lastView: undefined };
+    commit({ ...state, projects: [copy, ...state.projects] });
+    return id;
   },
 
   /* moodboard */

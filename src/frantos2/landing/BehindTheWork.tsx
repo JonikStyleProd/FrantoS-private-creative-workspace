@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { tr as t } from '../i18n';
 import { AnimatePresence, motion, useMotionValue, useSpring, useTransform, animate } from 'framer-motion';
 import { ArrowRight, ArrowUpRight, ChevronLeft, ChevronRight, Eye, LayoutPanelLeft, Play, RotateCcw, X } from 'lucide-react';
 import { go } from '../route';
@@ -12,15 +13,17 @@ const ease = [0.22, 1, 0.36, 1] as const;
 const P = '/projects/form-01/';
 const PROJECT_LINK = '/p/form-01/review/hero-render?v=hero-v2&cmp=hero-v1&c=c-highlight';
 
-const STEPS = [
+const STEPS_SRC = [
   { k: 'Final', title: 'The poster', text: 'FORM / 01, as the client saw it. Lift the corner.' },
   { k: '01', title: 'Form before material', text: 'Clay render. One soft light, no glaze — only the twist and its mass.' },
   { k: '02', title: 'What set the light', text: 'A satin cobalt glaze and a north window. Both are pinned to the decision they changed.' },
   { k: '03', title: 'The note that changed it', text: 'v1 under a hard spot: the highlight blew out on the upper twist. The AD pinned it right there.' },
   { k: '04', title: 'The project, in FrantoS', text: 'Same file, same note, now resolved in v2 — inside a real project you can open.' },
 ];
+const stepsT = () => STEPS_SRC.map((s) => ({ ...s, title: t(s.title), text: t(s.text) }));
 
 export function BehindTheWork() {
+  const STEPS = stepsT();
   const [stage, setStage] = useState(0);
   const [auto, setAuto] = useState(false);
   const reduced = useReducedMotion();
@@ -63,11 +66,11 @@ export function BehindTheWork() {
         </a>
         <nav className="flex items-center gap-1 md:gap-3">
           <a href="#scenes" className="hidden rounded-full px-3 py-2 text-[14px] font-medium text-[var(--ink-2)] hover:text-[var(--ink)] md:inline">
-            How it works
+            {t('How it works')}
           </a>
           <button onClick={() => go('/app')} className="f2-btn f2-btn-ghost !min-h-[40px] !px-4 !text-[14px]">
             <span>
-              Open demo<span className="hidden sm:inline"> workspace</span>
+              {t('Open demo')}<span className="hidden sm:inline"> {t('workspace')}</span>
             </span>
           </button>
         </nav>
@@ -79,26 +82,26 @@ export function BehindTheWork() {
           <AnimatePresence mode="wait" initial={false}>
             {stage === 0 ? (
               <motion.div key="intro" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.4, ease }}>
-                <p className="f2-mono text-[var(--ink-2)]">Private workspace for designers, motion & 3D artists and small studios</p>
+                <p className="f2-mono text-[var(--ink-2)]">{t('Private workspace for designers, motion & 3D artists and small studios')}</p>
                 <h1 className="f2-display mt-5 text-[clamp(2.9rem,5.6vw,5.6rem)]">
-                  Every finished piece has a <em>reverse side</em>
+                  {t('Every finished piece has a')} <em>{t('reverse side')}</em>
                   <span style={{ color: 'var(--signal)' }}>.</span>
                 </h1>
                 <p className="mt-5 max-w-[30rem] text-[16.5px] leading-relaxed text-[var(--ink-2)]">
-                  References, versions, the note that changed the light — FrantoS keeps the work and how it got there in one place, and shows only the finished side to your client.
+                  {t('References, versions, the note that changed the light — FrantoS keeps the work and how it got there in one place, and shows only the finished side to your client.')}
                 </p>
                 <div className="mt-8 flex flex-wrap items-center gap-3">
                   <button onClick={() => go('/app')} className="f2-btn f2-btn-signal">
-                    Open demo workspace <ArrowRight size={18} />
+                    {t('Open demo workspace')} <ArrowRight size={18} />
                   </button>
                   <button onClick={open} className="f2-btn f2-btn-ghost">
-                    <RotateCcw size={16} className="-scale-x-100" /> Behind the work
+                    <RotateCcw size={16} className="-scale-x-100" /> {t('Behind the work')}
                   </button>
                 </div>
               </motion.div>
             ) : (
               <motion.div key="credits" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.4, ease }}>
-                <p className="f2-mono text-[var(--ink-2)]">FORM / 01 — behind the work</p>
+                <p className="f2-mono text-[var(--ink-2)]">{t('FORM / 01 — behind the work')}</p>
                 <ol className="mt-5 flex flex-col">
                   {STEPS.slice(1).map((s, i) => {
                     const n = i + 1;
@@ -127,21 +130,21 @@ export function BehindTheWork() {
                 <div className="mt-6 flex flex-wrap items-center gap-3">
                   {stage === max ? (
                     <button onClick={() => go(PROJECT_LINK)} className="f2-btn f2-btn-signal">
-                      Open this project <ArrowRight size={18} />
+                      {t('Open this project')} <ArrowRight size={18} />
                     </button>
                   ) : (
                     <button onClick={() => goTo(stage + 1)} className="f2-btn f2-btn-signal">
-                      Next layer <ArrowRight size={18} />
+                      {t('Next layer')} <ArrowRight size={18} />
                     </button>
                   )}
                   <button onClick={() => goTo(0)} className="inline-flex h-12 items-center gap-2 rounded-full px-4 text-[14px] font-medium text-[var(--ink-2)] hover:text-[var(--ink)]">
-                    <X size={15} /> Back to the poster
+                    <X size={15} /> {t('Back to the poster')}
                   </button>
                 </div>
                 <p className="mt-4 text-[13px] text-[var(--ink-2)]">
                   or{' '}
                   <button onClick={() => go('/app')} className="f2-link font-medium text-[var(--ink)]">
-                    open the demo workspace
+                    {t('open the demo workspace')}
                   </button>
                 </p>
               </motion.div>
@@ -154,7 +157,7 @@ export function BehindTheWork() {
           {/* mobile step control: big, thumb-friendly */}
           {stage > 0 && (
             <div className="mt-4 flex items-center gap-2 lg:hidden">
-              <button onClick={() => goTo(stage - 1)} aria-label="Previous layer" className="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--rule)]">
+              <button onClick={() => goTo(stage - 1)} aria-label={t('Previous layer')} className="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--rule)]">
                 <ChevronLeft size={20} />
               </button>
               <div className="flex flex-1 gap-1.5" aria-hidden>
@@ -163,12 +166,12 @@ export function BehindTheWork() {
                 ))}
               </div>
               {stage < max ? (
-                <button onClick={() => goTo(stage + 1)} aria-label="Next layer" className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--ink)] text-[var(--paper)]">
+                <button onClick={() => goTo(stage + 1)} aria-label={t('Next layer')} className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--ink)] text-[var(--paper)]">
                   <ChevronRight size={20} />
                 </button>
               ) : (
                 <button onClick={() => go(PROJECT_LINK)} className="flex h-12 items-center gap-1.5 rounded-full bg-[var(--signal)] px-4 text-[14px] font-semibold text-[var(--signal-ink)]">
-                  Open <ArrowRight size={16} />
+                  {t('Open')} <ArrowRight size={16} />
                 </button>
               )}
             </div>
@@ -231,7 +234,7 @@ function Stage({ stage, onOpen, onGo }: { stage: number; onOpen: () => void; onG
         {/* the lifted corner — pull it, tap it, or use the button */}
         {stage === 0 && (
           <motion.button
-            aria-label="Behind the work: lift the poster"
+            aria-label={t('Behind the work: lift the poster')}
             onClick={() => !dragging.current && onOpen()}
             onPointerDown={(e) => {
               (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
@@ -337,7 +340,7 @@ function RefsLayer() {
   const d = useMemo(() => demoProject(), []);
   return (
     <div className="relative h-full w-full p-[5%]" style={{ background: '#e3dccf' }}>
-      <LayerTag>Moodboard · 6 references</LayerTag>
+      <LayerTag>{t('Moodboard · 6 references')}</LayerTag>
       <div className="mt-[9%] grid h-[86%] grid-cols-3 grid-rows-2 gap-[3%]">
         {REFS.map((id) => {
           const a = d.assets.find((x) => x.id === id)!;
@@ -396,7 +399,7 @@ function ReviewLayer({ active }: { active: boolean }) {
           transition={{ delay: active ? 0.5 : 0, duration: 0.4, ease }}
         >
           <p className="f2-mono !text-[9.5px] text-[var(--ink-2)]">Mara K. · AD · on v1</p>
-          <p className="mt-1 text-[clamp(11px,1.1vw,13.5px)] leading-snug">The highlight blows out on the upper twist — we lose the edge right where the form turns.</p>
+          <p className="mt-1 text-[clamp(11px,1.1vw,13.5px)] leading-snug">{t('The highlight blows out on the upper twist — we lose the edge right where the form turns.')}</p>
           <AnimatePresence>
             {showFix && (
               <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-2 border-t border-[var(--rule)] pt-2 text-[clamp(11px,1.05vw,13px)] font-medium text-[#3c7a4a]">
@@ -408,8 +411,8 @@ function ReviewLayer({ active }: { active: boolean }) {
       </div>
       {splitV < 99 && (
         <>
-          <span className="f2-mono absolute bottom-[3.5%] left-[4%] rounded bg-black/55 px-2 py-1 !text-[10px] text-white">A · v1 lacquer</span>
-          <span className="f2-mono absolute bottom-[3.5%] right-[4%] rounded bg-black/55 px-2 py-1 !text-[10px] text-white">B · v2 satin</span>
+          <span className="f2-mono absolute bottom-[3.5%] left-[4%] rounded bg-black/55 px-2 py-1 !text-[10px] text-white">{t('A · v1 lacquer')}</span>
+          <span className="f2-mono absolute bottom-[3.5%] right-[4%] rounded bg-black/55 px-2 py-1 !text-[10px] text-white">{t('B · v2 satin')}</span>
         </>
       )}
     </div>
@@ -462,7 +465,7 @@ function ProjectLayer({ active }: { active: boolean }) {
       </div>
       <div className="min-h-0 flex-1 overflow-hidden px-[4%] py-[3%]">
         <p className="text-[clamp(10px,1vw,12.5px)] font-semibold">
-          Discussion <span className="font-medium text-[var(--ink-2)]">· 1 open</span>
+          {t('Discussion')} <span className="font-medium text-[var(--ink-2)]">· 1 open</span>
         </p>
         <div className="mt-[2.5%] flex flex-col gap-[2.5%]">
           {[c1, c2].map((c, i) => (
@@ -520,8 +523,8 @@ function Collect() {
     <section className="border-t border-[var(--rule)]">
       <div className="mx-auto grid max-w-[1440px] gap-10 px-5 py-16 md:px-10 md:py-24 lg:grid-cols-12">
         <div className="lg:col-span-4">
-          <SceneHead n="Collect" title="Keep the reference next to what it changed." lead="Choose a reference. FrantoS remembers which decision it shaped, so the why never gets lost between versions." />
-          <div role="radiogroup" aria-label="References" className="mt-8 grid grid-cols-3 gap-3">
+          <SceneHead n="Collect" title={t('Keep the reference next to what it changed.')} lead="Choose a reference. FrantoS remembers which decision it shaped, so the why never gets lost between versions." />
+          <div role="radiogroup" aria-label={t('References')} className="mt-8 grid grid-cols-3 gap-3">
             {refs.map((r) => (
               <button key={r.id} role="radio" aria-checked={r.id === sel} onClick={() => setSel(r.id)} className="group text-left">
                 <span className="relative block aspect-[4/5] overflow-hidden rounded-[3px] bg-[var(--graphite)]" style={{ outline: r.id === sel ? '2px solid var(--signal)' : 'none', outlineOffset: 3 }}>
@@ -534,11 +537,11 @@ function Collect() {
         </div>
         <div className="lg:col-span-8">
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-[8px] bg-[var(--paper-2)] p-4 md:gap-6 md:p-8">
-            <Card key={`r-${ref.id}`} src={ref.thumb!} label="Reference" title={ref.title} sub={ref.source} />
+            <Card key={`r-${ref.id}`} src={ref.thumb!} label={t('Reference')} title={ref.title} sub={ref.source} />
             <div className="flex flex-col items-center gap-2 text-center">
               <ArrowRight size={22} />
             </div>
-            <Card key={`t-${target.id}`} src={target.thumb!} label="Decision" title={target.title} />
+            <Card key={`t-${target.id}`} src={target.thumb!} label={t('Decision')} title={target.title} />
             <AnimatePresence mode="wait">
               <motion.p key={ref.id} className="col-span-3 border-t border-[var(--rule)] pt-4 text-[clamp(1.1rem,1.6vw,1.4rem)] leading-snug" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.3, ease }}>
                 <span className="f2-mono mr-2 align-middle text-[var(--ink-2)]">Note ·</span>
@@ -577,7 +580,7 @@ function Refine() {
     <section className="bg-[var(--graphite)] text-[#f3efe7]">
       <div className="mx-auto grid max-w-[1440px] gap-10 px-5 py-16 md:px-10 md:py-24 lg:grid-cols-12 lg:items-center">
         <div className="lg:col-span-4">
-          <SceneHead dark n="Refine" title="The camera stays. Only the work changes." lead="Drag the divider between v1 and v2. Same object, same framing — you see the light and the glaze, nothing else. The note sits on the exact detail it was about." />
+          <SceneHead dark n="Refine" title={t('The camera stays. Only the work changes.')} lead="Drag the divider between v1 and v2. Same object, same framing — you see the light and the glaze, nothing else. The note sits on the exact detail it was about." />
           <div className="mt-6 flex flex-wrap gap-2 text-[13px]">
             {[
               ['0', 'Only v2'],
@@ -606,8 +609,8 @@ function PresentScene() {
     <section className="border-b border-[var(--rule)]">
       <div className="mx-auto grid max-w-[1440px] gap-10 px-5 py-16 md:px-10 md:py-24 lg:grid-cols-12 lg:items-center">
         <div className="lg:col-span-4">
-          <SceneHead n="Present" title="Your client sees the front. You keep the back." lead="Switch the working view to a clean presentation. The panels step aside; only the approved work and its caption remain." />
-          <div role="radiogroup" aria-label="View" className="mt-6 inline-flex rounded-full border border-[var(--rule)] p-1">
+          <SceneHead n="Present" title={t('Your client sees the front. You keep the back.')} lead="Switch the working view to a clean presentation. The panels step aside; only the approved work and its caption remain." />
+          <div role="radiogroup" aria-label={t('View')} className="mt-6 inline-flex rounded-full border border-[var(--rule)] p-1">
             {[
               [false, 'Workspace', <LayoutPanelLeft key="w" size={14} />],
               [true, 'Presentation', <Eye key="p" size={14} />],
@@ -623,7 +626,7 @@ function PresentScene() {
             {/* chrome */}
             <motion.div className="absolute inset-x-0 top-0 flex h-[9%] items-center justify-between border-b border-[var(--rule)] bg-[var(--paper)] px-[3%]" animate={{ y: clean ? '-110%' : 0 }} transition={{ duration: 0.5, ease }}>
               <span className="f2-display text-[clamp(12px,1.5vw,18px)]">FORM / 01</span>
-              <span className="text-[clamp(9px,0.9vw,11px)] text-[var(--ink-2)]">Overview · Materials · Moodboard · Review · Stories</span>
+              <span className="text-[clamp(9px,0.9vw,11px)] text-[var(--ink-2)]">{t('Overview · Materials · Moodboard · Review · Stories')}</span>
             </motion.div>
             <motion.div className="absolute bottom-0 left-0 top-[9%] w-[22%] border-r border-[var(--rule)] bg-[var(--paper)] p-[2%]" animate={{ x: clean ? '-105%' : 0 }} transition={{ duration: 0.5, ease }}>
               {['ref-glaze', 'ref-window', 'clay'].map((id) => (
@@ -633,7 +636,7 @@ function PresentScene() {
               ))}
             </motion.div>
             <motion.div className="absolute bottom-0 right-0 top-[9%] w-[26%] border-l border-[var(--rule)] bg-[var(--paper)] p-[2.2%]" animate={{ x: clean ? '105%' : 0 }} transition={{ duration: 0.5, ease }}>
-              <p className="text-[clamp(9px,0.95vw,12px)] font-semibold">Discussion · 1 open</p>
+              <p className="text-[clamp(9px,0.95vw,12px)] font-semibold">{t('Discussion · 1 open')}</p>
               {['Shadow side could go one stop deeper here.', 'Tighten F–O on the poster.'].map((t) => (
                 <div key={t} className="mt-[8%] rounded-[5px] border border-[var(--rule)] p-[6%] text-[clamp(8.5px,0.9vw,11.5px)] leading-snug">
                   <span className="mr-1 inline-block h-2 w-2 rounded-full bg-[var(--signal)]" /> {t}
@@ -645,7 +648,7 @@ function PresentScene() {
               <img src={`${P}form-poster.webp`} alt="FORM / 01 poster" className="h-[88%] w-auto rounded-[2px] object-contain shadow-[0_30px_60px_-30px_rgba(0,0,0,0.8)]" />
             </motion.div>
             <motion.div className="absolute inset-x-0 bottom-0 flex h-[12%] items-center justify-between px-[4%] text-[#f3efe7]" initial={false} animate={{ opacity: clean ? 1 : 0, y: clean ? 0 : 12 }} transition={{ duration: 0.4, delay: clean ? 0.3 : 0 }}>
-              <span className="f2-display text-[clamp(14px,2vw,26px)]">FORM / 01 — launch poster</span>
+              <span className="f2-display text-[clamp(14px,2vw,26px)]">{t('FORM / 01 — launch poster')}</span>
               <span className="f2-mono text-[var(--fog)]">01 / 04</span>
             </motion.div>
           </div>
@@ -659,16 +662,16 @@ function Closing() {
   return (
     <section>
       <div className="mx-auto max-w-[1440px] px-5 py-20 md:px-10 md:py-28">
-        <h2 className="f2-display max-w-[15ch] text-[clamp(2.6rem,6.4vw,6rem)]">Open the project behind the poster.</h2>
+        <h2 className="f2-display max-w-[15ch] text-[clamp(2.6rem,6.4vw,6rem)]">{t('Open the project behind the poster.')}</h2>
         <div className="mt-8 flex flex-wrap items-center gap-3">
           <button onClick={() => go('/app')} className="f2-btn f2-btn-signal">
-            Open demo workspace <ArrowRight size={18} />
+            {t('Open demo workspace')} <ArrowRight size={18} />
           </button>
           <button onClick={() => go(PROJECT_LINK)} className="f2-btn f2-btn-ghost">
-            Go straight to the review
+            {t('Go straight to the review')}
           </button>
         </div>
-        <p className="mt-5 text-[14px] text-[var(--ink-2)]">No sign-up. Your projects and files stay in this browser.</p>
+        <p className="mt-5 text-[14px] text-[var(--ink-2)]">{t('No sign-up. Your projects and files stay in this browser.')}</p>
       </div>
       <footer className="border-t border-[var(--rule)]">
         <div className="mx-auto flex max-w-[1440px] flex-col gap-3 px-5 py-6 text-[var(--ink-2)] md:flex-row md:items-center md:justify-between md:px-10">
@@ -676,7 +679,7 @@ function Closing() {
           <p className="text-[12.5px]">FORM / 01 is a demo project: a procedural 3D object rendered for FrantoS; references are AI-generated.</p>
           <span className="flex gap-4 text-[13px]">
             <a href="#/after-hours" className="f2-link">
-              After Hours (photo story)
+              {t('After Hours (photo story)')}
             </a>
             <a href="#/overview" className="f2-link inline-flex items-center gap-1">
               Atelier v1 <ArrowUpRight size={13} />

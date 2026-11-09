@@ -212,3 +212,66 @@ export function demoProject(now = Date.now()): Project {
     portfolio: ['poster'],
   };
 }
+
+/** After Hours / Tel Aviv — the stage-1 photo story, now an ordinary project. */
+export const AH_ID = 'after-hours';
+const AH = '/series/after-hours/';
+const AH_FRAMES: [string, string, number, number, string, string][] = [
+  ['kiosk', 'The kiosk', 1792, 2240, 'Central Tel Aviv · 02:10', 'The only light on the block that is still awake.'],
+  ['shutters', 'Shutters down', 1744, 2336, 'Allenby · 02:35', 'The street folds itself away until morning.'],
+  ['promenade', 'Promenade', 2048, 1360, 'Tayelet · 03:05', 'Lamps keep watch over an empty seafront.'],
+  ['reflections', 'Reflections', 1792, 2240, 'Florentin · 03:30', 'After the rain, every sign reads upside down.'],
+  ['balcony', 'One window', 1744, 2336, 'White City · 03:50', 'One window is still arguing with the dark.'],
+  ['bus-stop', 'Night bus', 2048, 1360, 'Ibn Gabirol · 04:20', 'Last passenger of the night, first of the shift.'],
+  ['dawn', 'First light', 1792, 2240, 'Jaffa · 05:40', 'Jaffa switches the lamps off, one by one.'],
+];
+
+export function afterHoursProject(now = Date.now()): Project {
+  const T = Date.UTC(2026, 9, 30, 2, 10);
+  const story = (() => {
+    try {
+      const s = JSON.parse(localStorage.getItem('frantos2_demo_story_v1') ?? 'null');
+      if (s?.story?.length) return s.story as string[];
+    } catch {
+      /* ignore */
+    }
+    return ['kiosk', 'shutters', 'promenade', 'reflections', 'dawn'];
+  })();
+  return {
+    id: AH_ID,
+    title: 'After Hours / Tel Aviv',
+    brief: 'A city diary after closing time: shutters down, the kiosk light, a seafront under lamps. Seven frames, one night.',
+    kind: 'demo',
+    status: 'approved',
+    createdAt: T,
+    updatedAt: now - 3 * 86400000,
+    coverAssetId: 'ah-kiosk',
+    assets: AH_FRAMES.map(([id, title, w, h, place], i) => ({
+      id: `ah-${id}`,
+      kind: 'image' as const,
+      title,
+      src: `${AH}${id}.webp`,
+      thumb: `${AH}${id}-sm.webp`,
+      w,
+      h,
+      createdAt: T + i * 600000,
+      isReference: false,
+      tags: ['night', 'street', place.split(' · ')[0].toLowerCase()],
+      note: place,
+    })),
+    works: AH_FRAMES.map(([id, title], i) => ({
+      id: `ahw-${id}`,
+      title,
+      kind: 'image' as const,
+      createdAt: T + i * 600000,
+      versions: [{ id: `ahv-${id}`, n: 1, assetId: `ah-${id}`, createdAt: T + i * 600000, label: AH_FRAMES[i][4] }],
+      approvedVersionId: `ahv-${id}`,
+    })),
+    comments: [],
+    moodboard: AH_FRAMES.map(([id], i) => ({ id: `ahm-${id}`, assetId: `ah-${id}`, x: 0.03 + (i % 4) * 0.24, y: 0.05 + Math.floor(i / 4) * 0.48, w: 0.2, z: i + 1, rot: ((i % 3) - 1) * 1.2 })),
+    story: story.map((id) => ({ id: `ahs-${id}`, assetId: `ah-${id}`, caption: AH_FRAMES.find((f) => f[0] === id)?.[5] })),
+    presentation: story.map((id) => `ah-${id}`),
+    portfolio: ['ah-kiosk', 'ah-dawn'],
+    tags: ['photo', 'series'],
+  };
+}

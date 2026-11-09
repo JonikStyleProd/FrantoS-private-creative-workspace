@@ -1,4 +1,5 @@
 import React, { useSyncExternalStore } from 'react';
+import { tr as t } from '../i18n';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AlertTriangle, Check, Loader2, RotateCcw, X } from 'lucide-react';
 import { ingest, UploadError } from './media';
@@ -19,8 +20,7 @@ type Job = {
 
 let jobs: Job[] = [];
 const ls = new Set<() => void>();
-const emit = () => ls.forEach((l) => l());
-const patch = (id: string, p: Partial<Job>) => {
+const emit = () => ls.forEach((l) => l()); const patch = (id: string, p: Partial<Job>) => {
   jobs = jobs.map((j) => (j.id === id ? { ...j, ...p } : j));
   emit();
 };
@@ -37,7 +37,7 @@ async function run(job: Job) {
       emit();
     }, 1600);
   } catch (e) {
-    patch(job.id, { state: 'error', error: e instanceof UploadError ? e.message : 'Something went wrong while reading this file.', retry: !(e instanceof UploadError) || e.code === 'storage' || e.code === 'decode' });
+    patch(job.id, { state: 'error', error: e instanceof UploadError ? e.message : t('Something went wrong while reading this file.'), retry: !(e instanceof UploadError) || e.code === 'storage' || e.code === 'decode' });
   }
 }
 
@@ -76,14 +76,14 @@ export function UploadTray() {
               {j.state === 'done' && <Check size={15} className="shrink-0 text-[#4f8a5b]" />}
               {j.state === 'error' && <AlertTriangle size={15} className="shrink-0 text-[var(--signal)]" />}
               <span className="min-w-0 flex-1 truncate font-medium">{j.file.name}</span>
-              <span className="shrink-0 text-[11.5px] text-[var(--ink-2)]">{j.state === 'reading' ? 'Saving…' : j.state === 'done' ? 'Added' : 'Not added'}</span>
+              <span className="shrink-0 text-[11.5px] text-[var(--ink-2)]">{j.state === 'reading' ? t('Saving…') : j.state === 'done' ? t('Added') : t('Not added')}</span>
             </div>
             {j.state === 'error' && (
               <>
                 <p className="mt-1.5 text-[12.5px] leading-snug text-[var(--ink-2)]">{j.error}</p>
                 <div className="mt-2 flex gap-2">
                   {j.retry && <button onClick={() => run(j)} className="inline-flex items-center gap-1 rounded-full bg-[var(--ink)] px-3 py-1.5 text-[12px] font-semibold text-[var(--paper)]">
-                    <RotateCcw size={12} /> Try again
+                    <RotateCcw size={12} /> {t('Try again')}
                   </button>}
                   <button
                     onClick={() => {
@@ -92,7 +92,7 @@ export function UploadTray() {
                     }}
                     className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[12px] font-medium hover:bg-black/5"
                   >
-                    <X size={12} /> Dismiss
+                    <X size={12} /> {t('Dismiss')}
                   </button>
                 </div>
               </>

@@ -1,4 +1,4 @@
-import { useLanguage } from '../i18n/LanguageContext';
+import { useI18n } from './i18n';
 
 const en = {
   tagline: 'Private creative workspace',
@@ -132,7 +132,66 @@ function plural(n: number, one: string, few: string, many: string) {
   return many;
 }
 
+const he: Copy = {
+  tagline: 'סביבת עבודה יצירתית פרטית',
+  heroTitle: ['אוספים את השברים.', 'בונים את הסיפור.'],
+  heroLead: 'FrantoS היא סביבה פרטית שבה צלמים ומנהלי אמנות הופכים פריימים בודדים לסיפור שאפשר להציג.',
+  openDemo: 'לפתוח את פרויקט הדמו',
+  watchStory: 'לצפות בסיפור המוכן',
+  coverHint: 'הקישו על השער כדי לפתוח את הסיפור',
+  frames: (n) => `${n} פריימים`,
+  story: 'סיפור',
+  storyTitle: 'After Hours / Tel Aviv',
+  storyDek: 'יומן של עיר אחרי שעת הסגירה: תריסים מוגפים, אור הקיוסק, טיילת תחת פנסים.',
+  s1Kicker: '01 — מהשברים',
+  s1Title: 'בוחרים שער. הסיפור משתנה.',
+  s1Lead: 'בחרו אחד משלושה פריימים. הבחירה תעבור איתכם לפרויקט הדמו.',
+  s1Cta: 'להמשיך עם השער הזה',
+  pick: 'להפוך לשער',
+  s2Kicker: '02 — הסדרה',
+  s2Title: 'שבעה פריימים, לילה אחד.',
+  s2Lead: 'בסביבת העבודה — חומרי גלם, בסיפור — רצף. אותו גרייד, אותו סטודיו.',
+  s3Title: 'הגרסה שלכם במרחק דקה.',
+  s3Lead: 'בלי הרשמה. השינויים נשמרים בדפדפן הזה.',
+  legacy: 'האטלייה המקורי (v1)',
+  credit: 'סדרת דמו שנוצרה עבור FrantoS. אינה תיעוד של מקום אמיתי.',
+  back: 'FrantoS',
+  materials: 'חומרים',
+  inStory: 'בסיפור',
+  storyPanel: 'סיפור',
+  cover: 'שער',
+  setCover: 'להפוך לשער',
+  isCover: 'שער הסיפור',
+  addToStory: 'להוסיף לסיפור',
+  removeFromStory: 'להסיר',
+  moveUp: 'מוקדם יותר',
+  moveDown: 'מאוחר יותר',
+  dragHint: 'גררו, או בחרו פריים ולחצו Alt + ↑ / ↓',
+  dragHintTouch: 'החזיקו ⠿ כדי לגרור, או הקישו ↑ ↓',
+  present: 'להציג',
+  reset: 'להתחיל את הדמו מחדש',
+  resetConfirm: 'לאפס את עותק הדמו שלכם?',
+  resetYes: 'לאפס',
+  resetNo: 'להשאיר',
+  saving: 'שומר…',
+  saved: 'נשמר בדפדפן',
+  seed: 'עותק דמו · אפשר לשנות',
+  saveError: 'השמירה נכשלה',
+  localNote: 'דמו מקומי: השינויים נשמרים רק במכשיר הזה. שום דבר לא מתפרסם.',
+  notInStory: 'עדיין לא בסיפור',
+  position: (i, n) => `${i} מתוך ${n}`,
+  lastFrame: 'בסיפור חייב להישאר לפחות פריים אחד',
+  exitEditor: 'חזרה לעורך',
+  exitViewer: 'סגירה',
+  prev: 'הפריים הקודם',
+  next: 'הפריים הבא',
+  end: 'סוף הסיפור',
+  editStory: 'לבנות גרסה משלכם',
+  replay: 'לצפות שוב',
+  swipe: 'החליקו או ← →',
+};
+
 export function useCopy() {
-  const { language, toggleLanguage } = useLanguage();
-  return { c: language === 'ru' ? ru : en, lang: language, toggleLanguage };
+  const { lang, setLang } = useI18n();
+  return { c: lang === 'ru' ? ru : lang === 'he' ? he : en, lang, toggleLanguage: () => setLang(lang === 'en' ? 'ru' : lang === 'ru' ? 'he' : 'en') };
 }

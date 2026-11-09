@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { tr as t } from '../i18n';
 import { AnimatePresence, motion, PanInfo } from 'framer-motion';
 import { ArrowLeft, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import { Asset, Project } from './types';
@@ -96,7 +97,7 @@ function ShowInner({ p, mode, slide }: { p: Project; mode: 'presentation' | 'sto
                     </p>
                     <p className="f2-display mt-1 text-[28px] leading-none md:text-[38px]">{cur.a.title}</p>
                   </div>
-                  {cur.caption && <p className="max-w-[30rem] text-[14px] text-[var(--fog)] md:text-right md:text-[15px]">{cur.caption}</p>}
+                  {cur.caption && <p className="max-w-[30rem] text-[14px] text-[var(--fog)] md:text-end md:text-[15px]">{cur.caption}</p>}
                 </div>
               </figcaption>
             </motion.figure>
@@ -104,14 +105,14 @@ function ShowInner({ p, mode, slide }: { p: Project; mode: 'presentation' | 'sto
         </AnimatePresence>
         {n === 0 && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center">
-            <p className="f2-display text-[36px]">Nothing to show yet.</p>
-            <p className="text-[var(--fog)]">{mode === 'presentation' ? 'Add works to the presentation from Review or Materials.' : 'Add frames from approved versions.'}</p>
+            <p className="f2-display text-[36px]">{t('Nothing to show yet.')}</p>
+            <p className="text-[var(--fog)]">{mode === 'presentation' ? t('Add works to the presentation from Review or Materials.') : t('Add frames from approved versions.')}</p>
           </div>
         )}
       </motion.div>
 
-      {i > 0 && <button onClick={() => to(i - 1)} aria-label="Previous" className="group absolute bottom-[110px] left-0 top-[70px] z-10 w-[26%] md:w-[16%]"><Chev side="l" /></button>}
-      {i < n && <button onClick={() => to(i + 1)} aria-label="Next" className="group absolute bottom-[110px] right-0 top-[70px] z-10 w-[40%] md:w-[16%]"><Chev side="r" /></button>}
+      {i > 0 && <button onClick={() => to(i - 1)} aria-label={t('Previous')} className="group absolute bottom-[110px] left-0 top-[70px] z-10 w-[26%] md:w-[16%]"><Chev side="l" /></button>}
+      {i < n && <button onClick={() => to(i + 1)} aria-label={t('Next')} className="group absolute bottom-[110px] right-0 top-[70px] z-10 w-[40%] md:w-[16%]"><Chev side="r" /></button>}
 
       <div className="absolute inset-x-0 top-0 z-20 px-4 pt-[max(14px,env(safe-area-inset-top))] md:px-8 md:pt-6">
         <div className="flex gap-1" aria-hidden>
@@ -123,10 +124,10 @@ function ShowInner({ p, mode, slide }: { p: Project; mode: 'presentation' | 'sto
         </div>
         <div className="mt-3 flex items-center justify-between gap-3">
           <p className="f2-mono flex items-center gap-2 text-[#f3efe7]">
-            <Eye size={12} /> {mode === 'presentation' ? <>Viewer mode<span className="hidden sm:inline">&nbsp;· what a client sees</span></> : 'Story'}
+            <Eye size={12} /> {mode === 'presentation' ? <>{t('Viewer mode')}<span className="hidden sm:inline">&nbsp;· what a client sees</span></> : t('Story')}
           </p>
           <button onClick={exit} className="inline-flex h-10 items-center gap-2 rounded-full border border-white/15 bg-black/35 px-3.5 text-[13.5px] font-medium backdrop-blur hover:bg-black/55">
-            <ArrowLeft size={15} /> Back to project
+            <ArrowLeft size={15} /> {t('Back to project')}
           </button>
         </div>
       </div>
@@ -168,7 +169,7 @@ function TitleSlide({ p, cover, mode, count }: { p: Project; cover: Asset; mode:
       <div className="pointer-events-none absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(10,10,12,.5) 0%, rgba(10,10,12,0) 28%, rgba(10,10,12,0) 45%, rgba(10,10,12,.86) 100%)' }} />
       <motion.div className="absolute inset-x-0 bottom-0 px-5 pb-[max(28px,env(safe-area-inset-bottom))] md:px-12 md:pb-14" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25, duration: 0.5, ease }}>
         <p className="f2-mono text-[#f3efe7]/80">
-          {mode === 'presentation' ? 'Presentation' : 'Story'} · {count} {count === 1 ? 'frame' : 'frames'}
+          {mode === 'presentation' ? t('Presentation') : t('Story')} · {t('{n} frames', { n: count })}
         </p>
         <h1 className="f2-display mt-3 text-[clamp(3.2rem,10vw,9rem)] leading-[0.88]">{p.title}</h1>
         {p.brief && <p className="mt-4 max-w-[34rem] text-[15px] text-[#f3efe7]/80">{p.brief}</p>}

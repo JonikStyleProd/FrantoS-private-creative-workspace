@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { tr as t } from '../i18n';
 import { ArrowRight, BookImage, Check, Columns2, Eye, ImagePlus, LayoutGrid, MessageSquare, Presentation, Star, Trash2, Upload } from 'lucide-react';
 import { Asset, Project } from './types';
 import { openComments, workOfAsset, ws } from './store';
@@ -30,20 +31,20 @@ export function Inspector({ p, asset, onClose, compact }: { p: Project; asset: A
     <div className="flex flex-col gap-4">
       <div className={`relative overflow-hidden rounded-[4px] bg-[var(--graphite)] ${compact ? 'aspect-[16/10]' : 'aspect-[4/5]'}`}>
         <AssetThumb asset={asset} size="full" fit="contain" className="absolute inset-0 h-full w-full" alt={asset.title} />
-        {asset.kind === 'video' && <span className="f2-mono absolute left-2 top-2 rounded bg-black/60 px-1.5 py-0.5 !text-[10px] text-white">Motion</span>}
+        {asset.kind === 'video' && <span className="f2-mono absolute left-2 top-2 rounded bg-black/60 px-1.5 py-0.5 !text-[10px] text-white">{t('Motion')}</span>}
       </div>
 
       <div>
-        <p className="f2-mono text-[var(--ink-2)]">{asset.isReference ? 'Reference' : work ? `${work.title} · v${wv!.version.n}${approved ? ' · approved' : ''}` : 'Material'}</p>
+        <p className="f2-mono text-[var(--ink-2)]">{asset.isReference ? t('Reference') : work ? `${work.title} · v${wv!.version.n}${approved ? ` · ${t('approved')}` : ''}` : t('Material')}</p>
         <EditableTitle value={asset.title} onSave={(t) => ws.patchAsset(p.id, asset.id, { title: t })} />
       </div>
 
       {asset.isReference ? (
         <>
-          <Field label="Source" value={asset.source ?? ''} placeholder="Where it's from: link, book, shoot…" onSave={(v) => ws.patchAsset(p.id, asset.id, { source: v })} />
-          <Field label="Note" value={asset.note ?? ''} placeholder="Why it matters for this project" multiline onSave={(v) => ws.patchAsset(p.id, asset.id, { note: v })} />
+          <Field label={t('Source')} value={asset.source ?? ''} placeholder={t('Where it\'s from: link, book, shoot…')} onSave={(v) => ws.patchAsset(p.id, asset.id, { source: v })} />
+          <Field label={t('Note')} value={asset.note ?? ''} placeholder={t('Why it matters for this project')} multiline onSave={(v) => ws.patchAsset(p.id, asset.id, { note: v })} />
           {asset.influences && influenced && (
-            <button onClick={() => go(`/p/${p.id}/materials?a=${influenced.id}`)} className="flex items-center gap-3 rounded-[6px] border border-[var(--rule)] p-2 text-left hover:bg-black/[0.03]">
+            <button onClick={() => go(`/p/${p.id}/materials?a=${influenced.id}`)} className="flex items-center gap-3 rounded-[6px] border border-[var(--rule)] p-2 text-start hover:bg-black/[0.03]">
               <span className="h-14 w-11 shrink-0 overflow-hidden rounded-[2px]">
                 <AssetThumb asset={influenced} className="h-full w-full" />
               </span>
@@ -54,7 +55,7 @@ export function Inspector({ p, asset, onClose, compact }: { p: Project; asset: A
             </button>
           )}
           <div className="flex flex-wrap gap-2">
-            <Act primary={!onBoard} on={onBoard} onClick={() => (onBoard ? go(`/p/${p.id}/moodboard`) : (ws.addToMoodboard(p.id, asset.id), toast('Added to moodboard')))} icon={onBoard ? <Check size={14} /> : <LayoutGrid size={14} />}>
+            <Act primary={!onBoard} on={onBoard} onClick={() => (onBoard ? go(`/p/${p.id}/moodboard`) : (ws.addToMoodboard(p.id, asset.id), toast(t('Added to moodboard'))))} icon={onBoard ? <Check size={14} /> : <LayoutGrid size={14} />}>
               {onBoard ? 'On moodboard' : 'Add to moodboard'}
             </Act>
             <Act
@@ -64,7 +65,7 @@ export function Inspector({ p, asset, onClose, compact }: { p: Project; asset: A
               }}
               icon={<MessageSquare size={14} />}
             >
-              Start review
+              {t('Start review')}
             </Act>
           </div>
         </>
@@ -82,7 +83,7 @@ export function Inspector({ p, asset, onClose, compact }: { p: Project; asset: A
               </div>
               <div className="flex flex-wrap gap-2">
                 <Act primary onClick={() => go(reviewLink())} icon={<MessageSquare size={14} />}>
-                  Review{open ? ` · ${open} open` : ''}
+                  {t('Review')}{open ? ` · ${t('{n} open', { n: open })}` : ''}
                 </Act>
                 {work.versions.length > 1 && (
                   <Act
@@ -92,7 +93,7 @@ export function Inspector({ p, asset, onClose, compact }: { p: Project; asset: A
                     }}
                     icon={<Columns2 size={14} />}
                   >
-                    Compare versions
+                    {t('Compare versions')}
                   </Act>
                 )}
                 <FilePick
@@ -103,14 +104,14 @@ export function Inspector({ p, asset, onClose, compact }: { p: Project; asset: A
                       isReference: false,
                       then: (a) => {
                         const vid = ws.addVersion(p.id, work.id, a.id);
-                        toast(`Version added to ${work.title}`);
+                        toast(t('Version added to {name}', { name: work.title }));
                         go(`/p/${p.id}/review/${work.id}?v=${vid}&cmp=${wv!.version.id}`);
                       },
                     })
                   }
                   className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[var(--rule)] px-3 text-[13px] font-medium hover:bg-black/[0.04]"
                 >
-                  <Upload size={14} /> New version
+                  <Upload size={14} /> {t('New version')}
                 </FilePick>
               </div>
             </>
@@ -123,16 +124,16 @@ export function Inspector({ p, asset, onClose, compact }: { p: Project; asset: A
               }}
               icon={<MessageSquare size={14} />}
             >
-              Start review
+              {t('Start review')}
             </Act>
           )}
           <div className="border-t border-[var(--rule)] pt-3">
-            <p className="f2-mono mb-2 text-[var(--ink-2)]">Use it</p>
+            <p className="f2-mono mb-2 text-[var(--ink-2)]">{t('Use it')}</p>
             <div className="flex flex-wrap gap-2">
               <Act on={inPres} onClick={() => ws.togglePresentation(p.id, asset.id)} icon={<Presentation size={14} />}>
                 {inPres ? 'In presentation' : 'Add to presentation'}
               </Act>
-              <Act on={inStory} onClick={() => (inStory ? go(`/p/${p.id}/stories`) : (ws.addToStory(p.id, asset.id), toast('Added to Story')))} icon={<BookImage size={14} />}>
+              <Act on={inStory} onClick={() => (inStory ? go(`/p/${p.id}/stories`) : (ws.addToStory(p.id, asset.id), toast(t('Added to Story'))))} icon={<BookImage size={14} />}>
                 {inStory ? 'In Story' : 'Add to Story'}
               </Act>
               <Act on={inPortfolio} onClick={() => ws.togglePortfolio(p.id, asset.id)} icon={<Star size={14} fill={inPortfolio ? 'currentColor' : 'none'} />}>
@@ -142,8 +143,8 @@ export function Inspector({ p, asset, onClose, compact }: { p: Project; asset: A
                 {onBoard ? 'On moodboard' : 'Moodboard'}
               </Act>
               {!isCover && (
-                <Act onClick={() => (ws.setCover(p.id, asset.id), toast('Project cover updated'))} icon={<ImagePlus size={14} />}>
-                  Set as cover
+                <Act onClick={() => (ws.setCover(p.id, asset.id), toast(t('Project cover updated')))} icon={<ImagePlus size={14} />}>
+                  {t('Set as cover')}
                 </Act>
               )}
             </div>
@@ -155,7 +156,7 @@ export function Inspector({ p, asset, onClose, compact }: { p: Project; asset: A
       <div className="flex items-center justify-between border-t border-[var(--rule)] pt-3">
         {!asset.isReference && work ? (
           <button onClick={() => go(`/p/${p.id}/present/0`)} className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[var(--ink-2)] hover:text-[var(--ink)]">
-            <Eye size={14} /> Preview presentation
+            <Eye size={14} /> {t('Preview presentation')}
           </button>
         ) : (
           <span />
@@ -164,11 +165,11 @@ export function Inspector({ p, asset, onClose, compact }: { p: Project; asset: A
           onClick={() => {
             ws.deleteAsset(p.id, asset.id);
             onClose?.();
-            toast(`Deleted “${asset.title}”`, { undo: true });
+            toast(t('Deleted “{name}”', { name: asset.title }), { undo: true });
           }}
           className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[12.5px] font-medium text-[var(--ink-2)] hover:bg-black/5 hover:text-[var(--ink)]"
         >
-          <Trash2 size={14} /> Delete
+          <Trash2 size={14} /> {t('Delete')}
         </button>
       </div>
     </div>
@@ -202,7 +203,7 @@ function EditableTitle({ value, onSave }: { value: string; onSave: (v: string) =
       onChange={(e) => setV(e.target.value)}
       onBlur={() => v.trim() && v !== value && onSave(v)}
       onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-      aria-label="Title"
+      aria-label={t('Title')}
       className="f2-display mt-1 w-full rounded bg-transparent text-[26px] leading-tight outline-none focus:bg-black/[0.04]"
     />
   );

@@ -1,4 +1,5 @@
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { tr } from '../i18n';
 import { Pause, Play } from 'lucide-react';
 import { Asset, Comment } from './types';
 import { fmtTime, useAssetUrl } from './media';
@@ -11,8 +12,8 @@ export interface VideoHandle {
 }
 
 /** Motion review: comments live on the timeline; clicking one returns to that frame. */
-export const VideoWork = forwardRef<VideoHandle, { asset: Asset; comments: { c: Comment; n: number }[]; activeId?: string; onMarker: (id: string) => void; layoutId?: string }>(
-  function VideoWork({ asset, comments, activeId, onMarker }, ref) {
+export const VideoWork = forwardRef<VideoHandle, { asset: Asset; comments: { c: Comment; n: number }[]; activeId?: string; onMarker: (id: string) => void; layoutId?: string; draft?: { t: number; t2?: number } | null }>(
+  function VideoWork({ asset, comments, activeId, onMarker, draft }, ref) {
     const { url } = useAssetUrl(asset, 'full');
     const poster = useAssetUrl(asset, 'thumb').url;
     const { ref: fitRef, w, h } = useFit(asset.w / asset.h, 0);
@@ -79,7 +80,7 @@ export const VideoWork = forwardRef<VideoHandle, { asset: Asset; comments: { c: 
     const toggle = () => (v.current?.paused ? v.current.play() : v.current?.pause());
 
     return (
-      <div className="absolute inset-0 flex flex-col">
+      <div className="absolute inset-0 flex flex-col" dir="ltr">
         <div ref={fitRef} className="relative min-h-0 flex-1">
           <div className="absolute inset-0 flex items-center justify-center">
             {w > 0 && (
@@ -103,7 +104,7 @@ export const VideoWork = forwardRef<VideoHandle, { asset: Asset; comments: { c: 
               max={dur || 1}
               step={0.033}
               value={t}
-              aria-label="Timeline"
+              aria-label={tr('Timeline')}
               onChange={(e) => {
                 const s = +e.target.value;
                 if (v.current) {
@@ -114,6 +115,19 @@ export const VideoWork = forwardRef<VideoHandle, { asset: Asset; comments: { c: 
               }}
               className="f2-range absolute inset-x-0 top-1/2 w-full -translate-y-1/2"
             />
+            {comments.map(({ c }) =>
+              c.t != null && c.t2 != null && dur ? (
+                <span
+                  key={`r-${c.id}`}
+                  aria-hidden
+                  className="pointer-events-none absolute top-1/2 h-[6px] -translate-y-1/2 rounded-full"
+                  style={{ left: `${(Math.min(c.t, c.t2) / dur) * 100}%`, width: `${(Math.abs(c.t2 - c.t) / dur) * 100}%`, background: c.resolved ? 'rgba(243,239,231,0.5)' : 'rgba(255,75,43,0.75)' }}
+                />
+              ) : null
+            )}
+            {draft && dur ? (
+              <span aria-hidden className="pointer-events-none absolute top-1/2 h-[8px] -translate-y-1/2 rounded-full border border-white bg-[rgba(255,75,43,0.5)]" style={{ left: `${(Math.min(draft.t, draft.t2 ?? draft.t) / dur) * 100}%`, width: `max(4px, ${(Math.abs((draft.t2 ?? draft.t) - draft.t) / dur) * 100}%)` }} />
+            ) : null}
             {comments.map(({ c, n }) =>
               c.t != null && dur ? (
                 <button

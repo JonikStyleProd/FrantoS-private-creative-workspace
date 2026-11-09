@@ -6,6 +6,8 @@ import { demo, useDemo } from './store';
 import { go } from './route';
 import { useCopy } from './copy';
 import { CoverArt, CropMarks, FrameImg, FrameNo, Wordmark } from './ui';
+import { LangSwitch } from './i18n/LangSwitch';
+import { ws as wsStore, ensureLoaded } from './ws/store';
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -28,14 +30,8 @@ export function Landing({ receded = false }: { receded?: boolean }) {
         </a>
         <nav className="flex items-center gap-2 md:gap-5">
           <span className="f2-mono hidden text-[var(--ink-2)] md:inline">{c.tagline}</span>
-          <button
-            onClick={toggleLanguage}
-            className="f2-mono rounded-full px-3 py-2 text-[var(--ink-2)] hover:text-[var(--ink)]"
-            aria-label={lang === 'ru' ? 'Switch to English' : 'Переключить на русский'}
-          >
-            <span className={lang === 'en' ? 'text-[var(--ink)]' : ''}>EN</span> / <span className={lang === 'ru' ? 'text-[var(--ink)]' : ''}>RU</span>
-          </button>
-          <button onClick={() => go('/studio')} className="f2-btn f2-btn-ghost hidden !min-h-[40px] !px-4 !text-[14px] sm:inline-flex">
+          <LangSwitch />
+          <button onClick={() => go('/p/after-hours')} className="f2-btn f2-btn-ghost hidden !min-h-[40px] !px-4 !text-[14px] sm:inline-flex">
             {c.openDemo}
           </button>
         </nav>
@@ -63,7 +59,7 @@ export function Landing({ receded = false }: { receded?: boolean }) {
           </h1>
           <p className="mt-6 hidden max-w-[34rem] text-[17px] leading-relaxed text-[var(--ink-2)] md:block">{c.heroLead}</p>
           <div className="mt-8 hidden flex-wrap items-center gap-x-6 gap-y-4 lg:flex">
-            <button onClick={() => go('/studio')} className="f2-btn f2-btn-signal">
+            <button onClick={() => go('/p/after-hours')} className="f2-btn f2-btn-signal">
               {c.openDemo}
               <ArrowRight size={18} strokeWidth={2} />
             </button>
@@ -104,7 +100,7 @@ export function Landing({ receded = false }: { receded?: boolean }) {
         {/* Mobile / tablet actions sit under the work */}
         <motion.div exit={{ opacity: 0 }} className="flex flex-col gap-4 lg:hidden">
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-            <button onClick={() => go('/studio')} className="f2-btn f2-btn-signal w-full justify-center sm:w-auto">
+            <button onClick={() => go('/p/after-hours')} className="f2-btn f2-btn-signal w-full justify-center sm:w-auto">
               {c.openDemo}
               <ArrowRight size={18} />
             </button>
@@ -179,7 +175,10 @@ function CoverChooser() {
                   key={id}
                   role="radio"
                   aria-checked={on}
-                  onClick={() => demo.setCover(id)}
+                  onClick={() => {
+                    demo.setCover(id);
+                    ensureLoaded().then(() => wsStore.setCover('after-hours', `ah-${id}`));
+                  }}
                   className="group text-left"
                 >
                   <div className="relative aspect-[4/5] rounded-[3px] bg-[var(--graphite)] p-0">
@@ -207,7 +206,7 @@ function CoverChooser() {
             })}
           </div>
 
-          <button onClick={() => go('/studio')} className="f2-btn f2-btn-ghost mt-10">
+          <button onClick={() => go('/p/after-hours')} className="f2-btn f2-btn-ghost mt-10">
             {c.s1Cta} <ArrowRight size={17} />
           </button>
         </div>
@@ -295,7 +294,7 @@ function Closing() {
       <div className="mx-auto max-w-[1360px] px-5 py-20 md:px-10 md:py-28">
         <h2 className="f2-display max-w-[16ch] text-[clamp(2.6rem,6.4vw,6rem)]">{c.s3Title}</h2>
         <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4">
-          <button onClick={() => go('/studio')} className="f2-btn f2-btn-signal">
+          <button onClick={() => go('/p/after-hours')} className="f2-btn f2-btn-signal">
             {c.openDemo} <ArrowRight size={18} />
           </button>
           <span className="text-[15px] text-[var(--ink-2)]">{c.s3Lead}</span>

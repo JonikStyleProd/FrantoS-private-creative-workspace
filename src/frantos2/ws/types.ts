@@ -22,6 +22,12 @@ export interface Asset {
   influences?: { assetId: string; text: string };
   /** false while bytes are still being written */
   ready?: boolean;
+  /** cloud copy in the private `assets` bucket */
+  storagePath?: string;
+  thumbPath?: string;
+  tags?: string[];
+  /** dominant colours, extracted on upload */
+  palette?: string[];
 }
 
 export interface Version {
@@ -54,8 +60,17 @@ export interface Comment {
   versionId: string;
   /** position in the work's own coordinates (0–1), survives any resize */
   pin?: { x: number; y: number };
-  /** seconds, for motion work */
+  /** an area instead of a point, same coordinates */
+  area?: { x: number; y: number; w: number; h: number };
+  /** a freehand mark: points in work coordinates */
+  path?: [number, number][];
+  /** seconds, for motion work; t2 makes it a range */
   t?: number;
+  t2?: number;
+  /** a note that is a to-do for the next version */
+  isTask?: boolean;
+  authorId?: string;
+  guest?: boolean;
   text: string;
   author: string;
   createdAt: number;
@@ -73,6 +88,35 @@ export interface MoodItem {
   w: number;
   z: number;
   rot: number;
+}
+
+export interface Decision {
+  id: string;
+  workId: string;
+  versionId: string;
+  text: string;
+  /** what the decision rests on: references, notes */
+  basedOn: { kind: 'asset' | 'comment'; id: string }[];
+  author: string;
+  createdAt: number;
+}
+
+export interface CanvasNote {
+  id: string;
+  x: number;
+  y: number;
+  w: number;
+  text: string;
+  z: number;
+}
+
+export interface CanvasGroup {
+  id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  label: string;
 }
 
 export interface StoryFrame {
@@ -99,6 +143,16 @@ export interface Project {
   story: StoryFrame[];
   presentation: string[];
   portfolio: string[];
+  decisions?: Decision[];
+  notes?: CanvasNote[];
+  groups?: CanvasGroup[];
+  tags?: string[];
+  /** case page: shown publicly only when published */
+  caseText?: { intro?: string; outro?: string };
+  visibility?: 'private' | 'public';
+  publicSlug?: string;
+  /** set once the project lives in a studio on the server */
+  cloud?: { studioId: string; rev: number; syncedAt?: number };
   lastView?: string;
   lastOpenedAt?: number;
 }
@@ -108,4 +162,6 @@ export interface WsState {
   projects: Project[];
   lastProjectId?: string;
   you: string;
+  /** which studio new cloud projects go to */
+  studioId?: string;
 }

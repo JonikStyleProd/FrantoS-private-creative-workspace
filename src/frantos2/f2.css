@@ -4,6 +4,9 @@
 @import '@fontsource-variable/inter-tight/index.css';
 @import '@fontsource/jetbrains-mono/400.css';
 @import '@fontsource/jetbrains-mono/500.css';
+@import '@fontsource/frank-ruhl-libre/hebrew-400.css';
+@import '@fontsource/frank-ruhl-libre/hebrew-500.css';
+@import '@fontsource-variable/heebo/index.css';
 
 /*
  * FrantoS 2.0 — design tokens
@@ -26,9 +29,9 @@
   --signal: #ff4b2b;
   --signal-ink: #15130f;
 
-  --f-display: 'Instrument Serif', 'Literata Variable', Georgia, serif;
-  --f-ui: 'Inter Tight Variable', 'Inter Tight', system-ui, sans-serif;
-  --f-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --f-display: 'Instrument Serif', 'Literata Variable', 'Frank Ruhl Libre', Georgia, serif;
+  --f-ui: 'Inter Tight Variable', 'Inter Tight', 'Heebo Variable', system-ui, sans-serif;
+  --f-mono: 'JetBrains Mono', 'Heebo Variable', ui-monospace, monospace;
 
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 
@@ -49,6 +52,20 @@
   /* Literata carries Cyrillic: tighten it to sit closer to Instrument Serif */
   font-variation-settings: 'opsz' 72, 'wght' 380;
   letter-spacing: -0.03em;
+}
+:lang(he) .f2-display,
+.f2-display:lang(he) {
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+/* RTL: direction arrows in the UI point the reading way; works are never mirrored */
+[dir='rtl'] .f2 .lucide-arrow-right,
+[dir='rtl'] .f2 .lucide-arrow-left,
+[dir='rtl'] .f2 .f2-flip {
+  transform: scaleX(-1);
+}
+[dir='rtl'] .f2-mono {
+  letter-spacing: 0.02em;
 }
 .f2-mono {
   font-family: var(--f-mono);

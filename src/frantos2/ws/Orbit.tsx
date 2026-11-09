@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { tr as t } from '../i18n';
 import { motion, useMotionValue, useSpring, useTransform, MotionValue } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Asset } from './types';
@@ -31,8 +32,7 @@ export function Orbit({ items, selected, onSelect }: { items: Asset[]; selected?
 
   // bring the selected card to the front
   useEffect(() => {
-    const i = items.findIndex((a) => a.id === selected);
-    if (i < 0) return;
+    const i = items.findIndex((a) => a.id === selected); if (i < 0) return;
     const target = -i * step;
     const cur = rot.get();
     const delta = ((((target - cur) % 360) + 540) % 360) - 180;
@@ -78,11 +78,11 @@ export function Orbit({ items, selected, onSelect }: { items: Asset[]; selected?
         ))}
       </motion.div>
       <div className="absolute inset-x-0 bottom-3 flex items-center justify-center gap-3">
-        <button onClick={() => turn(-1)} aria-label="Previous material" className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--rule)] bg-[var(--paper)] hover:bg-white/60">
+        <button onClick={() => turn(-1)} aria-label={t('Previous material')} className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--rule)] bg-[var(--paper)] hover:bg-white/60">
           <ChevronLeft size={18} />
         </button>
         <span className="f2-mono text-[var(--ink-2)]">Drag or ← →</span>
-        <button onClick={() => turn(1)} aria-label="Next material" className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--rule)] bg-[var(--paper)] hover:bg-white/60">
+        <button onClick={() => turn(1)} aria-label={t('Next material')} className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--rule)] bg-[var(--paper)] hover:bg-white/60">
           <ChevronRight size={18} />
         </button>
       </div>
@@ -100,7 +100,7 @@ function OrbitCard({ a, angle, radius, rot, active, onClick }: { a: Asset; angle
       onClick={onClick}
       aria-label={a.title}
       aria-current={active}
-      className="absolute text-left"
+      className="absolute text-start"
       style={{
         width: w,
         left: -w / 2,

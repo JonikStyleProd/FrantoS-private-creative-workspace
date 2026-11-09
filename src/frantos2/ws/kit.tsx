@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useSyncExternalStore } from 'react';
+import { tr, ago as agoI } from '../i18n';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AlertTriangle, Check, Lock, X } from 'lucide-react';
 import { Asset } from './types';
@@ -15,7 +16,7 @@ export function AssetThumb({ asset, className = '', fit = 'cover', size = 'thumb
   if (missing)
     return (
       <div className={`flex items-center justify-center bg-[var(--graphite-2)] text-[11px] text-[var(--fog)] ${className}`}>
-        <AlertTriangle size={14} className="mr-1" /> File missing
+        <AlertTriangle size={14} className="me-1" /> {tr('File missing')}
       </div>
     );
   return url ? (
@@ -74,7 +75,7 @@ export function Toaster() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8 }}
             transition={{ duration: 0.22, ease }}
-            className="pointer-events-auto flex max-w-[560px] items-center gap-3 rounded-full bg-[var(--ink)] py-2 pl-4 pr-2 text-[13.5px] text-[var(--paper)] shadow-[0_18px_40px_-16px_rgba(0,0,0,0.5)]"
+            className="pointer-events-auto flex max-w-[560px] items-center gap-3 rounded-full bg-[var(--ink)] py-2 ps-4 pe-2 text-[13.5px] text-[var(--paper)] shadow-[0_18px_40px_-16px_rgba(0,0,0,0.5)]"
             role={t.tone === 'error' ? 'alert' : 'status'}
           >
             {t.tone === 'error' ? <AlertTriangle size={15} className="shrink-0 text-[var(--signal)]" /> : <Check size={15} className="shrink-0 opacity-70" />}
@@ -84,14 +85,14 @@ export function Toaster() {
                 onClick={() => {
                   const label = undo();
                   dismiss(t.id);
-                  if (label) toast(`Restored`);
+                  if (label) toast(tr('Restored'));
                 }}
                 className="rounded-full bg-[var(--paper)] px-3 py-1 text-[12.5px] font-semibold text-[var(--ink)]"
               >
-                Undo
+                {tr('Undo')}
               </button>
             )}
-            <button onClick={() => dismiss(t.id)} aria-label="Dismiss" className="rounded-full p-1.5 opacity-60 hover:opacity-100">
+            <button onClick={() => dismiss(t.id)} aria-label={tr('Dismiss')} className="rounded-full p-1.5 opacity-60 hover:opacity-100">
               <X size={14} />
             </button>
           </motion.div>
@@ -110,21 +111,21 @@ export function SaveBadge({ dark = false }: { dark?: boolean }) {
     const t = setInterval(() => force((x) => x + 1), 30000);
     return () => clearInterval(t);
   }, []);
-  let label = 'Stored in this browser';
+  let label = tr('Stored in this browser');
   let dot = dark ? 'var(--fog)' : 'var(--ink-2)';
-  if (status === 'loading') label = 'Opening…';
+  if (status === 'loading') label = tr('Opening…');
   else if (status === 'saving') {
-    label = 'Saving…';
+    label = tr('Saving…');
     dot = 'var(--signal)';
   } else if (status === 'error') {
-    label = 'Not saved — browser storage unavailable';
+    label = tr('Not saved — browser storage unavailable');
     dot = 'var(--signal)';
   } else if (status === 'saved' && lastSavedAt) {
-    label = `Saved ${ago(lastSavedAt)}`;
+    label = tr('Saved {when}', { when: agoI(lastSavedAt) });
     dot = '#4f8a5b';
   }
   return (
-    <span className="inline-flex items-center gap-1.5 text-[11.5px]" style={{ color: dark ? 'var(--fog)' : 'var(--ink-2)' }} title="Your projects and files are stored in this browser (IndexedDB). Nothing is uploaded to a server." aria-live="polite">
+    <span className="inline-flex items-center gap-1.5 text-[11.5px]" style={{ color: dark ? 'var(--fog)' : 'var(--ink-2)' }} title={tr('Your projects and files are stored in this browser (IndexedDB). Nothing is uploaded to a server.')} aria-live="polite">
       <motion.span
         className="inline-block h-1.5 w-1.5 rounded-full"
         style={{ background: dot }}
@@ -136,25 +137,16 @@ export function SaveBadge({ dark = false }: { dark?: boolean }) {
   );
 }
 
-export function ago(t: number) {
-  const s = Math.round((Date.now() - t) / 1000);
-  if (s < 45) return 'just now';
-  const m = Math.round(s / 60);
-  if (m < 60) return `${m} min ago`;
-  const h = Math.round(m / 60);
-  if (h < 24) return `${h} h ago`;
-  const d = Math.round(h / 24);
-  return d === 1 ? 'yesterday' : `${d} days ago`;
-}
+export const ago = (t: number) => agoI(t);
 
 export function PrivateChip({ dark }: { dark?: boolean }) {
   return (
     <span
       className="inline-flex items-center gap-1 rounded-full border px-2 py-[3px] text-[11px] font-medium"
       style={{ borderColor: dark ? 'var(--line)' : 'var(--rule)', color: dark ? 'var(--fog)' : 'var(--ink-2)' }}
-      title="Private: stored only in this browser. There is no server, so there are no shared links or invites."
+      title={tr('Private: stored only in this browser. There is no server, so there are no shared links or invites.')}
     >
-      <Lock size={11} /> Private · this browser
+      <Lock size={11} /> {tr('Private · this browser')}
     </span>
   );
 }
