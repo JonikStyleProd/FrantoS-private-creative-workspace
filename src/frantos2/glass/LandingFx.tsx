@@ -12,10 +12,13 @@ import { lgEase } from './kit';
  * Reduced motion or lite graphics: the lens rests over the object, nothing moves.
  */
 export function LensStage({ src, alt, id }: { src: string; alt: string; id: string }) {
+  // the frosted layer is the small version stretched: soft for free, no blur filter to pay for
+  const soft = src.replace(/\.webp$/, '-sm.webp');
   const reduce = useReducedMotion();
   const { lite } = useQuality();
   const root = useRef<HTMLDivElement>(null);
-  const still = reduce || lite;
+  // reduced motion: the lens rests over the object; lite graphics: it follows the pointer but never wanders
+  const still = !!reduce;
 
   useEffect(() => {
     const el = root.current;
@@ -45,17 +48,25 @@ export function LensStage({ src, alt, id }: { src: string; alt: string; id: stri
       target.x = (e.clientX - r.left) / r.width;
       target.y = (e.clientY - r.top) / r.height;
       lastMove = performance.now();
+      if (!raf) raf = requestAnimationFrame(tick);
     };
     host.addEventListener('pointermove', move);
     const tick = (now: number) => {
-      // no pointer for a while: the lens wanders slowly around the object
-      if (now - lastMove > 2600) {
+      // no pointer for a while: the lens wanders slowly around the object (not in lite: every frame costs there)
+      if (now - lastMove > 2600 && !lite) {
         const s = now / 1000;
         target.x = home.x + Math.sin(s * 0.35) * 0.13;
         target.y = home.y + Math.sin(s * 0.53 + 1) * 0.12;
       }
-      cur.x += (target.x - cur.x) * 0.12;
-      cur.y += (target.y - cur.y) * 0.12;
+      const dx = target.x - cur.x;
+      const dy = target.y - cur.y;
+      // settled: stop drawing until the pointer moves again
+      if (Math.abs(dx) + Math.abs(dy) < 0.0008 && lite) {
+        raf = 0;
+        return;
+      }
+      cur.x += dx * 0.14;
+      cur.y += dy * 0.14;
       set();
       raf = requestAnimationFrame(tick);
     };
@@ -64,20 +75,21 @@ export function LensStage({ src, alt, id }: { src: string; alt: string; id: stri
       cancelAnimationFrame(raf);
       host.removeEventListener('pointermove', move);
     };
-  }, [still]);
+  }, [still, lite]);
 
   return (
     <div ref={root} className="lens-stage pointer-events-none absolute inset-0 overflow-hidden bg-[var(--lg-bg)]" aria-hidden={alt ? undefined : true}>
       <AnimatePresence initial={false}>
         <motion.div key={id} className="absolute inset-0" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 1.1, ease: lgEase }}>
           {/* frosted: the whole picture behind glass */}
-          <img src={src} alt={alt} className={`absolute inset-0 h-full w-full object-cover ${lite ? '' : 'lens-frost'}`} />
+          <img src={soft} alt={alt} className={`lens-frost absolute inset-0 h-full w-full object-cover ${lite ? '' : 'lens-frost-blur'}`} />
           {/* clear: what the lens shows */}
           <img src={src} alt="" className="lens-clear absolute inset-0 h-full w-full object-cover" />
         </motion.div>
       </AnimatePresence>
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(10,12,16,.62)_0%,rgba(10,12,16,.25)_45%,rgba(10,12,16,0)_70%)] rtl:bg-[linear-gradient(270deg,rgba(10,12,16,.62)_0%,rgba(10,12,16,.25)_45%,rgba(10,12,16,0)_70%)]" />
-      <div className="absolute inset-x-0 bottom-0 h-[40%] bg-gradient-to-t from-black/50 to-transparent" />
+      {/* the side where the words sit is calmer: dark glass in the dark theme, milk glass in the light one */}
+      <div className="lens-scrim absolute inset-0" />
+      <div className="lens-scrim-b absolute inset-x-0 bottom-0 h-[42%]" />
       <span className="lens-ring" />
     </div>
   );
@@ -159,7 +171,7 @@ export function Assemble() {
   return (
     <section ref={ref} className="relative h-[340vh]" aria-label={t('From references to the object')}>
       <div className="sticky top-0 flex h-[100svh] items-center overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_60%_45%,#3a2a20_0%,#15110e_55%,#0b0a09_100%)]" />
+        <div className="lg-stage-bg absolute inset-0" />
         <div className="relative z-10 mx-auto grid h-full w-full max-w-[1360px] grid-cols-1 items-center gap-6 px-5 sm:px-10 lg:grid-cols-[360px_minmax(0,1fr)]">
           {/* the words follow the phase */}
           <div className="order-2 pb-8 lg:order-1 lg:pb-0">
@@ -257,7 +269,7 @@ export function StudioModes() {
   ];
   return (
     <section className="relative isolate overflow-hidden">
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,#0b0a09_0%,#16120f_100%)]" />
+      <div className="lg-section-bg absolute inset-0" />
       <div className="relative z-10 mx-auto max-w-[1360px] px-5 py-24 sm:px-10 sm:py-32">
         <p className="lg-label">{t('The studio')}</p>
         <h2 className="mt-3 max-w-[900px] text-[clamp(34px,4.6vw,64px)] font-extrabold leading-[1] tracking-[-0.04em]">{t('Make it here, then show it from here.')}</h2>
@@ -297,7 +309,7 @@ function ModeCard({ icon: Icon, title, text, img, to, video, i }: { icon: React.
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-60px' }}
       transition={{ duration: 0.7, ease: lgEase, delay: i * 0.08 }}
-      className="group lg-glass overflow-hidden rounded-[26px] text-start focus-visible:ring-2 focus-visible:ring-white"
+      className="group lg-glass flex flex-col items-stretch justify-start overflow-hidden rounded-[26px] text-start focus-visible:ring-2 focus-visible:ring-white"
     >
       <span className="relative block aspect-[4/3] overflow-hidden">
         <img src={img} alt="" className="h-full w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-[1.06]" />

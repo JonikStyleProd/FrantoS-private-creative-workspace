@@ -361,10 +361,8 @@ html[data-theme='light'] .f2-glass ::placeholder {
   --ly: 46%;
   --lr: 160px;
 }
-.lens-frost {
-  filter: blur(16px) saturate(1.08) brightness(0.92);
-  transform: scale(1.06);
-}
+.lens-frost { transform: scale(1.04); }
+.lens-frost-blur { filter: blur(6px) saturate(1.05); transform: scale(1.08); }
 .lens-clear {
   clip-path: circle(var(--lr) at var(--lx) var(--ly));
   transform: scale(1.08);
@@ -380,20 +378,27 @@ html[data-theme='light'] .f2-glass ::placeholder {
   border-radius: 50%;
   /* a thin rim of glass: light from the top-left, a warm edge at the bottom, a soft drop */
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.55),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.6),
     inset 10px 14px 22px -12px rgba(255, 255, 255, 0.75),
     inset -12px -16px 26px -14px rgba(255, 170, 120, 0.55),
-    inset 0 0 40px rgba(255, 255, 255, 0.06),
     0 30px 60px -20px rgba(0, 0, 0, 0.45);
-  background: radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 38%);
+  background: radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0) 38%);
 }
-html[data-gfx='lite'] .lens-clear { clip-path: none; transform: none; }
-html[data-gfx='lite'] .lens-ring { display: none; }
+html[data-gfx='lite'] .lens-ring { box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.75), 0 0 0 1px rgba(0, 0, 0, 0.12); background: none; }
+.lens-scrim { background: linear-gradient(90deg, rgba(10, 12, 16, 0.66) 0%, rgba(10, 12, 16, 0.3) 45%, rgba(10, 12, 16, 0) 70%); }
+[dir='rtl'] .lens-scrim { background: linear-gradient(270deg, rgba(10, 12, 16, 0.66) 0%, rgba(10, 12, 16, 0.3) 45%, rgba(10, 12, 16, 0) 70%); }
+.lens-scrim-b { background: linear-gradient(0deg, rgba(10, 12, 16, 0.55), rgba(10, 12, 16, 0)); }
+html[data-theme='light'] .lens-scrim { background: linear-gradient(90deg, rgba(243, 241, 236, 0.86) 0%, rgba(243, 241, 236, 0.55) 42%, rgba(243, 241, 236, 0) 68%); }
+html[data-theme='light'] [dir='rtl'] .lens-scrim { background: linear-gradient(270deg, rgba(243, 241, 236, 0.86) 0%, rgba(243, 241, 236, 0.55) 42%, rgba(243, 241, 236, 0) 68%); }
+html[data-theme='light'] .lens-scrim-b { background: linear-gradient(0deg, rgba(243, 241, 236, 0.7), rgba(243, 241, 236, 0)); }
 @media (prefers-reduced-motion: reduce) {
-  .lens-frost { filter: none; transform: none; }
-  .lens-clear { clip-path: none; transform: none; }
-  .lens-ring { display: none; }
+  .lens-frost-blur { transform: scale(1.04); }
 }
+/* the dark scroll stage and the studio section follow the theme */
+.lg-stage-bg { background: radial-gradient(ellipse at 60% 45%, #3a2a20 0%, #15110e 55%, #0b0a09 100%); }
+.lg-section-bg { background: linear-gradient(180deg, #0b0a09 0%, #16120f 100%); }
+html[data-theme='light'] .lg-stage-bg { background: radial-gradient(ellipse at 60% 45%, #fbf8f2 0%, #ece6db 55%, #e2dbcf 100%); }
+html[data-theme='light'] .lg-section-bg { background: linear-gradient(180deg, #e9e3d8 0%, #f3f1ec 100%); }
 
 /* page change: the new page settles in (CSS only, never stalls) */
 @keyframes lg-route-in { from { opacity: 0; } to { opacity: 1; } }
