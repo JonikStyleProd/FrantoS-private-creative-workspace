@@ -1,0 +1,173 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=390">
+<!-- Wavelength · surf forecast app. Dev-only: rendered to PNG screens for the FrantoS "Mobile app" demo. -->
+<style>
+@font-face{font-family:Inter;src:url(../../node_modules/@fontsource-variable/inter-tight/files/inter-tight-latin-wght-normal.woff2) format('woff2');font-weight:100 900}
+@font-face{font-family:Lit;src:url(../../node_modules/@fontsource-variable/literata/files/literata-latin-wght-normal.woff2) format('woff2');font-weight:200 900}
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--ink:#0e2230;--sea:#1f6f8b;--foam:#e9f3f4;--sand:#f6f0e6;--coral:#ff7a59;--mute:#6a7f8c}
+body{width:390px;height:844px;overflow:hidden;font-family:Inter,system-ui;color:var(--ink);background:var(--sand);-webkit-font-smoothing:antialiased}
+.s{display:none;position:relative;width:390px;height:844px;overflow:hidden}
+.s.on{display:block}
+.status{height:47px;display:flex;align-items:center;justify-content:space-between;padding:0 28px 0 32px;font-weight:600;font-size:15px}
+.status i{display:inline-block;width:24px;height:11px;border:1.5px solid currentColor;border-radius:3px;margin-left:6px;position:relative}
+.status i:after{content:'';position:absolute;inset:1.5px;right:5px;background:currentColor;border-radius:1px}
+.logo{display:flex;align-items:center;gap:8px;font-weight:800;font-size:20px;letter-spacing:-.02em}
+.logo svg{width:28px;height:28px}
+.btn{display:flex;align-items:center;justify-content:center;height:56px;border-radius:999px;font-weight:700;font-size:17px;background:var(--ink);color:#fff}
+.btn.light{background:#fff;color:var(--ink)}
+.card{background:#fff;border-radius:24px;padding:18px;box-shadow:0 10px 30px -18px rgba(14,34,48,.35)}
+.tab{position:absolute;left:0;right:0;bottom:0;height:84px;background:rgba(255,255,255,.92);border-top:1px solid rgba(14,34,48,.08);display:flex;justify-content:space-around;padding-top:10px;font-size:11px;font-weight:600;color:var(--mute)}
+.tab div{display:flex;flex-direction:column;align-items:center;gap:4px}.tab .on{color:var(--sea)}
+.tab b{width:24px;height:24px;border-radius:7px;background:currentColor;opacity:.85}
+.chip{display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:999px;background:var(--foam);color:var(--sea);font-weight:700;font-size:13px}
+h1{font-family:Lit;font-weight:500;letter-spacing:-.02em}
+.mute{color:var(--mute)}
+.home{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:9px;background:#0e2230}
+</style></head>
+<body>
+<svg width="0" height="0" style="position:absolute"><symbol id="mark" viewBox="0 0 32 32"><circle cx="16" cy="16" r="15" fill="#1f6f8b"/><path d="M5 19c3-4 6-4 9 0s6 4 9 0 5-3 4-1" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/></symbol></svg>
+
+<!-- 01 welcome -->
+<section class="s" id="welcome" style="background:url(img/wl-dawn.jpg) center/cover;color:#fff">
+  <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(14,34,48,.25),rgba(14,34,48,0) 30%,rgba(14,34,48,.75))"></div>
+  <div class="status" style="position:relative">9:41<span><i></i></span></div>
+  <div style="position:relative;padding:20px 28px 0" class="logo"><svg><use href="#mark"/></svg>wavelength</div>
+  <div style="position:absolute;left:28px;right:28px;bottom:64px">
+    <h1 style="font-size:46px;line-height:1.02">Know before you paddle out.</h1>
+    <p style="margin-top:14px;font-size:17px;line-height:1.45;opacity:.9">Swell, wind and tide for your spots — read in one glance, every morning.</p>
+    <div class="btn light" style="margin-top:28px">Get started</div>
+    <p style="margin-top:16px;text-align:center;font-weight:600;font-size:15px;opacity:.9">I already have an account</p>
+  </div>
+  <div class="home" style="background:#fff"></div>
+</section>
+
+<!-- 02 pick spots -->
+<section class="s" id="spots">
+  <div class="status">9:41<span><i></i></span></div>
+  <div style="padding:14px 24px 0">
+    <p class="mute" style="font-weight:700;font-size:13px;letter-spacing:.08em">STEP 1 OF 2</p>
+    <h1 style="font-size:34px;margin-top:6px">Pick your spots</h1>
+    <p class="mute" style="margin-top:8px;font-size:15.5px;line-height:1.45">We'll watch them and tell you when it's on.</p>
+    <div style="margin-top:20px;display:flex;flex-direction:column;gap:10px">
+      <div class="card" style="display:flex;gap:14px;align-items:center;padding:12px;outline:2px solid var(--sea)"><div style="width:62px;height:62px;border-radius:14px;background:url(img/wl-point.jpg) center/cover"></div><div style="flex:1"><b style="font-size:17px">Rocky Point</b><p class="mute" style="font-size:13.5px;margin-top:3px">Right-hand point · 4 km</p></div><div style="width:26px;height:26px;border-radius:50%;background:var(--sea);color:#fff;display:grid;place-items:center;font-weight:800">✓</div></div>
+      <div class="card" style="display:flex;gap:14px;align-items:center;padding:12px;outline:2px solid var(--sea)"><div style="width:62px;height:62px;border-radius:14px;background:url(img/wl-dawn.jpg) center/cover"></div><div style="flex:1"><b style="font-size:17px">North Beach</b><p class="mute" style="font-size:13.5px;margin-top:3px">Beach break · 1 km</p></div><div style="width:26px;height:26px;border-radius:50%;background:var(--sea);color:#fff;display:grid;place-items:center;font-weight:800">✓</div></div>
+      <div class="card" style="display:flex;gap:14px;align-items:center;padding:12px"><div style="width:62px;height:62px;border-radius:14px;background:url(img/wl-van.jpg) center/cover"></div><div style="flex:1"><b style="font-size:17px">Harbour Wall</b><p class="mute" style="font-size:13.5px;margin-top:3px">Reef · 9 km</p></div><div style="width:26px;height:26px;border-radius:50%;border:2px solid #c9d4da"></div></div>
+      <div class="card" style="display:flex;gap:14px;align-items:center;padding:12px"><div style="width:62px;height:62px;border-radius:14px;background:linear-gradient(135deg,#9cc9cf,#1f6f8b)"></div><div style="flex:1"><b style="font-size:17px">Lighthouse Bay</b><p class="mute" style="font-size:13.5px;margin-top:3px">Beach break · 14 km</p></div><div style="width:26px;height:26px;border-radius:50%;border:2px solid #c9d4da"></div></div>
+    </div>
+  </div>
+  <div style="position:absolute;left:24px;right:24px;bottom:44px"><div class="btn">Continue · 2 spots</div></div>
+  <div class="home"></div>
+</section>
+
+<!-- 03 today (v2) -->
+<section class="s" id="today">
+  <div class="status">9:41<span><i></i></span></div>
+  <div style="padding:6px 22px 0">
+    <div style="display:flex;justify-content:space-between;align-items:center"><div class="logo" style="font-size:17px"><svg><use href="#mark"/></svg>wavelength</div><div style="width:36px;height:36px;border-radius:50%;background:#d8c7b0;display:grid;place-items:center;font-weight:800">N</div></div>
+    <h1 style="font-size:31px;margin-top:16px;line-height:1.08">Good morning, Noa.<br><span style="color:var(--sea)">Rocky Point is on.</span></h1>
+    <div class="card" style="margin-top:18px;background:var(--ink);color:#fff;padding:20px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start"><div><p style="font-weight:700;font-size:13px;opacity:.7;letter-spacing:.06em">ROCKY POINT · NOW</p><p style="font-size:54px;font-weight:800;letter-spacing:-.04em;margin-top:2px">1.2<span style="font-size:22px;font-weight:600"> m</span></p></div><span class="chip" style="background:#3fd08f;color:#0e2230">Good</span></div>
+      <div style="display:flex;gap:18px;margin-top:2px;font-size:14.5px;opacity:.9"><span>11 s period</span><span>WNW swell</span><span>Wind 6 kn off</span></div>
+      <div style="display:flex;align-items:flex-end;gap:5px;height:64px;margin-top:18px">
+        <div style="flex:1;height:30%;background:#2d4a5c;border-radius:5px"></div><div style="flex:1;height:44%;background:#2d4a5c;border-radius:5px"></div><div style="flex:1;height:62%;background:#3fd08f;border-radius:5px"></div><div style="flex:1;height:84%;background:#3fd08f;border-radius:5px"></div><div style="flex:1;height:100%;background:#3fd08f;border-radius:5px"></div><div style="flex:1;height:90%;background:#3fd08f;border-radius:5px"></div><div style="flex:1;height:70%;background:#ffcf70;border-radius:5px"></div><div style="flex:1;height:52%;background:#ffcf70;border-radius:5px"></div><div style="flex:1;height:40%;background:#2d4a5c;border-radius:5px"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11.5px;opacity:.6;margin-top:6px"><span>6</span><span>8</span><span>10</span><span>12</span><span>14</span><span>16</span></div>
+      <p style="margin-top:12px;font-size:14.5px;font-weight:600">Best window: 9:00 – 12:30, mid tide rising</p>
+    </div>
+    <div class="card" style="margin-top:12px;display:flex;align-items:center;gap:14px;padding:14px"><div style="width:52px;height:52px;border-radius:12px;background:url(img/wl-dawn.jpg) center/cover"></div><div style="flex:1"><b style="font-size:16px">North Beach</b><p class="mute" style="font-size:13.5px;margin-top:2px">0.8 m · 9 s · cross-shore</p></div><span class="chip" style="background:#fff3d6;color:#9a6a00">Fair</span></div>
+    <div class="card" style="margin-top:10px;display:flex;align-items:center;gap:14px;padding:14px"><svg width="52" height="52" viewBox="0 0 52 52"><rect width="52" height="52" rx="12" fill="#e9f3f4"/><path d="M6 34c6-14 12-14 20 0s14 14 20 0" fill="none" stroke="#1f6f8b" stroke-width="3" stroke-linecap="round"/></svg><div style="flex:1"><b style="font-size:16px">Tide</b><p class="mute" style="font-size:13.5px;margin-top:2px">High 11:42 · Low 17:58</p></div></div>
+  </div>
+  <div class="tab"><div class="on"><b></b>Today</div><div><b></b>Spots</div><div><b></b>Log</div><div><b></b>You</div></div>
+</section>
+
+<!-- 03a today (v1, the first round: a table) -->
+<section class="s" id="today-v1" style="background:#fff">
+  <div class="status">9:41<span><i></i></span></div>
+  <div style="padding:6px 18px 0">
+    <div class="logo" style="font-size:17px"><svg><use href="#mark"/></svg>wavelength</div>
+    <h1 style="font-size:24px;margin-top:14px">Forecast</h1>
+    <p class="mute" style="font-size:13px;margin-top:2px">Tuesday · updated 06:10</p>
+    <div style="margin-top:14px;font-size:13px">
+      <div style="display:grid;grid-template-columns:1.4fr .7fr .7fr .9fr .8fr;gap:0;font-weight:700;color:var(--mute);padding:8px 0;border-bottom:1px solid #e3e8eb"><span>Spot</span><span>Height</span><span>Period</span><span>Wind</span><span>Rating</span></div>
+      <div style="display:grid;grid-template-columns:1.4fr .7fr .7fr .9fr .8fr;padding:11px 0;border-bottom:1px solid #eef1f3"><b>Rocky Point</b><span>1.2 m</span><span>11 s</span><span>6 kn E</span><span>★★★☆</span></div>
+      <div style="display:grid;grid-template-columns:1.4fr .7fr .7fr .9fr .8fr;padding:11px 0;border-bottom:1px solid #eef1f3"><b>North Beach</b><span>0.8 m</span><span>9 s</span><span>9 kn N</span><span>★★☆☆</span></div>
+      <div style="display:grid;grid-template-columns:1.4fr .7fr .7fr .9fr .8fr;padding:11px 0;border-bottom:1px solid #eef1f3"><b>Harbour Wall</b><span>1.6 m</span><span>12 s</span><span>14 kn W</span><span>★☆☆☆</span></div>
+      <div style="display:grid;grid-template-columns:1.4fr .7fr .7fr .9fr .8fr;padding:11px 0;border-bottom:1px solid #eef1f3"><b>Lighthouse</b><span>0.6 m</span><span>8 s</span><span>4 kn E</span><span>★★☆☆</span></div>
+    </div>
+    <h2 style="font-size:16px;margin-top:22px">Hourly · Rocky Point</h2>
+    <div style="margin-top:8px;font-size:12.5px;display:grid;grid-template-columns:repeat(6,1fr);gap:6px;text-align:center">
+      <span class="mute">6</span><span class="mute">8</span><span class="mute">10</span><span class="mute">12</span><span class="mute">14</span><span class="mute">16</span>
+      <span>0.7</span><span>1.0</span><span>1.2</span><span>1.2</span><span>1.0</span><span>0.8</span>
+      <span>4</span><span>5</span><span>6</span><span>9</span><span>12</span><span>15</span>
+    </div>
+    <h2 style="font-size:16px;margin-top:22px">Tide</h2>
+    <p style="font-size:13px;margin-top:6px">High 11:42 (1.9 m) · Low 17:58 (0.4 m)</p>
+  </div>
+  <div class="tab"><div class="on"><b></b>Forecast</div><div><b></b>Spots</div><div><b></b>Log</div><div><b></b>Settings</div></div>
+</section>
+
+<!-- 04 spot detail -->
+<section class="s" id="spot">
+  <div style="height:300px;background:url(img/wl-point.jpg) center 35%/cover;position:relative;color:#fff">
+    <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(14,34,48,.35),rgba(14,34,48,0) 40%,rgba(14,34,48,.6))"></div>
+    <div class="status" style="position:relative">9:41<span><i></i></span></div>
+    <div style="position:relative;padding:4px 20px"><span style="display:inline-grid;place-items:center;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.25);font-size:20px">‹</span></div>
+    <div style="position:absolute;left:22px;bottom:18px"><h1 style="font-size:36px">Rocky Point</h1><p style="opacity:.9;margin-top:4px;font-size:15px">Right-hand point · best on WNW swell</p></div>
+  </div>
+  <div style="padding:16px 20px 0">
+    <div style="display:flex;gap:8px"><span class="chip" style="background:var(--ink);color:#fff">Today</span><span class="chip">Wed</span><span class="chip">Thu</span><span class="chip">Fri</span><span class="chip">Sat</span></div>
+    <div class="card" style="margin-top:14px">
+      <p style="font-weight:700;font-size:14px">Swell · next 7 days</p>
+      <svg viewBox="0 0 320 90" style="width:100%;margin-top:8px"><path d="M0 70 C 30 60, 50 30, 80 34 S 130 70, 160 60 S 210 18, 240 22 S 290 60, 320 52 L320 90 L0 90Z" fill="#e9f3f4"/><path d="M0 70 C 30 60, 50 30, 80 34 S 130 70, 160 60 S 210 18, 240 22 S 290 60, 320 52" fill="none" stroke="#1f6f8b" stroke-width="3"/><circle cx="240" cy="22" r="5" fill="#ff7a59"/></svg>
+      <p class="mute" style="font-size:13px;margin-top:4px">Biggest on Saturday: 1.8 m at 13 s</p>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+      <div class="card"><p class="mute" style="font-size:12.5px;font-weight:700">WIND</p><p style="font-size:24px;font-weight:800;margin-top:4px">6 kn</p><p style="font-size:13.5px;color:#2a9d6a;font-weight:600">Offshore till 13:00</p></div>
+      <div class="card"><p class="mute" style="font-size:12.5px;font-weight:700">WATER</p><p style="font-size:24px;font-weight:800;margin-top:4px">17°</p><p class="mute" style="font-size:13.5px">3/2 wetsuit</p></div>
+    </div>
+  </div>
+  <div style="position:absolute;left:20px;right:20px;bottom:40px"><div class="btn" style="background:var(--coral)">Log a session here</div></div>
+  <div class="home"></div>
+</section>
+
+<!-- 05 log -->
+<section class="s" id="log">
+  <div class="status">9:41<span><i></i></span></div>
+  <div style="padding:6px 22px 0">
+    <p class="mute" style="font-weight:600">Cancel</p>
+    <h1 style="font-size:32px;margin-top:10px">Log a session</h1>
+    <p class="mute" style="margin-top:4px">Rocky Point · today, 09:20 – 11:05</p>
+    <p style="font-weight:700;margin-top:22px">Board</p>
+    <div style="display:flex;gap:8px;margin-top:8px"><span class="chip" style="background:var(--ink);color:#fff;height:38px;padding:0 16px">6'2 Fish</span><span class="chip" style="height:38px;padding:0 16px">7'6 Mid</span><span class="chip" style="height:38px;padding:0 16px">9'1 Log</span></div>
+    <p style="font-weight:700;margin-top:22px">Waves caught</p>
+    <div class="card" style="margin-top:8px;display:flex;align-items:center;justify-content:space-between"><span style="width:44px;height:44px;border-radius:50%;background:var(--foam);display:grid;place-items:center;font-size:24px;font-weight:700;color:var(--sea)">−</span><b style="font-size:34px">14</b><span style="width:44px;height:44px;border-radius:50%;background:var(--sea);display:grid;place-items:center;font-size:24px;font-weight:700;color:#fff">+</span></div>
+    <p style="font-weight:700;margin-top:22px">How was it?</p>
+    <p style="font-size:34px;letter-spacing:6px;margin-top:4px;color:var(--coral)">★★★★<span style="color:#d6dde1">★</span></p>
+    <div class="card" style="margin-top:16px;min-height:86px;font-size:15px;line-height:1.45">Clean lines on the rising tide, crowd thinned out after ten.</div>
+  </div>
+  <div style="position:absolute;left:22px;right:22px;bottom:40px"><div class="btn">Save session</div></div>
+  <div class="home"></div>
+</section>
+
+<!-- 06 saved -->
+<section class="s" id="saved" style="background:var(--ink);color:#fff">
+  <div class="status">9:41<span><i></i></span></div>
+  <div style="padding:30px 26px 0;text-align:center">
+    <div style="width:84px;height:84px;margin:30px auto 0;border-radius:50%;background:#3fd08f;display:grid;place-items:center;font-size:40px;color:var(--ink);font-weight:800">✓</div>
+    <h1 style="font-size:34px;margin-top:22px">Session saved</h1>
+    <p style="opacity:.75;margin-top:8px;font-size:16px">Your 23rd session this season.</p>
+    <div style="margin-top:28px;border-radius:26px;overflow:hidden;background:#123446;text-align:left">
+      <div style="height:170px;background:url(img/wl-point.jpg) center/cover"></div>
+      <div style="padding:18px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+        <div><p style="font-size:26px;font-weight:800">14</p><p style="opacity:.7;font-size:13px">waves</p></div>
+        <div><p style="font-size:26px;font-weight:800">1:45</p><p style="opacity:.7;font-size:13px">in the water</p></div>
+        <div><p style="font-size:26px;font-weight:800">1.2 m</p><p style="opacity:.7;font-size:13px">at 11 s</p></div>
+      </div>
+    </div>
+  </div>
+  <div style="position:absolute;left:24px;right:24px;bottom:40px;display:flex;gap:10px"><div class="btn light" style="flex:1">Share</div><div class="btn" style="flex:1;background:#123446">Done</div></div>
+  <div class="home" style="background:#fff"></div>
+</section>
+<script>const s=new URLSearchParams(location.search).get('s')||'welcome';document.getElementById(s).classList.add('on');</script>
+</body></html>

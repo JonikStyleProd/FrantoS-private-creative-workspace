@@ -1,0 +1,7 @@
+/* Halden buttons: one solid, one outline, both pill-shaped, both keyboard-visible */
+.demo { font-family: system-ui, sans-serif; padding: 40px; background: #f4f0ea; min-height: 100vh; display: flex; flex-direction: column; gap: 16px; align-items: flex-start; }
+.demo h1 { font: 400 44px/1 Georgia, serif; color: #1d1b18; margin: 0; }
+.demo button, .demo a { font: 700 15px system-ui; height: 46px; padding: 0 24px; border-radius: 999px; border: 1.5px solid #1d1b18; background: #1d1b18; color: #fff; cursor: pointer; }
+.demo a { display: inline-flex; align-items: center; background: transparent; color: #1d1b18; text-decoration: none; }
+.demo button:hover { background: #3a362f; }
+.demo :focus-visible { outline: 3px solid #b8875a; outline-offset: 3px; }

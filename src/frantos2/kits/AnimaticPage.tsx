@@ -354,7 +354,7 @@ function Animatic({ p }: { p: Project }) {
                       {f.caption ? t(f.caption) : p.assets.find((a) => a.id === f.assetId)?.title}
                     </span>
                   </span>
-                  <input type="number" min={0.25} max={30} step={0.25} value={durs[i]} onChange={(e) => ws.setFrameDuration(p.id, f.id, Math.max(0.25, Math.min(30, +e.target.value || DEFAULT_DUR)))} className="lg-input h-9 w-[68px] px-2 text-center text-[13px] tabular-nums" aria-label={t('Seconds for frame {n}', { n: i + 1 })} dir="ltr" />
+                  <input type="number" min={0.25} max={30} step={0.25} value={Math.round(durs[i] * 100) / 100} onChange={(e) => ws.setFrameDuration(p.id, f.id, Math.max(0.25, Math.min(30, +e.target.value || DEFAULT_DUR)))} className="lg-input h-9 w-[68px] px-2 text-center text-[13px] tabular-nums" aria-label={t('Seconds for frame {n}', { n: i + 1 })} dir="ltr" />
                   <span className="text-[11px] text-white/55">s</span>
                 </div>
               ))}

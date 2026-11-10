@@ -3,13 +3,15 @@ import { workTypeFor } from '../kits/disciplines';
 import { get, set, del, keys } from 'idb-keyval';
 import { Asset, Board, Brand, CanvasGroup, Profile, WorkStatus, CanvasNote, Comment, Decision, MaterialVariant, MoodItem, Project, StudioObject, WsState, Work, WorkType, Flow, Hotspot } from './types';
 import { AH_ID, DEMO_ID, DEMO_REV, afterHoursProject, demoProject } from './seed';
-import { SERIES_IDS, SERIES_REV, seriesProject } from './seedSeries';
+import { KIT_IDS, KIT_REV, kitProject } from './seedKits';
 import { STUDIO_IDS, STUDIO_REV, studioProject } from './seedStudio';
 
 /** every extra demo: id → how to build it and its current revision */
-const EXTRA_IDS = [...STUDIO_IDS, ...SERIES_IDS];
-const extraProject = (id: string) => (STUDIO_IDS.includes(id) ? studioProject(id) : seriesProject(id));
-const extraRev = (id: string) => (STUDIO_IDS.includes(id) ? STUDIO_REV : SERIES_REV);
+const EXTRA_IDS = [...STUDIO_IDS, ...KIT_IDS];
+const extraProject = (id: string) => (STUDIO_IDS.includes(id) ? studioProject(id) : kitProject(id));
+const extraRev = (id: string) => (STUDIO_IDS.includes(id) ? STUDIO_REV : KIT_REV);
+/** the four vessel collections were replaced by the profession demos: untouched demo copies are removed */
+const RETIRED = ['nocturne', 'salt-stone', 'lumen', 'maree'];
 
 /**
  * Local-first workspace store.
@@ -135,7 +137,7 @@ function addSeries() {
   state = {
     ...state,
     projects: [
-      ...state.projects.map((p) => (EXTRA_IDS.includes(p.id) && p.kind === 'demo' && (p.seedRev ?? 0) < extraRev(p.id) ? extraProject(p.id) : p)),
+      ...state.projects.filter((p) => !(RETIRED.includes(p.id) && p.kind === 'demo')).map((p) => (EXTRA_IDS.includes(p.id) && p.kind === 'demo' && (p.seedRev ?? 0) < extraRev(p.id) ? extraProject(p.id) : p)),
       ...add.map(extraProject),
     ],
   };

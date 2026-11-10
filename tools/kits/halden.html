@@ -1,0 +1,130 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!-- Halden · furniture store website, before and after. Dev-only: rendered to PNG screens for the "Website redesign" demo. -->
+<style>
+@font-face{font-family:Man;src:url(../../node_modules/@fontsource-variable/manrope/files/manrope-latin-wght-normal.woff2) format('woff2');font-weight:200 800}
+@font-face{font-family:Serif;src:url(../../node_modules/@fontsource/instrument-serif/files/instrument-serif-latin-400-normal.woff2) format('woff2')}
+*{box-sizing:border-box;margin:0;padding:0}
+body{-webkit-font-smoothing:antialiased}
+.s{display:none}.s.on{display:block}
+/* ── the new site ── */
+.n{--ink:#1d1b18;--paper:#f4f0ea;--oak:#b8875a;--mute:#7a7268;font-family:Man,system-ui;color:var(--ink);background:var(--paper)}
+.n nav{display:flex;align-items:center;gap:36px;padding:26px 64px;font-size:15px;font-weight:600}
+.n .brand{font-family:Serif;font-size:34px;letter-spacing:.02em;font-weight:400}
+.n .cta{white-space:nowrap;height:46px;padding:0 24px;border-radius:999px;background:var(--ink);color:#fff;display:inline-flex;align-items:center;font-weight:700;font-size:15px}
+.n .ghost{background:transparent;color:var(--ink);border:1.5px solid var(--ink)}
+.n h1,.n h2{font-family:Serif;font-weight:400;letter-spacing:-.01em}
+.n .p{background:#fff;border-radius:18px;overflow:hidden}
+.n .p .img{aspect-ratio:4/5;background-size:cover;background-position:center}
+.n .p .t{padding:16px 18px 20px;display:flex;justify-content:space-between;font-weight:700}
+.n .p .t span{color:var(--mute);font-weight:600}
+/* ── the old site ── */
+.o{font-family:Georgia,'Times New Roman',serif;background:#e9e9e9;color:#333}
+.o .top{background:#4b4b4b;color:#eee;font:12px Arial;padding:6px 40px;display:flex;justify-content:space-between}
+.o header{background:#fff;padding:18px 40px;display:flex;align-items:center;justify-content:space-between;border-bottom:4px solid #8b5a2b}
+.o header b{font-size:30px;color:#8b5a2b;letter-spacing:3px}
+.o .menu{background:#8b5a2b;display:flex;gap:2px;padding:0 40px}
+.o .menu a{color:#fff;font:bold 13px Arial;padding:12px 18px;background:#9c6a38;text-transform:uppercase}
+.o .wrap{width:1100px;margin:0 auto;background:#fff;padding:20px}
+.o .slider{height:380px;background:url(img/hd-room.jpg) center/cover;position:relative}
+.o .slider .arr{position:absolute;top:160px;width:44px;height:60px;background:rgba(0,0,0,.5);color:#fff;font:bold 30px Arial;display:grid;place-items:center}
+.o .slider .cap{position:absolute;left:40px;bottom:30px;background:rgba(255,255,255,.85);padding:14px 20px;font-size:26px}
+.o .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:18px}
+.o .grid div{border:1px solid #ddd;padding:8px;font:12px Arial;text-align:center}
+.o .grid i{display:block;height:150px;background-size:contain;background-repeat:no-repeat;background-position:center;background-color:#f6f6f6;margin-bottom:8px}
+.o .btn{display:inline-block;background:#e57d1f;color:#fff;font:bold 12px Arial;padding:7px 12px;border-radius:3px;margin-top:6px}
+</style></head>
+<body>
+
+<!-- the old home page -->
+<section class="s o" id="home-v1" style="width:1440px">
+  <div class="top"><span>Free delivery on orders over 500 € · Call us: 0800 123 456</span><span>Login | Register | Cart (0)</span></div>
+  <header><b>HALDEN</b><span style="font:13px Arial">Search: <span style="display:inline-block;width:240px;height:26px;border:1px solid #aaa;vertical-align:middle"></span> <span class="btn" style="margin:0">GO</span></span></header>
+  <div class="menu"><a>Home</a><a>Chairs</a><a>Tables</a><a>Sofas</a><a>Lighting</a><a>Storage</a><a>Sale %</a><a>About us</a><a>Contact</a></div>
+  <div class="wrap">
+    <div class="slider"><div class="arr" style="left:0">‹</div><div class="arr" style="right:0">›</div><div class="cap">NEW COLLECTION 2026 — UP TO 30% OFF!!!</div></div>
+    <h2 style="margin-top:22px;font-size:22px;border-bottom:1px solid #ccc;padding-bottom:6px">Featured products</h2>
+    <div class="grid">
+      <div><i style="background-image:url(img/hd-chair.jpg)"></i>OAK DINING CHAIR MODEL HC-02<br><b style="color:#c00">349,00 €</b><br><span class="btn">ADD TO CART</span></div>
+      <div><i style="background-image:url(img/hd-sofa.jpg)"></i>SOFA 3-SEATER BOUCLE OATMEAL<br><b style="color:#c00">1.890,00 €</b><br><span class="btn">ADD TO CART</span></div>
+      <div><i style="background-image:url(img/hd-lamp.jpg)"></i>TABLE LAMP PAPER PLEATED<br><b style="color:#c00">129,00 €</b><br><span class="btn">ADD TO CART</span></div>
+      <div><i style="background-image:url(img/hd-shelf.jpg)"></i>WALL SHELF SMOKED OAK 90CM<br><b style="color:#c00">219,00 €</b><br><span class="btn">ADD TO CART</span></div>
+    </div>
+    <h2 style="margin-top:26px;font-size:22px;border-bottom:1px solid #ccc;padding-bottom:6px">Welcome to Halden Furniture</h2>
+    <p style="font-size:14px;line-height:1.7;margin-top:10px">Halden Furniture was founded in 1987 and since then we have been making quality furniture for your home. Our products are made from the best materials and our team of experienced craftsmen make sure that every piece meets our high standards of quality. We offer a wide range of chairs, tables, sofas, lighting and storage solutions for every room in the house. Visit our showroom or browse our online shop. Delivery is available to all of Scandinavia and Europe. Please contact us if you have any questions about our products or services, our customer service is happy to help you Monday to Friday from 9 to 17.</p>
+    <div style="display:flex;gap:14px;margin-top:20px"><div style="flex:1;height:140px;background:#d9cbb8;display:grid;place-items:center;font-size:20px">NEWSLETTER SIGNUP</div><div style="flex:1;height:140px;background:#c9d7cf;display:grid;place-items:center;font-size:20px">VISIT OUR SHOWROOM</div><div style="flex:1;height:140px;background:#e1d1d1;display:grid;place-items:center;font-size:20px">FOLLOW US ON FACEBOOK</div></div>
+    <p style="font:11px Arial;color:#888;margin-top:24px;text-align:center">© Halden Furniture 2014 · All rights reserved · Terms · Privacy · Sitemap</p>
+  </div>
+</section>
+
+<!-- the new home page -->
+<section class="s n" id="home" style="width:1440px">
+  <nav><span class="brand">Halden</span><span>Living</span><span>Dining</span><span>Light</span><span>Workshop</span><span style="margin-left:auto">Search</span><span>Cart · 0</span></nav>
+  <div style="position:relative;margin:0 32px;height:720px;border-radius:28px;overflow:hidden;background:url(img/hd-room.jpg) center/cover">
+    <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(244,240,234,.92),rgba(244,240,234,.55) 38%,rgba(244,240,234,0) 60%)"></div>
+    <div style="position:absolute;left:64px;top:170px;width:560px">
+      <p style="font-weight:700;letter-spacing:.14em;font-size:13px;color:var(--oak)">MADE IN OUR WORKSHOP SINCE 1987</p>
+      <h1 style="font-size:92px;line-height:.95;margin-top:18px">Furniture that grows old with you.</h1>
+      <p style="font-size:19px;line-height:1.55;color:#4a453e;margin-top:22px;max-width:440px">Solid oak, paper and wool — made to be lived with for decades, and repaired when they need it.</p>
+      <div style="display:flex;gap:12px;margin-top:32px"><span class="cta">Shop living</span><span class="cta ghost">Visit the workshop</span></div>
+    </div>
+  </div>
+  <div style="padding:90px 64px 0;display:flex;justify-content:space-between;align-items:flex-end"><h2 style="font-size:54px">New this autumn</h2><span style="font-weight:700;border-bottom:2px solid">All pieces →</span></div>
+  <div style="padding:30px 64px 0;display:grid;grid-template-columns:repeat(4,1fr);gap:20px">
+    <div class="p"><div class="img" style="background-image:url(img/hd-chair.jpg)"></div><div class="t">Ask chair <span>€349</span></div></div>
+    <div class="p"><div class="img" style="background-image:url(img/hd-sofa.jpg)"></div><div class="t">Dune sofa <span>€1,890</span></div></div>
+    <div class="p"><div class="img" style="background-image:url(img/hd-lamp.jpg)"></div><div class="t">Fold lamp <span>€129</span></div></div>
+    <div class="p"><div class="img" style="background-image:url(img/hd-shelf.jpg)"></div><div class="t">Ledge shelf <span>€219</span></div></div>
+  </div>
+  <div style="margin:100px 32px 0;display:grid;grid-template-columns:1fr 1fr;border-radius:28px;overflow:hidden;background:#e8e0d4">
+    <div style="background:url(img/hd-workshop.jpg) center/cover;min-height:560px"></div>
+    <div style="padding:90px 72px"><p style="font-weight:700;letter-spacing:.14em;font-size:13px;color:var(--oak)">THE WORKSHOP</p><h2 style="font-size:58px;line-height:1;margin-top:16px">Six people, one bench, every chair by hand.</h2><p style="font-size:18px;line-height:1.6;color:#4a453e;margin-top:22px">Every Halden piece is planed, joined and oiled in our workshop outside Aarhus. Bring it back in twenty years and we will make it new again.</p><span class="cta" style="margin-top:30px">Our repair promise</span></div>
+  </div>
+  <footer style="margin-top:100px;padding:56px 64px;display:flex;justify-content:space-between;border-top:1px solid #ddd5ca;font-size:14px;color:var(--mute)"><span class="brand" style="color:var(--ink)">Halden</span><span>Delivery · Returns · Repairs · Contact</span><span>© 2026 Halden</span></footer>
+</section>
+
+<!-- product page -->
+<section class="s n" id="product" style="width:1440px">
+  <nav><span class="brand">Halden</span><span>Living</span><span>Dining</span><span>Light</span><span>Workshop</span><span style="margin-left:auto">Search</span><span>Cart · 0</span></nav>
+  <div style="padding:10px 64px 0;font-size:14px;color:var(--mute)">Dining / Chairs / Ask</div>
+  <div style="display:grid;grid-template-columns:1.25fr 1fr;gap:56px;padding:24px 64px 0">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div style="grid-column:span 2;aspect-ratio:4/3;border-radius:22px;background:#e7e2db url(img/hd-chair.jpg) center/contain no-repeat"></div>
+      <div style="aspect-ratio:1;border-radius:22px;background:url(img/hd-workshop.jpg) center/cover"></div>
+      <div style="aspect-ratio:1;border-radius:22px;background:url(img/hd-room.jpg) 30% center/cover"></div>
+    </div>
+    <div style="padding-top:20px">
+      <p style="font-weight:700;letter-spacing:.14em;font-size:13px;color:var(--oak)">DINING CHAIR</p>
+      <h1 style="font-size:76px;line-height:1;margin-top:10px">Ask</h1>
+      <p style="font-size:24px;font-weight:700;margin-top:14px">€349</p>
+      <p style="font-size:17px;line-height:1.6;color:#4a453e;margin-top:20px">A curved back steamed from one piece of oak, a seat woven from Danish rush. Light enough to lift with one hand, strong enough for every dinner for the next forty years.</p>
+      <p style="font-weight:700;margin-top:30px;font-size:15px">Wood</p>
+      <div style="display:flex;gap:10px;margin-top:10px"><span style="width:40px;height:40px;border-radius:50%;background:#d7b98f;outline:2px solid var(--ink);outline-offset:3px"></span><span style="width:40px;height:40px;border-radius:50%;background:#8a6a4a"></span><span style="width:40px;height:40px;border-radius:50%;background:#2e2a26"></span></div>
+      <div style="display:flex;gap:12px;margin-top:34px"><span class="cta" style="height:56px;padding:0 40px;font-size:16px">Add to cart</span><span class="cta ghost" style="height:56px;padding:0 28px">Visit in the showroom</span></div>
+      <div style="margin-top:36px;border-top:1px solid #ddd5ca">
+        <div style="display:flex;justify-content:space-between;padding:18px 0;border-bottom:1px solid #ddd5ca;font-weight:700"><span>Size and materials</span><span>+</span></div>
+        <div style="display:flex;justify-content:space-between;padding:18px 0;border-bottom:1px solid #ddd5ca;font-weight:700"><span>Delivery in 3–4 weeks</span><span>+</span></div>
+        <div style="display:flex;justify-content:space-between;padding:18px 0;border-bottom:1px solid #ddd5ca;font-weight:700"><span>Repairs for life</span><span>+</span></div>
+      </div>
+    </div>
+  </div>
+  <div style="height:90px"></div>
+</section>
+
+<!-- mobile home -->
+<section class="s n" id="mobile" style="width:390px">
+  <div style="height:47px"></div>
+  <nav style="padding:8px 20px;gap:0;justify-content:space-between"><span class="brand" style="font-size:28px">Halden</span><span style="display:flex;gap:16px;font-size:14px"><span>Cart · 0</span><span>☰</span></span></nav>
+  <div style="margin:6px 12px 0;height:520px;border-radius:24px;overflow:hidden;background:url(img/hd-room.jpg) 70% center/cover;position:relative">
+    <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(244,240,234,.95),rgba(244,240,234,.6) 45%,rgba(244,240,234,0) 75%)"></div>
+    <div style="position:relative;padding:34px 22px"><p style="font-weight:700;letter-spacing:.14em;font-size:11px;color:var(--oak)">SINCE 1987</p><h1 style="font-size:50px;line-height:.96;margin-top:10px">Furniture that grows old with you.</h1><span class="cta" style="margin-top:22px">Shop living</span></div>
+  </div>
+  <div style="padding:40px 20px 0"><h2 style="font-size:36px">New this autumn</h2></div>
+  <div style="padding:16px 20px 0;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <div class="p"><div class="img" style="background-image:url(img/hd-chair.jpg)"></div><div class="t" style="flex-direction:column;gap:2px;font-size:14px;padding:12px">Ask chair <span>€349</span></div></div>
+    <div class="p"><div class="img" style="background-image:url(img/hd-lamp.jpg)"></div><div class="t" style="flex-direction:column;gap:2px;font-size:14px;padding:12px">Fold lamp <span>€129</span></div></div>
+  </div>
+  <div style="height:60px"></div>
+</section>
+<script>const s=new URLSearchParams(location.search).get('s')||'home';document.getElementById(s).classList.add('on');</script>
+</body></html>

@@ -1,0 +1,14 @@
+<!-- Halden product card: image, name, price; the whole card is the link -->
+<style>
+  :root { --ink: #1d1b18; --paper: #f4f0ea; --oak: #b8875a; }
+  body { font-family: system-ui, sans-serif; background: var(--paper); display: grid; place-items: center; min-height: 100vh; }
+  .card { display: block; width: 260px; border-radius: 18px; overflow: hidden; background: #fff; color: var(--ink); text-decoration: none; transition: transform .3s cubic-bezier(.22,1,.36,1), box-shadow .3s; }
+  .card:hover { transform: translateY(-4px); box-shadow: 0 24px 40px -24px rgba(29,27,24,.45); }
+  .card .img { aspect-ratio: 4 / 5; background: linear-gradient(160deg, #e9e1d4, #cdbba3); }
+  .card .t { display: flex; justify-content: space-between; padding: 14px 16px 18px; font-weight: 700; }
+  .card .t span { color: #7a7268; font-weight: 600; }
+</style>
+<a class="card" href="#">
+  <div class="img"></div>
+  <div class="t">Ask chair <span>€349</span></div>
+</a>

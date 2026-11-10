@@ -18,12 +18,12 @@ const COVERS = [
   '/projects/ritual/bag-sm.webp',
   '/projects/halo/hero-sm.webp',
   '/series/after-hours/balcony-sm.webp',
-  '/projects/nocturne/amber-sm.webp',
+  '/projects/velo/tunnel-sm.webp',
   '/projects/halo/launch-sm.webp',
   '/projects/ritual/poster-sm.webp',
   '/projects/casa-arca/pool-sm.webp',
   '/projects/stride/night-sm.webp',
-  '/projects/maree/cobalt-sm.webp',
+  '/projects/wavelength/point-sm.webp',
 ];
 
 type Step = 'password' | 'forgot' | 'sent' | 'code' | 'newpw' | 'welcome';
