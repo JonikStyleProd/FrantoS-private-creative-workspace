@@ -27,6 +27,9 @@ export type Route =
   | { name: 'showroom'; id: string; oid: string }
   | { name: 'deck'; id: string; slide: number; presenter: boolean }
   | { name: 'guide'; id: string }
+  | { name: 'flow'; id: string; proto: boolean; screen?: string }
+  | { name: 'handoff'; id: string }
+  | { name: 'animatic'; id: string }
   | { name: 'library' }
   | { name: 'objects' }
   | { name: 'templates' }
@@ -73,6 +76,10 @@ export function parse(hash: string): Route {
     if (c === 'case') return { name: 'pcase', id: b };
     if (c === 'deck') return { name: 'deck', id: b, slide: num(d), presenter: new URLSearchParams(query).get('presenter') === '1' };
     if (c === 'guide') return { name: 'guide', id: b };
+    if (c === 'flow') return { name: 'flow', id: b, proto: false };
+    if (c === 'proto') return { name: 'flow', id: b, proto: true, screen: d };
+    if (c === 'handoff') return { name: 'handoff', id: b };
+    if (c === 'animatic') return { name: 'animatic', id: b };
     const tab = (TABS as string[]).includes(c ?? '') ? (c as ProjectTab) : 'overview';
     return { name: 'project', id: b, tab, sub: d, q: new URLSearchParams(query) };
   }

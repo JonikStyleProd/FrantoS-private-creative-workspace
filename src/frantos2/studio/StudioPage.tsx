@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Frame as FrameIcon } from 'lucide-react';
+import { MockupMode } from '../kits/MockupMode';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, Box, Camera, Columns2, Download, Eye, Film, Grid3x3, Image as ImageIcon, Layers, Lock, Plus, RefreshCcw, RotateCw, Search, Sparkles, SunMedium, Trash2, Undo2, Upload, Video, Wand2, X } from 'lucide-react';
 import '../glass/glass.css';
@@ -53,6 +55,7 @@ const MODES = [
   { id: 'image', label: 'Image', icon: ImageIcon, ready: true, key: '2' },
   { id: 'canvas', label: 'Canvas', icon: Layers, ready: true, key: '3' },
   { id: 'motion', label: 'Motion', icon: Film, ready: true, key: '4' },
+  { id: 'mockup', label: 'Mockups', icon: FrameIcon, ready: true, key: '5' },
 ] as const;
 export type StudioMode = (typeof MODES)[number]['id'];
 
@@ -169,6 +172,8 @@ function Editor({ p, q }: { p: Project; q: URLSearchParams }) {
         <CanvasMode p={p} q={q} setQ={setQ} />
       ) : mode === 'motion' ? (
         <MotionMode p={p} o={stored} />
+      ) : mode === 'mockup' ? (
+        <MockupMode p={p} />
       ) : stored ? (
         <ObjectEditor key={stored.id} p={p} o={stored} narrow={narrow} onImport={importModel} onAddVessel={addVessel} onPick={(oid) => setQ({ o: oid })} />
       ) : (

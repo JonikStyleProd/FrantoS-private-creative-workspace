@@ -11,6 +11,24 @@ export interface NewsItem {
 
 export const NEWS: NewsItem[] = [
   {
+    n: 8,
+    date: '2026-11-10',
+    title: 'Flows, handoff, animatics, mockups and print',
+    body: 'Screens become a map with arrows and a clickable prototype that opens from the review link. A handoff page gathers colours, type, tokens and assets at size. Story frames cut on the beat into a video. Mockups in 3D, and print PDFs with bleed and a resolution check.',
+    path: '/p/form-01/flow',
+    cta: 'Open a flow',
+    image: '/projects/halo/hero-sm.webp',
+  },
+  {
+    n: 7,
+    date: '2026-11-10',
+    title: 'A kit for your profession',
+    body: 'Tell FrantoS what you make — web, development, motion, graphic, photo or 3D — and your templates and tools come first. The library now keeps screens, SVG, Lottie, fonts, code with a live preview, websites and sound.',
+    path: '/settings?kit=1',
+    cta: 'Pick your profession',
+    image: '/projects/stride/hero-sm.webp',
+  },
+  {
     n: 6,
     date: '2026-11-09',
     title: 'Present boards, publish a portfolio',

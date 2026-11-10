@@ -439,3 +439,14 @@ html[data-gfx='lite'] .login-orbit { animation-duration: 160s; }
 /* menus that open over content: nearly opaque, so the page behind never reads through the items */
 .lg-pop.lg-glass-strong, .lg-pop { background: rgba(22, 26, 32, 0.975); }
 html[data-theme='light'] .lg-pop { background: rgba(250, 249, 246, 0.985); }
+
+/* prototype: a tap outside every zone flashes them, so a tester sees where to tap */
+.proto-zone[data-hint] { animation: proto-hint 0.9s ease-out; }
+@keyframes proto-hint { 0% { background: rgba(58, 91, 255, 0.32); box-shadow: 0 0 0 2px #3a5bff; } 100% { background: transparent; box-shadow: none; } }
+@media (prefers-reduced-motion: reduce) { .proto-zone[data-hint] { animation: none; } }
+
+/* handoff: prints as a clean document */
+@media print {
+  .handoff-print, .handoff-print * { color: #14171c !important; background: transparent !important; box-shadow: none !important; backdrop-filter: none !important; }
+  .handoff-print .no-print { display: none !important; }
+}

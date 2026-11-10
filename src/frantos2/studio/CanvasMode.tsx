@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { PrintDialog } from '../kits/PrintDialog';
+import { Printer } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { Play, AlignCenter, AlignLeft, AlignRight, ArrowDown, ArrowUp, Box, Copy, Download, Image as ImageIcon, Layers, LayoutTemplate, Palette as PaletteIcon, Plus, Square, Trash2, Type, Wand2, X } from 'lucide-react';
 import { useI18n } from '../i18n';
@@ -58,6 +60,8 @@ function BoardEditor({ p, stored, narrow, onPick, onCreate }: { p: Project; stor
   const [sel, setSel] = useState<string | null>(null);
   const [guides, setGuides] = useState<{ v: number[]; h: number[] }>({ v: [], h: [] });
   const [adding, setAdding] = useState(false);
+  // #/s/:id?m=canvas&print=1 (the project's Tools menu) opens the print export straight away
+  const [printing, setPrinting] = useState(() => /[?&]print=1/.test(window.location.hash));
   const [sheet, setSheet] = useState<null | 'boards' | 'layer'>(null);
   const [busy, setBusy] = useState(false);
   const area = useRef<HTMLDivElement>(null);
@@ -409,6 +413,9 @@ function BoardEditor({ p, stored, narrow, onPick, onCreate }: { p: Project; stor
         >
           <LayoutTemplate size={14} /> {t('Make all formats')}
         </button>
+        <button type="button" onClick={() => setPrinting(true)} className="lg-btn lg-btn-ghost min-h-[38px] w-full text-[12.5px]">
+          <Printer size={14} /> {t('Print PDF with bleed')}
+        </button>
         <div className="grid grid-cols-2 gap-2">
           <button type="button" disabled={busy} onClick={() => exportBoard('download')} className="lg-btn lg-btn-ghost disabled:opacity-50">
             <Download size={15} /> PNG
@@ -447,7 +454,7 @@ function BoardEditor({ p, stored, narrow, onPick, onCreate }: { p: Project; stor
       <p className="lg-label px-1">{t('New board')}</p>
       <div className="grid grid-cols-2 gap-1.5">
         {FORMATS.map((f) => (
-          <button key={f.id} type="button" onClick={() => (onCreate(f), setSheet(null))} className="lg-btn lg-btn-ghost min-h-[34px] px-1 text-[11.5px]" title={t('A composed first layout, ready to edit')}>
+          <button key={f.id} type="button" onClick={() => (onCreate(f), setSheet(null))} className="lg-btn lg-btn-ghost h-auto min-h-[34px] whitespace-normal px-1.5 py-1 text-center text-[11.5px] leading-tight" title={t('A composed first layout, ready to edit')}>
             <Wand2 size={12} /> {t(f.label)}
           </button>
         ))}
@@ -551,6 +558,7 @@ function BoardEditor({ p, stored, narrow, onPick, onCreate }: { p: Project; stor
           </AnimatePresence>
         </>
       )}
+      {printing && <PrintDialog p={p} b={b} rtl={dir === 'rtl'} brandFont={brandFont} onClose={() => setPrinting(false)} />}
     </>
   );
 }

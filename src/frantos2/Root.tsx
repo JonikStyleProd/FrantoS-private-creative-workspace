@@ -32,6 +32,9 @@ const FolioPublic = lazy(() => import('./pages/Portfolio').then((m) => ({ defaul
 const SharePage = lazy(() => import('./pages/SharePage').then((m) => ({ default: m.SharePage })));
 const DeckPage = lazy(() => import('./pages/DeckPage').then((m) => ({ default: m.DeckPage })));
 const GuidePage = lazy(() => import('./pages/GuidePage').then((m) => ({ default: m.GuidePage })));
+const FlowPage = lazy(() => import('./kits/FlowPage').then((m) => ({ default: m.FlowPage })));
+const HandoffPage = lazy(() => import('./kits/HandoffPage').then((m) => ({ default: m.HandoffPage })));
+const AnimaticPage = lazy(() => import('./kits/AnimaticPage').then((m) => ({ default: m.AnimaticPage })));
 const CloudLayer = lazy(() => import('./cloud/CloudLayer'));
 const AuthGate = lazy(() => import('./cloud/AuthGate'));
 const LoginPage = lazy(() => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })));
@@ -70,6 +73,9 @@ const TITLES: Record<string, string> = {
   share: 'Shared to FrantoS',
   deck: 'Presentation — FrantoS',
   guide: 'Brand guide — FrantoS',
+  flow: 'Flow & prototype — FrantoS',
+  handoff: 'Handoff — FrantoS',
+  animatic: 'Animatic — FrantoS',
 };
 
 function Redirect({ to }: { to: string }) {
@@ -78,8 +84,8 @@ function Redirect({ to }: { to: string }) {
 }
 
 const Blank = ({ dark }: { dark?: boolean }) => <div className={`fixed inset-0 ${dark ? (document.documentElement.dataset.theme === 'light' ? 'bg-[#f3f1ec]' : 'bg-[#0e0e10]') : 'bg-[#eee8dd]'}`} />;
-const APP_ROUTES = new Set(['app', 'project', 'pshow', 'team', 'join', 'editor', 'showroom', 'library', 'objects', 'templates', 'settings', 'admin', 'news', 'portfolio', 'share', 'deck', 'guide']);
-const GLASS = new Set(['team', 'login', 'landing', 'app', 'project', 'editor', 'showroom', 'library', 'objects', 'templates', 'settings', 'admin', 'news', 'portfolio', 'folio', 'share', 'deck']);
+const APP_ROUTES = new Set(['app', 'project', 'pshow', 'team', 'join', 'editor', 'showroom', 'library', 'objects', 'templates', 'settings', 'admin', 'news', 'portfolio', 'share', 'deck', 'guide', 'flow', 'handoff', 'animatic']);
+const GLASS = new Set(['team', 'login', 'landing', 'app', 'project', 'editor', 'showroom', 'library', 'objects', 'templates', 'settings', 'admin', 'news', 'portfolio', 'folio', 'share', 'deck', 'flow', 'handoff', 'animatic']);
 
 export function Root() {
   const hash = useHash();
@@ -186,6 +192,18 @@ export function Root() {
     case 'guide':
       baseKey = `guide-${route.id}`;
       base = <GuidePage id={route.id} />;
+      break;
+    case 'flow':
+      baseKey = `flow-${route.id}-${route.proto ? 'p' : 'm'}`;
+      base = <FlowPage id={route.id} proto={route.proto} screen={route.screen} />;
+      break;
+    case 'handoff':
+      baseKey = `handoff-${route.id}`;
+      base = <HandoffPage id={route.id} />;
+      break;
+    case 'animatic':
+      baseKey = `animatic-${route.id}`;
+      base = <AnimaticPage id={route.id} />;
       break;
     case 'login':
       baseKey = 'login';

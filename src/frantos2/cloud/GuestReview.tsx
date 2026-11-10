@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Check, Lock } from 'lucide-react';
+import { Check, Lock, Play } from 'lucide-react';
+import { PrototypePlayer, screensOf } from '../kits/FlowPage';
 import { sb, guestFiles } from './client';
 import { rowToComments } from './sync';
 import { Project } from '../ws/types';
@@ -70,6 +71,10 @@ export function GuestReview({ token, workId, q }: { token: string; workId?: stri
     },
   };
 
+  // the same link opens the clickable prototype when the project has one (?proto=1 opens it straight away)
+  const [proto, setProto] = useState(() => q.get('proto') === '1');
+  const hasProto = !!project && screensOf(project).length > 0 && (project.flow?.hotspots.length ?? 0) > 0;
+
   // the client says yes: one approval note per work, on its newest version — the studio confirms it
   const [approving, setApproving] = useState(false);
   const approved = (wid: string, vid: string) => project?.comments.some((c) => c.approval && c.workId === wid && c.versionId === vid);
@@ -109,6 +114,11 @@ export function GuestReview({ token, workId, q }: { token: string; workId?: stri
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {hasProto && (
+            <button type="button" onClick={() => setProto(true)} className="flex min-h-[38px] items-center gap-1.5 rounded-full border border-[var(--rule)] px-3.5 text-[13.5px] font-semibold">
+              <Play size={14} /> {t('Prototype')}
+            </button>
+          )}
           {name && <span className="hidden text-[12.5px] text-[var(--ink-2)] sm:inline">{t('Commenting as {name}', { name })}</span>}
           {link?.can_comment &&
             (pending.length ? (
@@ -126,6 +136,11 @@ export function GuestReview({ token, workId, q }: { token: string; workId?: stri
       <div className="flex min-h-0 flex-1 flex-col">
         <Review p={project} workId={workId} q={q} api={api} basePath={`/r/${token}`} />
       </div>
+      {proto && hasProto && (
+        <div className="fixed inset-0 z-[90]">
+          <PrototypePlayer p={project} onExit={() => setProto(false)} />
+        </div>
+      )}
     </div>
   );
 }

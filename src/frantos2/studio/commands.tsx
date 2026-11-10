@@ -23,7 +23,7 @@ export function useCmd(handler: (c: StudioCmd) => void) {
   });
 }
 
-type Mode = 'object' | 'image' | 'canvas' | 'motion';
+type Mode = 'object' | 'image' | 'canvas' | 'motion' | 'mockup';
 type Def = { id: string; title: string; kbd?: string; modes?: Mode[]; run: () => void };
 
 function defs(p: Project, o: StudioObject | undefined, setMode: (m: Mode) => void, t: (k: string) => string): Def[] {
@@ -33,6 +33,7 @@ function defs(p: Project, o: StudioObject | undefined, setMode: (m: Mode) => voi
     { id: 'm-image', title: t('Studio: Image'), kbd: '2', run: () => setMode('image') },
     { id: 'm-canvas', title: t('Studio: Canvas'), kbd: '3', run: () => setMode('canvas') },
     { id: 'm-motion', title: t('Studio: Motion'), kbd: '4', run: () => setMode('motion') },
+    { id: 'm-mockup', title: t('Studio: Mockups'), kbd: '5', run: () => setMode('mockup') },
     { id: 'v-render', title: t('Render view'), kbd: 'R', modes: obj, run: () => sendCmd('view-render') },
     { id: 'v-clay', title: t('Clay view'), kbd: 'C', modes: obj, run: () => sendCmd('view-clay') },
     { id: 'v-wire', title: t('Wireframe'), kbd: 'W', modes: obj, run: () => sendCmd('view-wire') },
@@ -112,6 +113,7 @@ export function ShortcutsHelp({ mode }: { mode: Mode }) {
       ['O', t('Open the showroom')],
     ],
     image: [[t('Click'), t('With the pipette: add the colour to the palette')]],
+    mockup: [[t('Drag'), t('Turn the scene')]],
     canvas: [
       ['← ↑ → ↓', t('Nudge the layer (⇧ = 10 px)')],
       ['Delete', t('Remove the layer')],

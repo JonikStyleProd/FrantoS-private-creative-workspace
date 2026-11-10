@@ -192,8 +192,10 @@ function loadUrl(key: string) {
 }
 
 /** the same lookup as useAssetUrl, outside React (exports, composites) */
-export async function assetUrl(a: Asset, size: 'full' | 'thumb' = 'full'): Promise<string | undefined> {
-  if (previewOnly(a)) size = 'thumb';
+export async function assetUrl(a: Asset, size: 'full' | 'thumb' | 'raw' = 'full'): Promise<string | undefined> {
+  // 'raw' = the original file whatever it is; 'full' of a font, sound or Lottie is its preview picture
+  if (size === 'raw') size = 'full';
+  else if (previewOnly(a)) size = 'thumb';
   const staticUrl = size === 'thumb' ? a.thumb ?? a.src : a.src;
   if (staticUrl) return staticUrl;
   const key = size === 'thumb' ? a.thumbKey ?? a.blobKey : a.blobKey;

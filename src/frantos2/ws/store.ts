@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { workTypeFor } from '../kits/disciplines';
 import { get, set, del, keys } from 'idb-keyval';
-import { Asset, Board, Brand, CanvasGroup, Profile, WorkStatus, CanvasNote, Comment, Decision, MaterialVariant, MoodItem, Project, StudioObject, WsState, Work, WorkType } from './types';
+import { Asset, Board, Brand, CanvasGroup, Profile, WorkStatus, CanvasNote, Comment, Decision, MaterialVariant, MoodItem, Project, StudioObject, WsState, Work, WorkType, Flow, Hotspot } from './types';
 import { AH_ID, DEMO_ID, DEMO_REV, afterHoursProject, demoProject } from './seed';
 import { SERIES_IDS, SERIES_REV, seriesProject } from './seedSeries';
 import { STUDIO_IDS, STUDIO_REV, studioProject } from './seedStudio';
@@ -390,6 +390,26 @@ export const ws = {
   },
   planWork(pid: string, wid: string, patch: { due?: number | null; status?: WorkStatus }) {
     updateProject(pid, (p) => ({ ...p, works: p.works.map((w) => (w.id === wid ? { ...w, ...(patch.status ? { status: patch.status } : {}), ...(patch.due !== undefined ? { due: patch.due ?? undefined } : {}) } : w)) }), 'Plan changed');
+  },
+  setFlow(pid: string, fn: (f: Flow) => Flow, undoLabel?: string) {
+    updateProject(pid, (p) => ({ ...p, flow: fn(p.flow ?? { nodes: [], hotspots: [] }) }), undoLabel);
+  },
+  addHotspot(pid: string, h: Omit<Hotspot, 'id'>): string {
+    const id = uid('h-');
+    this.setFlow(pid, (f) => ({ ...f, hotspots: [...f.hotspots, { ...h, id }] }), 'Link added');
+    return id;
+  },
+  setRepo(pid: string, repo: string) {
+    updateProject(pid, (p) => ({ ...p, repo: repo || undefined }));
+  },
+  setFrameDuration(pid: string, fid: string, duration: number) {
+    updateProject(pid, (p) => ({ ...p, story: p.story.map((f) => (f.id === fid ? { ...f, duration } : f)) }));
+  },
+  setFrameDurations(pid: string, durations: number[]) {
+    updateProject(pid, (p) => ({ ...p, story: p.story.map((f, i) => ({ ...f, duration: durations[i] ?? f.duration })) }), 'Timing changed');
+  },
+  setAnimatic(pid: string, patch: Partial<NonNullable<Project['animatic']>>) {
+    updateProject(pid, (p) => ({ ...p, animatic: { fade: 0.4, ...p.animatic, ...patch } }));
   },
   setWorkType(pid: string, wid: string, type: WorkType) {
     updateProject(pid, (p) => ({ ...p, works: p.works.map((w) => (w.id === wid ? { ...w, type } : w)) }), 'Kind of work changed');

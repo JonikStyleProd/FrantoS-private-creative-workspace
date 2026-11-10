@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ProjectTools } from '../kits/ProjectTools';
 import { WORK_TYPES, workTypeFor } from '../kits/disciplines';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
 import {
@@ -179,6 +180,7 @@ function Screen({ p, q }: { p: Project; q: URLSearchParams }) {
             </button>
             <ThemeSwitch />
           </Pane>
+          <ProjectTools p={p} />
           <button type="button" onClick={() => go(`/s/${p.id}`)} className="lg-glass lg-btn">
             <Box size={15} /> <span className="hidden sm:inline">{t('Studio')}</span>
           </button>

@@ -266,6 +266,26 @@ export interface StoryFrame {
   id: string;
   assetId: string;
   caption?: string;
+  /** animatic: seconds on screen */
+  duration?: number;
+}
+
+/** a tap zone on one screen that leads to another; coordinates are 0–1 of the screen */
+export interface Hotspot {
+  id: string;
+  from: string;
+  to: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/** screens as a map (positions in map units) and the prototype that runs through them */
+export interface Flow {
+  nodes: { assetId: string; x: number; y: number }[];
+  hotspots: Hotspot[];
+  start?: string;
 }
 
 export type ProjectStatus = 'wip' | 'review' | 'approved';
@@ -300,6 +320,12 @@ export interface Project {
   tags?: string[];
   /** case page: shown publicly only when published */
   caseText?: { intro?: string; outro?: string };
+  /** screens and the clickable prototype through them */
+  flow?: Flow;
+  /** handoff: where the code lives */
+  repo?: string;
+  /** the story as a film: sound and how frames meet */
+  animatic?: { audioAssetId?: string; fade: number; bpm?: number; beats?: number[] };
   visibility?: 'private' | 'public';
   publicSlug?: string;
   /** set once the project lives in a studio on the server */
