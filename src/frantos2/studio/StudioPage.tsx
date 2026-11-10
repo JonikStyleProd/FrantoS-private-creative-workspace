@@ -177,7 +177,7 @@ function Editor({ p, q }: { p: Project; q: URLSearchParams }) {
       ) : mode === 'canvas' ? (
         <CanvasMode p={p} q={q} setQ={setQ} />
       ) : mode === 'motion' ? (
-        <MotionMode p={p} o={stored} />
+        <MotionMode p={p} o={stored} q={q} setQ={setQ} />
       ) : mode === 'mockup' ? (
         <MockupMode p={p} />
       ) : mode === 'site' ? (
@@ -212,8 +212,8 @@ function Editor({ p, q }: { p: Project; q: URLSearchParams }) {
 function TopBar({ p, o, mode, onMode }: { p: Project; o?: StudioObject; mode: StudioMode; onMode: (m: StudioMode) => void }) {
   const { t } = useI18n();
   return (
-    <header className="absolute inset-x-3 top-3 z-30 flex items-center gap-2 sm:inset-x-4 sm:top-4">
-      <Pane className="flex min-w-0 max-w-[340px] items-center gap-1 rounded-full py-1 ps-1 max-sm:pe-1 sm:pe-4">
+    <header className="absolute inset-x-3 top-3 z-30 flex items-center gap-1.5 sm:inset-x-4 sm:top-4 sm:gap-2">
+      <Pane className="flex min-w-0 max-w-[340px] items-center max-sm:shrink-0 gap-1 rounded-full py-1 ps-1 max-sm:pe-1 sm:pe-4">
         <button type="button" onClick={() => go(`/p/${p.id}`)} className="lg-btn lg-btn-plain lg-icon" aria-label={t('Back to the project')}>
           <ArrowLeft size={18} className="rtl:-scale-x-100" />
         </button>
@@ -222,7 +222,7 @@ function TopBar({ p, o, mode, onMode }: { p: Project; o?: StudioObject; mode: St
         </span>
         <span className="ms-2 hidden whitespace-nowrap text-[12.5px] text-white/65 2xl:inline">{t('Studio')}</span>
       </Pane>
-      <Pane as="nav" aria-label={t('Editor mode')} className="mx-auto flex items-center gap-0.5 rounded-full p-1">
+      <Pane as="nav" aria-label={t('Editor mode')} className="mx-auto flex min-w-0 items-center gap-0.5 overflow-x-auto rounded-full p-1" style={{ scrollbarWidth: 'none' }}>
         {MODES.map((m) => (
           <button
             key={m.id}
@@ -231,14 +231,14 @@ function TopBar({ p, o, mode, onMode }: { p: Project; o?: StudioObject; mode: St
             aria-pressed={m.id === mode}
             title={`${t(m.label)} (${m.key})`}
             aria-label={t(m.label)}
-            className={`relative flex min-h-[40px] min-w-[34px] items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-1.5 text-[13.5px] font-bold sm:min-w-[40px] sm:px-2.5 transition-colors xl:px-4 ${m.id === mode ? 'bg-white text-[#11151a]' : 'text-white/75 hover:bg-white/10'}`}
+            className={`relative flex min-h-[40px] min-w-[34px] shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-1.5 text-[13.5px] font-bold sm:min-w-[40px] sm:px-2.5 transition-colors xl:px-4 ${m.id === mode ? 'bg-white text-[#11151a]' : 'text-white/75 hover:bg-white/10'}`}
           >
             <m.icon size={15} /> <span className="hidden xl:inline">{t(m.label)}</span>
           </button>
         ))}
       </Pane>
-      <div className="ms-auto flex items-center gap-2 md:ms-0">
-        <Pane className="flex items-center gap-1 rounded-full p-1">
+      <div className="ms-auto flex shrink-0 items-center gap-2 md:ms-0">
+        <Pane className={`flex items-center gap-1 rounded-full p-1 ${o ? '' : 'max-[399px]:hidden'}`}>
           <button
             type="button"
             onClick={() => {
@@ -256,10 +256,17 @@ function TopBar({ p, o, mode, onMode }: { p: Project; o?: StudioObject; mode: St
           <span className="max-sm:hidden">
             <GpuChip />
           </span>
-          <ThemeSwitch />
+          <span className="max-[399px]:hidden">
+            <ThemeSwitch />
+          </span>
+          {o && (
+            <button type="button" onClick={() => go(`/o/${p.id}/${o.id}`)} className="lg-btn lg-btn-primary lg-icon md:!hidden" aria-label={t('Showroom')} title={t('Showroom')}>
+              <Eye size={16} />
+            </button>
+          )}
         </Pane>
         {o && (
-          <button type="button" onClick={() => go(`/o/${p.id}/${o.id}`)} className="lg-btn lg-btn-primary max-md:w-11 max-md:px-0" aria-label={t('Showroom')}>
+          <button type="button" onClick={() => go(`/o/${p.id}/${o.id}`)} className="lg-btn lg-btn-primary max-md:!hidden" aria-label={t('Showroom')}>
             <Eye size={16} /> <span className="hidden lg:inline">{t('Showroom')}</span>
           </button>
         )}

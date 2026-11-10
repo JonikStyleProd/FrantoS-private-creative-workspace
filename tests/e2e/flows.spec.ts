@@ -350,3 +350,33 @@ test('site artboards: the demo post opens at its size and goes out as GIF, Lotti
   expect(png.buf.subarray(1, 4).toString('latin1')).toBe('PNG');
   expect(png.buf.readUInt32BE(16)).toBe(1080);
 });
+
+test('studio header fits the phone; motion makes a Lottie from a preset, downloads it and adds it to the project', async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.goto('/#/s/ritual');
+  await expect(page.getByRole('button', { name: 'Back to the project' })).toBeVisible();
+  const vw = page.viewportSize()!.width;
+  for (const name of ['Back to the project', 'Showroom']) {
+    const r = (await page.getByRole('button', { name, exact: true }).filter({ visible: true }).first().boundingBox())!;
+    expect(r.width).toBeGreaterThan(30);
+    expect(r.x).toBeGreaterThanOrEqual(0);
+    expect(r.x + r.width).toBeLessThanOrEqual(vw);
+  }
+
+  await page.goto('/#/s/ritual?m=motion&k=lottie');
+  await page.getByRole('radio', { name: 'Ring' }).click();
+  await expect(page.getByText('An arc that grows and runs around a quiet track')).toBeVisible();
+  await page.getByRole('textbox', { name: 'Name' }).fill('Ritual roasting');
+  const [d] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'JSON' }).click()]);
+  expect(d.suggestedFilename()).toMatch(/ritual-roasting\.json$/);
+  const fs = await import('fs');
+  const json = JSON.parse(fs.readFileSync((await d.path())!, 'utf8'));
+  expect(json.w).toBe(512);
+  expect(json.nm).toBe('Ritual roasting');
+  expect(JSON.stringify(json)).toContain('"ty":"tm"');
+  expect(json.layers.some((l: { ty: number }) => l.ty === 4)).toBe(true);
+  await page.getByRole('button', { name: 'To project' }).click();
+  await expect(page.getByText(/Added to the project/)).toBeVisible();
+  await page.goto('/#/p/ritual');
+  await expect(page.getByText('ritual-roasting').first()).toBeVisible({ timeout: 20_000 });
+});

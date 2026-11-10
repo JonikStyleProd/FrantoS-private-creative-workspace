@@ -33,6 +33,7 @@ function defs(p: Project, o: StudioObject | undefined, setMode: (m: Mode) => voi
     { id: 'm-image', title: t('Studio: Image'), kbd: '2', run: () => setMode('image') },
     { id: 'm-canvas', title: t('Studio: Canvas'), kbd: '3', run: () => setMode('canvas') },
     { id: 'm-motion', title: t('Studio: Motion'), kbd: '4', run: () => setMode('motion') },
+    { id: 'lottie', title: t('New Lottie animation'), run: () => go(`/s/${p.id}?m=motion&k=lottie`) },
     { id: 'm-mockup', title: t('Studio: Mockups'), kbd: '5', run: () => setMode('mockup') },
     { id: 'm-site', title: t('Studio: Site'), kbd: '6', run: () => setMode('site') },
     { id: 'v-render', title: t('Render view'), kbd: 'R', modes: obj, run: () => sendCmd('view-render') },

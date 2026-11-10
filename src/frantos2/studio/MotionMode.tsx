@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, Diamond, Download, Music, Pause, Play, Plus, Trash2, Type, Video, X } from 'lucide-react';
+import { Box, Diamond, Sparkles, Download, Music, Pause, Play, Plus, Trash2, Type, Video, X } from 'lucide-react';
 import { get, set as idbSet } from 'idb-keyval';
 import { useI18n } from '../i18n';
 import { go } from '../route';
@@ -13,6 +13,7 @@ import { canRecord, drawTitles, recordCanvas, recordGif, videoFormat } from './r
 import { fontCss } from './brand';
 import { useWs } from '../ws/store';
 import { ColorField, Section, Seg, Slider, Swatch } from './ui';
+import { LottieMaker } from './LottieMaker';
 
 /**
  * Studio · Motion: a camera move around the object, built from keyframes on a timeline.
@@ -42,19 +43,49 @@ export function poseAt(keys: CameraKey[], t: number): { pose: Pose; variantId?: 
   return { pose: { az: a.az + (b.az - a.az) * f, el: a.el + (b.el - a.el) * f, zoom: a.zoom + (b.zoom - a.zoom) * f }, variantId };
 }
 
-export function MotionMode({ p, o }: { p: Project; o?: StudioObject }) {
+export function MotionMode({ p, o, q, setQ }: { p: Project; o?: StudioObject; q: URLSearchParams; setQ: (patch: Record<string, string | undefined>) => void }) {
   const { t } = useI18n();
+  const kind = q.get('k') === 'lottie' || (!o && q.get('k') !== 'camera') ? 'lottie' : 'camera';
+  const narrow = useMedia('(max-width: 900px)');
+  const kinds = (
+    <Pane as="nav" aria-label={t('What to animate')} className={`absolute z-30 flex gap-0.5 rounded-full p-1 ${narrow ? 'start-3 top-[72px]' : 'start-4 top-[84px]'}`}>
+      {[
+        { id: 'camera', label: t('3D camera'), icon: <Box size={14} /> },
+        { id: 'lottie', label: 'Lottie', icon: <Sparkles size={14} /> },
+      ].map((k) => (
+        <button key={k.id} type="button" aria-pressed={kind === k.id} onClick={() => setQ({ k: k.id })} className={`flex min-h-[40px] items-center gap-1.5 rounded-full px-3.5 text-[13px] font-bold transition-colors ${kind === k.id ? 'bg-white text-[#11151a]' : 'text-white/80 hover:bg-white/10'}`}>
+          {k.icon} {k.label}
+        </button>
+      ))}
+    </Pane>
+  );
+  if (kind === 'lottie')
+    return (
+      <>
+        <LottieMaker p={p} />
+        {kinds}
+      </>
+    );
   if (!o)
     return (
       <div className="flex h-full items-center justify-center p-6">
+        {kinds}
         <Pane className="max-w-[420px] rounded-[28px] p-7 text-center">
           <Box className="mx-auto" />
           <p className="mt-3 text-[19px] font-bold">{t('Motion needs a 3D object')}</p>
           <p className="mt-2 text-[14px] text-white/75">{t('Make one in 3D · Object, then come back to animate the camera.')}</p>
+          <button type="button" onClick={() => setQ({ k: 'lottie' })} className="lg-btn lg-btn-primary mt-5">
+            <Sparkles size={15} /> {t('Make a Lottie instead')}
+          </button>
         </Pane>
       </div>
     );
-  return <Timeline key={o.id} p={p} o={o} />;
+  return (
+    <>
+      <Timeline key={o.id} p={p} o={o} />
+      {kinds}
+    </>
+  );
 }
 
 function Timeline({ p, o }: { p: Project; o: StudioObject }) {

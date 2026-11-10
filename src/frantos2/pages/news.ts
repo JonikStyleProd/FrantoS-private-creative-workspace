@@ -11,6 +11,15 @@ export interface NewsItem {
 
 export const NEWS: NewsItem[] = [
   {
+    n: 14,
+    date: '2026-11-11',
+    title: 'Lottie in two taps',
+    body: "Studio · Motion now makes Lottie animations: a wave like the Wavelength loader, a ring, a pulse, an equaliser, an orbit and a “done” tick. Give one your project colours, tempo and thickness, then download the JSON or put it straight into the project. Vector shapes, a few kilobytes, sharp at any size.",
+    path: '/s/ritual?m=motion&k=lottie',
+    cta: 'Open the Lottie maker',
+    image: '/projects/wavelength/loader-pv.webp',
+  },
+  {
     n: 13,
     date: '2026-11-10',
     title: 'Posts that move',
