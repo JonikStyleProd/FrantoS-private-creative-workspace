@@ -168,3 +168,44 @@ test('workspace pages: library, objects, templates, settings, portfolio, news, d
   await page.goto('/#/p/form-01/guide');
   await expect(page.getByRole('heading', { name: 'FORM / 01' })).toBeVisible();
 });
+
+test('site constructor: page from a template, edit in place, phone override, review version with its live page', async ({ page }) => {
+  await page.goto('/#/app');
+  await page.getByRole('button', { name: 'New project' }).first().click();
+  await page.getByPlaceholder('e.g. Halden — identity').fill('Site E2E');
+  await page.getByRole('button', { name: 'Create' }).click();
+  await expect(page).toHaveURL(/#\/p\/p-/);
+  const pid = page.url().match(/#\/p\/(p-[^/?]+)/)![1];
+  await page.goto(`/#/s/${pid}?m=site`);
+  await page.getByRole('button', { name: /^Landing/ }).click();
+  const h1 = page.locator('.fs-page h1');
+  await expect(h1).toHaveText('Made slowly, meant to stay');
+
+  // edit the headline in place
+  await h1.click();
+  await h1.click();
+  await page.keyboard.type('Bread from the harbour');
+  await page.keyboard.press('Enter');
+  await expect(h1).toHaveText('Bread from the harbour');
+
+  // on the phone width the hero headline gets its own size; desktop keeps its own
+  await page.getByRole('radio', { name: /Phone/ }).click();
+  await h1.click();
+  if (isPhone(page)) await page.getByRole('button', { name: 'Element' }).click();
+  await page.getByRole('radiogroup', { name: 'Size' }).getByRole('radio', { name: '28' }).click();
+  await expect(h1).toHaveCSS('font-size', '28px');
+  if (isPhone(page)) await page.getByRole('button', { name: 'Close' }).click();
+  await page.getByRole('radio', { name: /Desktop/ }).click();
+  await expect(h1).not.toHaveCSS('font-size', '28px');
+
+  // survives a reload
+  await page.reload();
+  await expect(page.locator('.fs-page h1')).toHaveText('Bread from the harbour');
+
+  // to review: a picture becomes v1 of the page's work, and the live page opens over it
+  await page.getByRole('button', { name: /To review/ }).click();
+  await expect(page.getByText('Sent to review as a new version')).toBeVisible({ timeout: 30_000 });
+  await page.goto(`/#/p/${pid}/review`);
+  await page.getByRole('button', { name: 'Live page' }).click();
+  await expect(page.getByRole('dialog', { name: 'Live page' }).locator('.fs-page h1')).toHaveText('Bread from the harbour');
+});

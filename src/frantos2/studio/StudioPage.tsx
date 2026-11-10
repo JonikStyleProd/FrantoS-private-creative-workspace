@@ -27,6 +27,8 @@ import { Globe2 } from 'lucide-react';
 import { ImageMode } from './ImageMode';
 import { CanvasMode } from './CanvasMode';
 import { MotionMode } from './MotionMode';
+import { SiteMode } from '../site/SiteMode';
+import { AppWindow } from 'lucide-react';
 import { ShortcutsHelp, useCmd, useStudioCommands } from './commands';
 import { GpuChip } from '../glass/GpuNotice';
 
@@ -59,6 +61,7 @@ const MODES = [
   { id: 'canvas', label: 'Canvas', icon: Layers, ready: true, key: '3' },
   { id: 'motion', label: 'Motion', icon: Film, ready: true, key: '4' },
   { id: 'mockup', label: 'Mockups', icon: FrameIcon, ready: true, key: '5' },
+  { id: 'site', label: 'Site', icon: AppWindow, ready: true, key: '6' },
 ] as const;
 export type StudioMode = (typeof MODES)[number]['id'];
 
@@ -163,8 +166,8 @@ function Editor({ p, q }: { p: Project; q: URLSearchParams }) {
   useStudioCommands(p, stored, mode, setMode);
 
   return (
-    <div className="lg lg-studio fixed inset-0 overflow-hidden" dir={dir} {...(mode === 'canvas' ? {} : drop.props)}>
-      {drop.over && mode !== 'canvas' && (
+    <div className="lg lg-studio fixed inset-0 overflow-hidden" dir={dir} {...(mode === 'canvas' || mode === 'site' ? {} : drop.props)}>
+      {drop.over && mode !== 'canvas' && mode !== 'site' && (
         <div className="pointer-events-none absolute inset-4 z-[60] flex items-center justify-center rounded-[30px] border-2 border-dashed border-white/80 bg-black/30 text-center text-[18px] font-bold">
           {t('Drop GLB, .hdr, pictures or video')}
         </div>
@@ -177,6 +180,8 @@ function Editor({ p, q }: { p: Project; q: URLSearchParams }) {
         <MotionMode p={p} o={stored} />
       ) : mode === 'mockup' ? (
         <MockupMode p={p} />
+      ) : mode === 'site' ? (
+        <SiteMode p={p} q={q} setQ={setQ} />
       ) : stored ? (
         <ObjectEditor key={stored.id} p={p} o={stored} narrow={narrow} onImport={importModel} onAddVessel={addVessel} onPick={(oid) => setQ({ o: oid })} />
       ) : (
@@ -226,7 +231,7 @@ function TopBar({ p, o, mode, onMode }: { p: Project; o?: StudioObject; mode: St
             aria-pressed={m.id === mode}
             title={`${t(m.label)} (${m.key})`}
             aria-label={t(m.label)}
-            className={`relative flex min-h-[40px] min-w-[40px] items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-[13.5px] font-bold transition-colors xl:px-4 ${m.id === mode ? 'bg-white text-[#11151a]' : 'text-white/75 hover:bg-white/10'}`}
+            className={`relative flex min-h-[40px] min-w-[34px] items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-1.5 text-[13.5px] font-bold sm:min-w-[40px] sm:px-2.5 transition-colors xl:px-4 ${m.id === mode ? 'bg-white text-[#11151a]' : 'text-white/75 hover:bg-white/10'}`}
           >
             <m.icon size={15} /> <span className="hidden xl:inline">{t(m.label)}</span>
           </button>
@@ -248,7 +253,9 @@ function TopBar({ p, o, mode, onMode }: { p: Project; o?: StudioObject; mode: St
           <button type="button" onClick={openPalette} className="lg-btn lg-btn-plain min-h-[40px] text-[13px] max-md:!hidden" aria-label={t('Search or run a command')}>
             <Search size={15} /> <span className="text-white/60">⌘K</span>
           </button>
-          <GpuChip />
+          <span className="max-sm:hidden">
+            <GpuChip />
+          </span>
           <ThemeSwitch />
         </Pane>
         {o && (

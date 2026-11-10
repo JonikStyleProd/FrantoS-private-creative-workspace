@@ -23,7 +23,7 @@ export function useCmd(handler: (c: StudioCmd) => void) {
   });
 }
 
-type Mode = 'object' | 'image' | 'canvas' | 'motion' | 'mockup';
+type Mode = 'object' | 'image' | 'canvas' | 'motion' | 'mockup' | 'site';
 type Def = { id: string; title: string; kbd?: string; modes?: Mode[]; run: () => void };
 
 function defs(p: Project, o: StudioObject | undefined, setMode: (m: Mode) => void, t: (k: string) => string): Def[] {
@@ -34,6 +34,7 @@ function defs(p: Project, o: StudioObject | undefined, setMode: (m: Mode) => voi
     { id: 'm-canvas', title: t('Studio: Canvas'), kbd: '3', run: () => setMode('canvas') },
     { id: 'm-motion', title: t('Studio: Motion'), kbd: '4', run: () => setMode('motion') },
     { id: 'm-mockup', title: t('Studio: Mockups'), kbd: '5', run: () => setMode('mockup') },
+    { id: 'm-site', title: t('Studio: Site'), kbd: '6', run: () => setMode('site') },
     { id: 'v-render', title: t('Render view'), kbd: 'R', modes: obj, run: () => sendCmd('view-render') },
     { id: 'v-clay', title: t('Clay view'), kbd: 'C', modes: obj, run: () => sendCmd('view-clay') },
     { id: 'v-wire', title: t('Wireframe'), kbd: 'W', modes: obj, run: () => sendCmd('view-wire') },
@@ -94,7 +95,7 @@ export function ShortcutsHelp({ mode }: { mode: Mode }) {
     };
   }, []);
   const rows: [string, string][] = [
-    ['1 · 2 · 3 · 4', t('3D · Image · Canvas · Motion')],
+    ['1 – 6', t('3D · Image · Canvas · Motion · Mockups · Site')],
     ['⌘K', t('Search and commands')],
     ['⌘Z', t('Undo')],
     ['⇧L', t('Switch light / dark theme')],
@@ -121,6 +122,15 @@ export function ShortcutsHelp({ mode }: { mode: Mode }) {
       ['[ · ]', t('Send backward / bring forward')],
       ['⇧ + ' + t('corner'), t('Resize keeping proportions')],
       ['Alt', t('Move without snapping')],
+    ],
+    site: [
+      [t('Click · double click'), t('Pick · edit the text')],
+      ['Enter · Esc', t('Into the element · to its parent')],
+      ['↑ ↓', t('Previous / next element')],
+      ['Alt ↑ ↓', t('Move earlier / later')],
+      ['⌘D · Delete', t('Duplicate · remove')],
+      ['⌘C · ⌘V', t('Copy · paste')],
+      ['⌘G', t('Wrap in a column')],
     ],
     motion: [
       [t('Space'), t('Play / pause')],

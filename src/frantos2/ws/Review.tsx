@@ -1,6 +1,8 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
+const LiveOverlay = lazy(() => import('../site/LiveOverlay'));
 import { AnimatePresence, motion } from 'framer-motion';
 import {
+  AppWindow,
   BookImage,
   Check,
   CheckCircle2,
@@ -89,6 +91,10 @@ function ReviewWork({ p, work, q, isDesktop, api, base }: { p: Project; work: Wo
   const [draft, setDraft] = useState<(Anchor & { t?: number; t2?: number; versionId: string }) | null>(null);
   const [filter, setFilter] = useState<Filter>('open');
   const [tab, setTab] = useState<'notes' | 'decisions' | 'share'>('notes');
+  // a page from the constructor: its live version opens over the picture
+  const sitePage = work.pageId ? (p.pages ?? []).find((x) => x.id === work.pageId) : undefined;
+  const snap = sitePage?.snapshots?.find((s) => s.versionId === cur.id);
+  const [live, setLive] = useState(false);
   const video = useRef<VideoHandle>(null);
 
   const setQ = (patch: Record<string, string | undefined>, replace = true) => {
@@ -254,6 +260,16 @@ function ReviewWork({ p, work, q, isDesktop, api, base }: { p: Project; work: Wo
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 pt-4 md:px-6">
         {versionBar}
         <div className="flex flex-wrap items-center gap-2">
+          {sitePage && (
+            <button type="button" onClick={() => setLive(true)} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#f3efe7] px-3 text-[12.5px] font-semibold text-[#16171a]" title={t('Scroll the real page, at any width')}>
+              <AppWindow size={14} /> {t('Live page')}
+            </button>
+          )}
+          {sitePage && editor && (
+            <button type="button" onClick={() => go(`/s/${p.id}?m=site&pg=${sitePage.id}`)} className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[var(--line)] px-3 text-[12.5px] font-medium hover:bg-white/5">
+              <PenLine size={14} /> <span className="hidden sm:inline">{t('Edit the page')}</span>
+            </button>
+          )}
           {toolBar}
           {editor && (
             <FilePick
@@ -507,15 +523,23 @@ function ReviewWork({ p, work, q, isDesktop, api, base }: { p: Project; work: Wo
     </div>
   );
 
+  const liveView =
+    live && sitePage ? (
+      <Suspense fallback={null}>
+        <LiveOverlay p={p} page={snap ? { ...sitePage, root: snap.root, theme: snap.theme } : sitePage} versionN={snap ? cur.n : undefined} onClose={() => setLive(false)} />
+      </Suspense>
+    ) : null;
   return isDesktop ? (
     <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_380px]">
       {stage}
       <aside className="flex min-h-0 flex-col border-s border-[var(--rule)]">{side}</aside>
+      {liveView}
     </div>
   ) : (
     <div className="flex flex-col">
       {stage}
       {side}
+      {liveView}
     </div>
   );
 }

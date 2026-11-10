@@ -11,6 +11,15 @@ export interface NewsItem {
 
 export const NEWS: NewsItem[] = [
   {
+    n: 9,
+    date: '2026-11-10',
+    title: 'Build a site in the studio',
+    body: 'A new Site mode: put a page together from ready sections — header, hero, cards, blog posts, gallery, prices, form, footer — and change the words right on the page. Check it on a phone, tablet and desktop. Send it to review: the client pins notes on a picture of the page and opens the live page of that version.',
+    path: '/s/halden?m=site',
+    cta: 'Open the Halden site',
+    image: '/projects/halden/room-sm.webp',
+  },
+  {
     n: 8,
     date: '2026-11-10',
     title: 'Flows, handoff, animatics, mockups and print',

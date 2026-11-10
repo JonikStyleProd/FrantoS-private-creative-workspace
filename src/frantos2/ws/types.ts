@@ -63,6 +63,8 @@ export interface Work {
   title: string;
   kind: MediaKind;
   type?: WorkType;
+  /** made from a page in the constructor */
+  pageId?: string;
   versions: Version[];
   approvedVersionId?: string;
   createdAt: number;
@@ -308,6 +310,96 @@ export interface Flow {
   start?: string;
 }
 
+/* ───────── studio: site constructor ───────── */
+
+export type SiteNodeType = 'section' | 'stack' | 'grid' | 'heading' | 'text' | 'button' | 'media' | 'object' | 'divider' | 'spacer' | 'field';
+/** spacing steps: n × 4 px */
+export type SiteSpace = '0' | '1' | '2' | '3' | '4' | '6' | '8' | '12' | '16' | '24' | '32';
+export type SiteType = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl';
+/** a colour role from the page theme, 'transparent', or a #hex */
+export type SiteColor = string;
+
+/** style of one node; every value comes from a token scale, so pages stay consistent */
+export interface SiteStyle {
+  dir?: 'row' | 'col';
+  wrap?: boolean;
+  cols?: number;
+  gap?: SiteSpace;
+  py?: SiteSpace;
+  px?: SiteSpace;
+  align?: 'start' | 'center' | 'end' | 'stretch';
+  justify?: 'start' | 'center' | 'end' | 'between';
+  text?: 'start' | 'center' | 'end';
+  size?: SiteType;
+  weight?: 400 | 500 | 600 | 700 | 800;
+  font?: 'heading' | 'body';
+  italic?: boolean;
+  color?: SiteColor;
+  bg?: SiteColor;
+  radius?: 'none' | 'sm' | 'md' | 'lg' | 'xl' | 'pill';
+  border?: boolean;
+  maxW?: 'full' | 'wide' | 'text' | 'narrow';
+  minH?: 'none' | 'half' | 'screen';
+  ratio?: 'auto' | '1/1' | '4/3' | '3/2' | '16/9' | '3/4' | '4/5';
+  fit?: 'cover' | 'contain';
+  span?: number;
+  grow?: boolean;
+  hide?: boolean;
+  variant?: 'solid' | 'outline' | 'link';
+}
+
+export interface SiteNode {
+  id: string;
+  type: SiteNodeType;
+  /** layer name */
+  name?: string;
+  text?: string;
+  href?: string;
+  level?: 1 | 2 | 3;
+  assetId?: string;
+  objectId?: string;
+  alt?: string;
+  placeholder?: string;
+  multiline?: boolean;
+  /** sections: the HTML element they export as */
+  tag?: 'section' | 'header' | 'footer' | 'nav' | 'article' | 'aside';
+  /** desktop style; md = tablet (≤ 1023 px) and sm = phone (≤ 599 px) override it */
+  s?: SiteStyle;
+  md?: SiteStyle;
+  sm?: SiteStyle;
+  children?: SiteNode[];
+}
+
+/** colours and type of one page; kept in the page so review links and exports render it the same */
+export interface SiteTheme {
+  bg: string;
+  surface: string;
+  text: string;
+  muted: string;
+  accent: string;
+  onAccent: string;
+  line: string;
+  heading: BrandFont;
+  body: BrandFont;
+  /** how round the corners are */
+  round: 'sharp' | 'soft' | 'round';
+}
+
+export interface SitePage {
+  id: string;
+  title: string;
+  slug: string;
+  dir: 'ltr' | 'rtl';
+  theme: SiteTheme;
+  root: SiteNode[];
+  /** the work its review versions go to */
+  workId?: string;
+  /** the page as it was at each review version */
+  snapshots?: { versionId: string; root: SiteNode[]; theme: SiteTheme; createdAt: number }[];
+  createdAt: number;
+  updatedAt: number;
+}
+
 export type ProjectStatus = 'wip' | 'review' | 'approved';
 
 export interface Project {
@@ -333,6 +425,8 @@ export interface Project {
   objects?: StudioObject[];
   /** compositions made in the studio's Canvas mode */
   boards?: Board[];
+  /** pages built in the studio's Site mode */
+  pages?: SitePage[];
   /** the project palette, picked in the studio */
   palette?: string[];
   notes?: CanvasNote[];

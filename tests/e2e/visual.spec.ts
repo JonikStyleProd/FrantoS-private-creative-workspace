@@ -7,7 +7,7 @@ import { test, expect, type Page } from '@playwright/test';
  * Update the stored pictures after an intended change: npx playwright test visual --update-snapshots
  */
 const LANGS = ['en', 'ru', 'he'] as const;
-const AUDIT = ['/#/app', '/#/library', '/#/settings', '/#/templates', '/#/plan', '/#/p/wavelength/handoff', '/#/p/velo/decisions', '/#/p/form-01', '/#/'];
+const AUDIT = ['/#/s/halden?m=site', '/#/site/saltwater/saltwater-pg-journal?w=sm', '/#/app', '/#/library', '/#/settings', '/#/templates', '/#/plan', '/#/p/wavelength/handoff', '/#/p/velo/decisions', '/#/p/form-01', '/#/'];
 const SHOTS = ['/#/templates', '/#/p/wavelength/handoff'];
 
 async function open(page: Page, lang: string, path: string) {

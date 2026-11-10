@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { workTypeFor } from '../kits/disciplines';
 import { get, set, del, keys } from 'idb-keyval';
-import { Asset, Board, Brand, CanvasGroup, Profile, WorkStatus, CanvasNote, Comment, Decision, MaterialVariant, MoodItem, Project, StudioObject, WsState, Work, WorkType, Flow, Hotspot } from './types';
+import { Asset, Board, SitePage, Brand, CanvasGroup, Profile, WorkStatus, CanvasNote, Comment, Decision, MaterialVariant, MoodItem, Project, StudioObject, WsState, Work, WorkType, Flow, Hotspot } from './types';
 import { AH_ID, DEMO_ID, DEMO_REV, afterHoursProject, demoProject } from './seed';
 import { KIT_IDS, KIT_REV, kitProject } from './seedKits';
 import { STUDIO_IDS, STUDIO_REV, studioProject } from './seedStudio';
@@ -553,6 +553,22 @@ export const ws = {
   },
   patchBoard(pid: string, bid: string, patch: Partial<Board>, undoLabel?: string) {
     updateProject(pid, (p) => ({ ...p, boards: (p.boards ?? []).map((b) => (b.id === bid ? { ...b, ...patch, updatedAt: Date.now() } : b)) }), undoLabel);
+  },
+  /* studio: site pages */
+  addPage(pid: string, pg: Omit<SitePage, 'id' | 'createdAt' | 'updatedAt'>): string {
+    const id = uid('pg-');
+    const now = Date.now();
+    updateProject(pid, (p) => ({ ...p, pages: [...(p.pages ?? []), { ...pg, id, createdAt: now, updatedAt: now }] }), 'Page added');
+    return id;
+  },
+  patchPage(pid: string, pgid: string, patch: Partial<SitePage>, undoLabel?: string) {
+    updateProject(pid, (p) => ({ ...p, pages: (p.pages ?? []).map((x) => (x.id === pgid ? { ...x, ...patch, updatedAt: Date.now() } : x)) }), undoLabel);
+  },
+  removePage(pid: string, pgid: string) {
+    updateProject(pid, (p) => ({ ...p, pages: (p.pages ?? []).filter((x) => x.id !== pgid) }), 'Page removed');
+  },
+  linkPageWork(pid: string, wid: string, pgid: string) {
+    updateProject(pid, (p) => ({ ...p, works: p.works.map((w) => (w.id === wid ? { ...w, pageId: pgid, type: 'page' as const } : w)) }));
   },
   removeBoard(pid: string, bid: string) {
     updateProject(pid, (p) => ({ ...p, boards: (p.boards ?? []).filter((b) => b.id !== bid) }), 'Board removed');
