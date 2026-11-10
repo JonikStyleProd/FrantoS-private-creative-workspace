@@ -16,6 +16,8 @@
  */
 .f2 {
   --paper: #eee8dd;
+  /* text set on an ink-coloured fill (selected chips) */
+  --on-ink: #eee8dd;
   --paper-2: #e5ddcf;
   --paper-3: #d9cfbe;
   --ink: #15130f;

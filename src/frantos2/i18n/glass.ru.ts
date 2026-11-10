@@ -1884,4 +1884,7 @@ export const glassRu: Record<string, string> = {
   "Lottie in two taps": "Lottie в два касания",
   "Studio · Motion now makes Lottie animations: a wave like the Wavelength loader, a ring, a pulse, an equaliser, an orbit and a “done” tick. Give one your project colours, tempo and thickness, then download the JSON or put it straight into the project. Vector shapes, a few kilobytes, sharp at any size.": "В студии, в режиме «Моушен», теперь можно делать Lottie-анимации: волну как у загрузки Wavelength, кольцо, пульс, эквалайзер, орбиту и галочку «Готово». Задайте цвета проекта, темп и толщину — и скачайте JSON или сразу положите в проект. Векторные формы, несколько килобайт, чёткие в любом размере.",
   "Open the Lottie maker": "Открыть конструктор Lottie",
+  "The studio may have unpublished it, or the link has a typo. Ask the studio for a new one.": "Возможно, студия сняла её с публикации или в ссылке опечатка. Попросите у студии новую.",
+  "What is FrantoS?": "Что такое FrantoS?",
+  "This board could not be drawn. Pick a picture instead.": "Эту доску не удалось нарисовать. Выберите картинку.",
 };

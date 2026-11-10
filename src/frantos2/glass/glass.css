@@ -82,6 +82,7 @@
   user-select: none;
 }
 .lg-btn:active { transform: scale(0.97); }
+.lg-btn > svg { flex-shrink: 0; }
 .lg-btn-primary { background: #fff; color: #11151a; }
 .lg-btn-primary:hover { background: #f1efe9; }
 .lg-btn-ghost { background: rgba(255, 255, 255, 0.12); color: #fff; border: 1px solid rgba(255, 255, 255, 0.22); }
@@ -270,6 +271,7 @@ html[data-gfx='lite'] .lg .lg-glass-strong { filter: none !important; }
   --paper-2: rgba(255, 255, 255, 0.07);
   --paper-3: rgba(255, 255, 255, 0.13);
   --ink: #f4f1ec;
+  --on-ink: #11151a;
   --ink-2: rgba(244, 241, 236, 0.68);
   --rule: rgba(255, 255, 255, 0.14);
   --signal: #ff9a6b;
@@ -338,6 +340,7 @@ html[data-theme='light'] .f2-glass {
   --paper-2: rgba(255, 255, 255, 0.55);
   --paper-3: rgba(255, 255, 255, 0.75);
   --ink: #14171c;
+  --on-ink: #ffffff;
   --ink-2: rgba(20, 23, 28, 0.64);
   --rule: rgba(20, 23, 28, 0.14);
   --signal: #c4542a;
@@ -471,3 +474,9 @@ html[data-theme='light'] .lg .lg-dark .lg-btn-primary { background: #ffffff; col
 html[data-theme='light'] .lg .lg-dark .lg-btn-ghost { background: rgba(255, 255, 255, 0.1); color: #f4f0ea; border-color: rgba(255, 255, 255, 0.2); }
 html[data-theme='light'] .lg .lg-dark .lg-glass,
 html[data-theme='light'] .lg .lg-dark .lg-glass-strong { background: rgba(255, 255, 255, 0.1); color: #f4f0ea; border-color: rgba(255, 255, 255, 0.18); }
+
+/* the brand guide prints as the sheet alone, on white */
+@media print {
+  .guide-print { background: #fff !important; }
+  .guide-print .guide-sheet { background: #fff !important; }
+}

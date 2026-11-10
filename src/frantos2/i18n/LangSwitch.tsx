@@ -13,7 +13,7 @@ export function LangSwitch({ dark }: { dark?: boolean }) {
           aria-label={l.name}
           onClick={() => setLang(l.id)}
           className="rounded-full px-2 py-1 text-[11.5px] font-semibold"
-          style={{ background: lang === l.id ? (dark ? '#f3efe7' : 'var(--ink)') : 'transparent', color: lang === l.id ? (dark ? 'var(--ink)' : 'var(--paper)') : dark ? 'var(--fog)' : 'var(--ink-2)' }}
+          style={{ background: lang === l.id ? (dark ? '#f3efe7' : 'var(--ink)') : 'transparent', color: lang === l.id ? (dark ? '#16171a' : 'var(--on-ink)') : dark ? 'var(--fog)' : 'var(--ink-2)' }}
         >
           {l.label}
         </button>

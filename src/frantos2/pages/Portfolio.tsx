@@ -41,11 +41,13 @@ export function FolioView({ profile, brand, items }: { profile: Doc['profile']; 
           {profile.bio && <p className="text-[17px] leading-[1.6] text-white/85">{profile.bio}</p>}
           {!!profile.links?.length && (
             <div className="mt-4 flex flex-wrap gap-2">
-              {profile.links.filter((l) => l.url).map((l) => (
-                <a key={l.url} href={l.url} target="_blank" rel="noreferrer noopener" className="lg-btn lg-btn-ghost min-h-[36px] text-[13px]">
-                  {l.label || l.url.replace(/^https?:\/\//, '')} <ArrowUpRight size={13} />
-                </a>
-              ))}
+              {profile.links
+                .filter((l) => l.url)
+                .map((l) => (
+                  <a key={l.url} href={l.url} target="_blank" rel="noreferrer noopener" className="lg-btn lg-btn-ghost min-h-[36px] text-[13px]">
+                    {l.label || l.url.replace(/^https?:\/\//, '')} <ArrowUpRight size={13} />
+                  </a>
+                ))}
             </div>
           )}
         </div>
@@ -138,7 +140,9 @@ export function PortfolioPage() {
       <div className="grid gap-5 xl:grid-cols-[380px_minmax(0,1fr)]">
         <div className="space-y-4">
           <Pane className="space-y-3 rounded-[26px] p-4">
-            <p className="flex items-center gap-2 text-[16px] font-extrabold">{live ? <Globe size={16} /> : <Lock size={16} />} {live ? t('Published') : t('Private — only you see this')}</p>
+            <p className="flex items-center gap-2 text-[16px] font-extrabold">
+              {live ? <Globe size={16} /> : <Lock size={16} />} {live ? t('Published') : t('Private — only you see this')}
+            </p>
             {url && <p className="break-all font-mono text-[12.5px] text-white/70">{url}</p>}
             {!cloudEnabled ? (
               <p className="text-[13px] text-white/70">{t('Publishing needs the cloud, which is not configured on this deployment.')}</p>
@@ -169,7 +173,7 @@ export function PortfolioPage() {
                 </div>
               </>
             )}
-            <button type="button" onClick={() => go("/settings")} className="lg-btn lg-btn-plain h-auto min-h-[34px] whitespace-normal py-1.5 text-start text-[12.5px]">
+            <button type="button" onClick={() => go('/settings')} className="lg-btn lg-btn-plain h-auto min-h-[34px] whitespace-normal py-1.5 text-start text-[12.5px]">
               {t('Name, address, about and brand → Settings')}
             </button>
           </Pane>
@@ -236,23 +240,36 @@ export function FolioPublic({ handle }: { handle: string }) {
   useEffect(() => void ensureLoaded(), []);
   useEffect(() => {
     if (!sb) return setState('missing');
+    let live = true;
+    // a slow or unreachable server must not leave the visitor on "Opening…" forever
+    const timer = window.setTimeout(() => live && setState((s) => (s === 'loading' ? 'missing' : s)), 15000);
     (async () => {
-      const { data } = await sb.from('portfolios').select('doc').eq('handle', handle).eq('published', true).maybeSingle();
-      if (!data) return setState('missing');
-      const d = data.doc as Doc;
-      setDoc(d);
-      const rows = await Promise.all(
-        (d.items ?? []).map(async (slug) => {
-          const { data: pr } = await sb!.from('projects').select('title, doc').eq('public_slug', slug).eq('visibility', 'public').maybeSingle();
-          if (!pr) return null;
-          await guestFiles({ slug });
-          const p = pr.doc as Project;
-          return { key: slug, title: pr.title, brief: p.brief, cover: coverOf({ ...p, assets: p.assets ?? [] } as Project), href: `#/c/${slug}` } as Item;
-        })
-      );
-      setItems(rows.filter(Boolean) as Item[]);
-      setState('ok');
+      try {
+        const { data } = await sb!.from('portfolios').select('doc').eq('handle', handle).eq('published', true).maybeSingle();
+        if (!live) return;
+        if (!data) return setState('missing');
+        const d = data.doc as Doc;
+        setDoc(d);
+        const rows = await Promise.all(
+          (d.items ?? []).map(async (slug) => {
+            const { data: pr } = await sb!.from('projects').select('title, doc').eq('public_slug', slug).eq('visibility', 'public').maybeSingle();
+            if (!pr) return null;
+            await guestFiles({ slug });
+            const p = pr.doc as Project;
+            return { key: slug, title: pr.title, brief: p.brief, cover: coverOf({ ...p, assets: p.assets ?? [] } as Project), href: `#/c/${slug}` } as Item;
+          }),
+        );
+        if (!live) return;
+        setItems(rows.filter(Boolean) as Item[]);
+        setState('ok');
+      } catch {
+        if (live) setState('missing');
+      }
     })();
+    return () => {
+      live = false;
+      window.clearTimeout(timer);
+    };
   }, [handle]);
   useEffect(() => {
     if (doc?.profile.name) document.title = `${doc.profile.name} — FrantoS`;

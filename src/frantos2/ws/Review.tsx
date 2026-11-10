@@ -198,7 +198,7 @@ function ReviewWork({ p, work, q, isDesktop, api, base }: { p: Project; work: Wo
           const on = v.id === cur.id;
           const isA = cmp?.id === v.id;
           return (
-            <button key={v.id} role="radio" aria-checked={on} onClick={() => setQ({ v: v.id, c: undefined, cmp: isA ? cur.id : cmp?.id })} className="relative rounded-full px-3 py-1.5 text-[12.5px] font-semibold" style={{ color: on ? 'var(--ink)' : isA ? '#f3efe7' : 'var(--fog)' }} title={v.label}>
+            <button key={v.id} role="radio" aria-checked={on} onClick={() => setQ({ v: v.id, c: undefined, cmp: isA ? cur.id : cmp?.id })} className="relative rounded-full px-3 py-1.5 text-[12.5px] font-semibold" style={{ color: on ? '#16171a' : isA ? '#f3efe7' : 'var(--fog)' }} title={v.label}>
               {on && <motion.span layoutId={`vsel-${work.id}`} className="absolute inset-0 rounded-full bg-[#f3efe7]" transition={{ duration: 0.25, ease }} />}
               <span className="relative">
                 {isA ? 'A · ' : cmp && on ? 'B · ' : ''}v{v.n}
@@ -223,7 +223,7 @@ function ReviewWork({ p, work, q, isDesktop, api, base }: { p: Project; work: Wo
               ['diff', t('Difference')],
             ] as [CompareMode, string][]
           ).map(([m, l]) => (
-            <button key={m} role="radio" aria-checked={mode === m} onClick={() => setMode(m)} className="rounded-full px-2.5 py-1 text-[11.5px] font-medium" style={{ background: mode === m ? '#f3efe7' : 'transparent', color: mode === m ? 'var(--ink)' : 'var(--fog)' }}>
+            <button key={m} role="radio" aria-checked={mode === m} onClick={() => setMode(m)} className="rounded-full px-2.5 py-1 text-[11.5px] font-medium" style={{ background: mode === m ? '#f3efe7' : 'transparent', color: mode === m ? '#16171a' : 'var(--fog)' }}>
               {l}
             </button>
           ))}
@@ -379,7 +379,7 @@ function ReviewWork({ p, work, q, isDesktop, api, base }: { p: Project; work: Wo
         </h2>
         <div className="flex gap-0.5" role="radiogroup" aria-label={t('Show')}>
           {(['open', 'resolved', 'all'] as Filter[]).map((f) => (
-            <button key={f} role="radio" aria-checked={filter === f} onClick={() => setFilter(f)} className="rounded-full px-2.5 py-1 text-[12px] font-medium" style={{ background: filter === f ? 'var(--ink)' : 'transparent', color: filter === f ? 'var(--paper)' : 'var(--ink-2)' }}>
+            <button key={f} role="radio" aria-checked={filter === f} onClick={() => setFilter(f)} className="rounded-full px-2.5 py-1 text-[12px] font-medium" style={{ background: filter === f ? 'var(--ink)' : 'transparent', color: filter === f ? 'var(--on-ink)' : 'var(--ink-2)' }}>
               {f === 'open' ? t('Open') : f === 'resolved' ? t('Resolved') : t('All')}
             </button>
           ))}
@@ -633,7 +633,7 @@ function Decisions({ p, work, cur, approved }: { p: Project; work: Work; cur: Ve
 
 function Chip({ children, on, onClick }: { children: React.ReactNode; on: boolean; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} aria-pressed={on} className="max-w-full truncate rounded-full border px-2 py-0.5 text-[11.5px]" style={{ borderColor: on ? 'var(--ink)' : 'var(--rule)', background: on ? 'var(--ink)' : 'transparent', color: on ? 'var(--paper)' : 'var(--ink)' }}>
+    <button type="button" onClick={onClick} aria-pressed={on} className="max-w-full truncate rounded-full border px-2 py-0.5 text-[11.5px]" style={{ borderColor: on ? 'var(--ink)' : 'var(--rule)', background: on ? 'var(--ink)' : 'transparent', color: on ? 'var(--on-ink)' : 'var(--ink)' }}>
       {children}
     </button>
   );
@@ -797,7 +797,7 @@ function CommentCard({ api, c, n, version, active, onSelect, scroll }: { api: Re
                   toast(c.resolved ? t('Note reopened') : t('Marked resolved'));
                 }}
                 className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-semibold"
-                style={{ background: c.resolved ? 'transparent' : 'var(--ink)', color: c.resolved ? 'var(--ink)' : 'var(--paper)', border: '1px solid var(--ink)' }}
+                style={{ background: c.resolved ? 'transparent' : 'var(--ink)', color: c.resolved ? 'var(--ink)' : 'var(--on-ink)', border: '1px solid var(--ink)' }}
               >
                 {c.resolved ? <RotateCcw size={13} /> : <Check size={13} />}
                 {c.resolved ? t('Reopen') : t('Resolve')}

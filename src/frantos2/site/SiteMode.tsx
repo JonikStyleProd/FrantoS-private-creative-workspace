@@ -136,8 +136,8 @@ export function SiteMode({ p, q, setQ }: { p: Project; q: URLSearchParams; setQ:
   };
   if (!page)
     return (
-      <div className="flex h-full items-center justify-center overflow-y-auto p-6 pt-[84px]">
-        <Pane className="w-full max-w-[680px] rounded-[28px] p-7">
+      <div className="flex h-full overflow-y-auto px-3 pb-6 pt-[76px] lg-scroll sm:px-6 sm:pt-[84px]">
+        <Pane className="m-auto w-full max-w-[680px] rounded-[28px] p-5 sm:p-7">
           <AppWindow className="mx-auto" />
           <p className="mt-3 text-center text-[21px] font-bold">{t('Build a page from ready sections')}</p>
           <p className="mx-auto mt-2 max-w-[460px] text-center text-[14.5px] leading-[1.5] text-white/80">{t('A site, a blog post or a landing page: pick a start, then change the words, swap the pictures and check it on a phone.')}</p>

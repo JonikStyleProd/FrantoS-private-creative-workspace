@@ -380,3 +380,22 @@ test('studio header fits the phone; motion makes a Lottie from a preset, downloa
   await page.goto('/#/p/ritual');
   await expect(page.getByText('ritual-roasting').first()).toBeVisible({ timeout: 20_000 });
 });
+
+test('case page: opens from the project in the new design, flips to the work behind it, fits a phone', async ({ page }) => {
+  await page.goto('/#/p/form-01?s=show');
+  const open = page.getByRole('button', { name: 'Open the case page' }).first();
+  if (await open.isVisible().catch(() => false)) await open.click();
+  else await page.goto('/#/p/form-01/case');
+  await expect(page).toHaveURL(/#\/p\/form-01\/case/);
+  await expect(page.locator('.lg.handoff-print')).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'FORM / 01' })).toBeVisible();
+  await page.getByRole('button', { name: /Behind the work/ }).click();
+  await expect(page.getByRole('heading', { name: 'What shaped it' })).toBeInViewport({ timeout: 10_000 });
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+  await page.getByRole('button', { name: 'Back to project' }).click();
+  await expect(page).toHaveURL(/#\/p\/form-01$/);
+  // the public address of an unpublished case explains itself instead of hanging
+  await page.goto('/#/c/no-such-case');
+  await expect(page.getByText(/not public|Opening/).first()).toBeVisible();
+});

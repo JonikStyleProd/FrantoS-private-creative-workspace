@@ -6,12 +6,13 @@ import { rowToComments } from './sync';
 import { Project } from '../ws/types';
 import { Review, ReviewApi } from '../ws/Review';
 import { useI18n } from '../i18n';
-import { LangSwitch } from '../i18n/LangSwitch';
-import { Wordmark } from '../ui';
+import { Backdrop, GlassLang, Mark, Pane } from '../glass/kit';
+import { useAssetUrl } from '../ws/media';
+import '../glass/glass.css';
 
 /** A client opens a review link: sees the work, leaves notes, no account needed. */
 export function GuestReview({ token, workId, q }: { token: string; workId?: string; q: URLSearchParams }) {
-  const { t } = useI18n();
+  const { t, dir } = useI18n();
   const [state, setState] = useState<'loading' | 'ok' | 'invalid' | 'offline'>('loading');
   const [project, setProject] = useState<Project | null>(null);
   const [link, setLink] = useState<{ work_id: string | null; can_comment: boolean } | null>(null);
@@ -93,45 +94,64 @@ export function GuestReview({ token, workId, q }: { token: string; workId?: stri
 
   if (state !== 'ok' || !project)
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-3 bg-[var(--paper)] px-6 text-center">
-        <Wordmark />
-        <p className="f2-display mt-4 text-[36px] leading-none">{state === 'loading' ? t('Opening the review…') : state === 'offline' ? t('This build has no studio server.') : t('This review link is not valid.')}</p>
-        {state === 'invalid' && <p className="max-w-[28rem] text-[var(--ink-2)]">{t('It may have been revoked or expired. Ask the studio for a new one.')}</p>}
+      <div className="lg fixed inset-0 flex items-center justify-center p-5" dir={dir}>
+        <Backdrop src="/projects/form-01/ref-window.webp" tint={0.6} blur />
+        <Pane strong className="relative max-w-[440px] rounded-[30px] p-7 text-center sm:p-9" role={state === 'loading' ? 'status' : undefined}>
+          <div className="flex justify-center">
+            <Mark size={20} />
+          </div>
+          <p className="mt-6 text-[26px] font-extrabold leading-[1.05] tracking-[-0.03em]">{state === 'loading' ? t('Opening the review…') : state === 'offline' ? t('This build has no studio server.') : t('This review link is not valid.')}</p>
+          {state === 'invalid' && <p className="mt-3 text-[14.5px] leading-[1.5] text-white/75">{t('It may have been revoked or expired. Ask the studio for a new one.')}</p>}
+          {state !== 'loading' && (
+            <a href="#/" className="lg-btn lg-btn-ghost mt-6">
+              {t('What is FrantoS?')}
+            </a>
+          )}
+        </Pane>
       </div>
     );
 
+  const cover = project.assets.find((a) => a.id === project.coverAssetId) ?? project.assets.find((a) => !a.isReference);
   return (
-    <div className="flex min-h-full flex-col bg-[var(--paper)] lg:h-full lg:min-h-0">
-      <header className="flex h-[58px] shrink-0 items-center justify-between gap-3 border-b border-[var(--rule)] px-4 md:px-5">
-        <div className="flex min-w-0 items-center gap-3">
-          <Wordmark small />
-          <span className="h-6 w-px bg-[var(--rule)]" />
-          <div className="min-w-0">
-            <p className="f2-display truncate text-[20px] leading-tight">{project.title}</p>
-            <p className="flex items-center gap-1 text-[11.5px] text-[var(--ink-2)]">
-              <Lock size={11} /> {link?.can_comment ? t('Shared for review · you can leave notes') : t('Shared for viewing')}
+    <div className="lg f2-glass relative flex min-h-full flex-col lg:h-full lg:min-h-0" dir={dir}>
+      <div className="pointer-events-none fixed inset-0">
+        <CoverBackdrop asset={cover} />
+      </div>
+      <header className="sticky top-0 z-30 shrink-0 px-3 pb-2 pt-3 md:px-5">
+        <Pane className="flex flex-wrap items-center gap-2 rounded-[28px] p-1.5 sm:rounded-full">
+          <a href="#/" className="flex min-h-[40px] shrink-0 items-center px-2.5" aria-label="FrantoS">
+            <Mark size={15} compact />
+          </a>
+          <div className="min-w-0 flex-1">
+            <p dir="auto" className="truncate text-[15px] font-extrabold leading-tight tracking-[-0.01em]">
+              {project.title}
+            </p>
+            <p className="flex items-center gap-1 truncate text-[11.5px] text-white/65">
+              <Lock size={11} className="shrink-0" /> {link?.can_comment ? t('Shared for review · you can leave notes') : t('Shared for viewing')}
+              {name && <span className="hidden md:inline">&nbsp;· {t('Commenting as {name}', { name })}</span>}
             </p>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {hasProto && (
-            <button type="button" onClick={() => setProto(true)} className="flex min-h-[38px] items-center gap-1.5 rounded-full border border-[var(--rule)] px-3.5 text-[13.5px] font-semibold">
-              <Play size={14} /> {t('Prototype')}
-            </button>
-          )}
-          {name && <span className="hidden text-[12.5px] text-[var(--ink-2)] sm:inline">{t('Commenting as {name}', { name })}</span>}
-          {link?.can_comment &&
-            (pending.length ? (
-              <button type="button" disabled={approving} onClick={approveAll} className="flex min-h-[38px] items-center gap-1.5 rounded-full bg-[var(--ink)] px-4 text-[13.5px] font-semibold text-[var(--paper)] disabled:opacity-60">
-                <Check size={15} /> {project.works.length > 1 ? t('Approve all ({n})', { n: pending.length }) : t('Approve')}
+          <div className="shrink-0 max-sm:order-1">
+            <GlassLang />
+          </div>
+          <div className="flex items-center gap-1.5 max-sm:order-2 max-sm:w-full max-sm:justify-end">
+            {hasProto && (
+              <button type="button" onClick={() => setProto(true)} className="lg-btn lg-btn-ghost min-h-[40px] px-3.5 text-[13px]">
+                <Play size={14} /> {t('Prototype')}
               </button>
-            ) : (
-              <span className="flex items-center gap-1.5 rounded-full border border-[var(--rule)] px-3 py-1.5 text-[13px] font-semibold">
-                <Check size={14} /> {t('Approved — thank you')}
-              </span>
-            ))}
-          <LangSwitch />
-        </div>
+            )}
+            {link?.can_comment &&
+              (pending.length ? (
+                <button type="button" disabled={approving} onClick={approveAll} className="lg-btn lg-btn-primary min-h-[40px] px-4 text-[13px] disabled:opacity-60 max-sm:flex-1">
+                  <Check size={15} /> {project.works.length > 1 ? t('Approve all ({n})', { n: pending.length }) : t('Approve')}
+                </button>
+              ) : (
+                <span className="lg-soft inline-flex min-h-[40px] items-center gap-1.5 rounded-full px-3.5 text-[13px] font-bold">
+                  <Check size={14} /> {t('Approved — thank you')}
+                </span>
+              ))}
+          </div>
+        </Pane>
       </header>
       <div className="flex min-h-0 flex-1 flex-col">
         <Review p={project} workId={workId} q={q} api={api} basePath={`/r/${token}`} />
@@ -143,4 +163,9 @@ export function GuestReview({ token, workId, q }: { token: string; workId?: stri
       )}
     </div>
   );
+}
+
+function CoverBackdrop({ asset }: { asset?: Project['assets'][number] }) {
+  const { url } = useAssetUrl(asset, 'thumb');
+  return <Backdrop src={url} tint={0.62} blur />;
 }

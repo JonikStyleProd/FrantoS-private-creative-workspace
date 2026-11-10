@@ -1884,4 +1884,7 @@ export const glassHe: Record<string, string> = {
   "Lottie in two taps": "Lottie בשתי נגיעות",
   "Studio · Motion now makes Lottie animations: a wave like the Wavelength loader, a ring, a pulse, an equaliser, an orbit and a “done” tick. Give one your project colours, tempo and thickness, then download the JSON or put it straight into the project. Vector shapes, a few kilobytes, sharp at any size.": "בסטודיו, במצב ״מושן״, אפשר עכשיו ליצור אנימציות Lottie: גל כמו הטעינה של Wavelength, טבעת, פעימה, אקולייזר, מסלול וסימון ״בוצע״. נותנים צבעי פרויקט, קצב ועובי — ומורידים JSON או שמים ישר בפרויקט. צורות וקטוריות, כמה קילובייט, חדות בכל גודל.",
   "Open the Lottie maker": "לפתוח את יוצר ה־Lottie",
+  "The studio may have unpublished it, or the link has a typo. Ask the studio for a new one.": "ייתכן שהסטודיו הסיר אותו מפרסום או שיש טעות בקישור. בקשו מהסטודיו קישור חדש.",
+  "What is FrantoS?": "מה זה FrantoS?",
+  "This board could not be drawn. Pick a picture instead.": "לא הצלחנו לצייר את הלוח. בחרו תמונה במקום.",
 };

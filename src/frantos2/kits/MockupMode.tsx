@@ -31,7 +31,11 @@ export function MockupMode({ p }: { p: Project }) {
   const pics = useMemo(() => p.assets.filter((a) => a.kind === 'image' && (!a.format || a.format === 'screen' || a.format === 'svg')), [p.assets]);
   const boards = p.boards ?? [];
   const [scene, setScene] = useState<SceneId>('poster');
-  const [src, setSrc] = useState<Source | null>(() => (boards[0] ? { kind: 'board', id: boards[0].id } : pics[0] ? { kind: 'asset', id: pics[0].id } : null));
+  // start from the finished work (the cover), not a board: it loads at once and reads as the project
+  const [src, setSrc] = useState<Source | null>(() => {
+    const cover = pics.find((a) => a.id === p.coverAssetId) ?? pics.find((a) => !a.isReference) ?? pics[0];
+    return cover ? { kind: 'asset', id: cover.id } : boards[0] ? { kind: 'board', id: boards[0].id } : null;
+  });
   const [bg, setBg] = useState(BGS[0]);
   const [busy, setBusy] = useState(false);
   const host = useRef<HTMLDivElement>(null);
@@ -223,7 +227,12 @@ export function MockupMode({ p }: { p: Project }) {
         url = a ? await assetUrl(a, 'full') : undefined;
       } else {
         const b = boards.find((x) => x.id === src.id);
-        if (b) url = URL.createObjectURL(await downscale(await renderBoard(p, b), 2048, 'image/png'));
+        try {
+          if (b) url = URL.createObjectURL(await downscale(await renderBoard(p, b), 2048, 'image/png'));
+        } catch (err) {
+          console.warn(err);
+          if (live) toast(t('This board could not be drawn. Pick a picture instead.'), { tone: 'error' });
+        }
       }
       if (live && url) api.current?.setTexture(url);
     })();

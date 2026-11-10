@@ -242,7 +242,7 @@ function Dock({ stage, counts, onPick }: { stage: Stage; counts: Record<Stage, I
   const { t } = useI18n();
   return (
     <nav aria-label={t('Stages of a project')} className="absolute inset-x-0 bottom-3 z-30 flex justify-center px-2 sm:bottom-4">
-      <Pane className="flex max-w-full items-center gap-1 overflow-x-auto rounded-full p-1.5 lg-scroll" role="tablist">
+      <Pane className="flex max-w-full items-center gap-1 overflow-x-auto rounded-full p-1.5 lg-scroll max-sm:grid max-sm:w-full max-sm:grid-cols-4 max-sm:overflow-visible" role="tablist">
         {STAGES.map((s, i) => {
           const on = s === stage;
           const n = counts[s].length;
@@ -254,12 +254,12 @@ function Dock({ stage, counts, onPick }: { stage: Stage; counts: Record<Stage, I
               role="tab"
               aria-selected={on}
               onClick={() => onPick(s)}
-              className={`relative flex min-h-[48px] items-center gap-1.5 rounded-full px-3 text-[13.5px] font-bold transition-colors sm:gap-2 sm:px-5 sm:text-[14px] ${on ? 'text-[#11151a]' : 'text-white/85 hover:text-white'}`}
+              className={`relative flex min-h-[48px] min-w-0 items-center justify-center gap-1.5 rounded-full px-3 text-[13.5px] font-bold transition-colors max-sm:flex-col max-sm:gap-0.5 max-sm:px-1 max-sm:text-[12.5px] sm:gap-2 sm:px-5 sm:text-[14px] ${on ? 'text-[#11151a]' : 'text-white/85 hover:text-white'}`}
             >
               {on && <motion.span layoutId="lg-dock" className="absolute inset-0 rounded-full bg-white" transition={{ type: 'spring', stiffness: 420, damping: 36 }} />}
               <span className="relative hidden text-[11px] opacity-60 sm:inline">0{i + 1}</span>
-              <span className="relative">{t(STAGE_LABEL[s])}</span>
-              <span className={`relative rounded-full px-1.5 text-[11.5px] ${on ? 'bg-black/10' : attention ? 'bg-[var(--lg-accent)] text-[var(--lg-accent-ink)]' : 'bg-white/15'}`}>{n}</span>
+              <span className="relative max-w-full truncate leading-none">{t(STAGE_LABEL[s])}</span>
+              <span className={`relative rounded-full px-1.5 text-[11.5px] max-sm:text-[10.5px] max-sm:leading-[15px] ${on ? 'bg-black/10' : attention ? 'bg-[var(--lg-accent)] text-[var(--lg-accent-ink)]' : 'bg-white/15'}`}>{n}</span>
             </button>
           );
         })}

@@ -207,7 +207,7 @@ function Overview({ p, q }: { p: P; q: URLSearchParams }) {
                 onClick={() => ws.setStatus(p.id, s)}
                 aria-pressed={p.status === s}
                 className="rounded-full border px-2.5 py-1 text-[12px] font-medium"
-                style={{ borderColor: p.status === s ? 'var(--ink)' : 'var(--rule)', background: p.status === s ? 'var(--ink)' : 'transparent', color: p.status === s ? 'var(--paper)' : 'var(--ink-2)' }}
+                style={{ borderColor: p.status === s ? 'var(--ink)' : 'var(--rule)', background: p.status === s ? 'var(--ink)' : 'transparent', color: p.status === s ? 'var(--on-ink)' : 'var(--ink-2)' }}
               >
                 {s === 'wip' ? t('In progress') : s === 'review' ? t('In review') : t('Approved')}
               </button>
@@ -239,7 +239,7 @@ function Overview({ p, q }: { p: P; q: URLSearchParams }) {
           <h2 className="text-[13px] font-semibold">{t('Related materials')}</h2>
           <div className="flex rounded-full border border-[var(--rule)] p-0.5" role="radiogroup" aria-label={t('View')}>
             {(['orbit', 'grid'] as const).map((v) => (
-              <button key={v} role="radio" aria-checked={view === v} onClick={() => setView(v)} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-medium" style={{ background: view === v ? 'var(--ink)' : 'transparent', color: view === v ? 'var(--paper)' : 'var(--ink-2)' }}>
+              <button key={v} role="radio" aria-checked={view === v} onClick={() => setView(v)} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-medium" style={{ background: view === v ? 'var(--ink)' : 'transparent', color: view === v ? 'var(--on-ink)' : 'var(--ink-2)' }}>
                 {v === 'orbit' ? <OrbitIcon size={13} /> : <Grid2x2 size={13} />} {v === 'orbit' ? 'Orbit' : 'Grid'}
               </button>
             ))}
@@ -414,7 +414,7 @@ function Materials({ p, q }: { p: P; q: URLSearchParams }) {
                 ['refs', `${t('References')} ${p.assets.filter((a) => a.isReference).length}`],
               ] as const
             ).map(([k, l]) => (
-              <button key={k} role="radio" aria-checked={filter === k} onClick={() => setFilter(k)} className="rounded-full px-3 py-1.5 text-[13px] font-medium" style={{ background: filter === k ? 'var(--ink)' : 'transparent', color: filter === k ? 'var(--paper)' : 'var(--ink-2)' }}>
+              <button key={k} role="radio" aria-checked={filter === k} onClick={() => setFilter(k)} className="rounded-full px-3 py-1.5 text-[13px] font-medium" style={{ background: filter === k ? 'var(--ink)' : 'transparent', color: filter === k ? 'var(--on-ink)' : 'var(--ink-2)' }}>
                 {l}
               </button>
             ))}

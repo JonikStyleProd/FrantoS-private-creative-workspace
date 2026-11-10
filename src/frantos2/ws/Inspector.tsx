@@ -184,7 +184,7 @@ export function Act({ children, onClick, icon, primary, on }: { children: React.
       className="inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-[13px] font-medium transition-colors"
       style={{
         background: primary ? 'var(--ink)' : on ? 'rgba(21,19,15,0.06)' : 'transparent',
-        color: primary ? 'var(--paper)' : 'var(--ink)',
+        color: primary ? 'var(--on-ink)' : 'var(--ink)',
         borderColor: primary ? 'var(--ink)' : 'var(--rule)',
       }}
     >
