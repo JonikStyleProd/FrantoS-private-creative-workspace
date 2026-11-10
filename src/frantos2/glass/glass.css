@@ -425,3 +425,13 @@ html[data-gfx='lite'] .login-orbit { animation-duration: 160s; }
 /* grid items may shrink below their content: a truncated line never widens a column past the screen */
 .f2 .grid > * { min-width: 0; }
 .lg h1, .lg h2 { overflow-wrap: anywhere; }
+
+/* login wordmark painted with the brand gradient (the mark's blue → violet, warmed at the end) */
+.login-word,
+.login-word-mask {
+  -webkit-mask: url('/brand/wordmark-white.webp') center / contain no-repeat;
+  mask: url('/brand/wordmark-white.webp') center / contain no-repeat;
+}
+.login-word {
+  background: linear-gradient(100deg, #1f5bff 0%, #4a6dff 30%, #8a78ef 58%, #c98bd6 80%, #ffb08a 100%);
+}

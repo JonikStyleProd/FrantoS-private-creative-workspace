@@ -66,29 +66,23 @@ function Orbit({ burst, still }: { burst: boolean; still: boolean }) {
 }
 
 /** The wordmark arrives as a light sweep reveals it, then a slow sheen keeps passing over it. */
-function Logo({ theme, still }: { theme: string; still: boolean }) {
+function Logo({ still }: { theme: string; still: boolean }) {
   const { t } = useI18n();
-  const word = theme === 'light' ? '/brand/wordmark-black.webp' : '/brand/wordmark-white.webp';
   return (
-    <div className="relative inline-flex items-center gap-4">
-      <motion.img
-        src="/brand/mark-gradient.webp"
-        alt=""
-        draggable={false}
-        className="h-[54px] w-[54px] rounded-[16px] shadow-[0_10px_40px_-8px_rgba(255,140,90,0.55)]"
-        initial={still ? false : { rotate: -120, scale: 0.4, opacity: 0 }}
-        animate={{ rotate: 0, scale: 1, opacity: 1 }}
-        transition={{ duration: 1.1, ease, delay: 0.1 }}
-      />
-      <motion.div
-        className="relative overflow-hidden"
-        initial={still ? false : { clipPath: 'inset(0 100% 0 0)' }}
-        animate={{ clipPath: 'inset(0 0% 0 0)' }}
-        transition={{ duration: 1.1, ease, delay: 0.45 }}
-      >
-        <img src={word} alt={t('FrantoS')} draggable={false} style={{ height: 50, width: 'auto' }} />
-        {!still && <span className="login-sheen absolute inset-0" aria-hidden />}
-      </motion.div>
+    <div className="inline-block" style={{ filter: 'drop-shadow(0 10px 34px rgba(60,100,255,0.38))' }}>
+    <motion.div
+      className="relative inline-block overflow-hidden"
+      initial={still ? false : { clipPath: 'inset(0 100% 0 0)' }}
+      animate={{ clipPath: 'inset(0 0% 0 0)' }}
+      transition={{ duration: 1.2, ease, delay: 0.2 }}
+    >
+      <span role="img" aria-label={t('FrantoS')} className="login-word block" style={{ height: 56, width: Math.round((56 * 337) / 96) }} />
+      {!still && (
+        <span className="login-word-mask absolute inset-0 overflow-hidden" aria-hidden>
+          <span className="login-sheen absolute inset-0" />
+        </span>
+      )}
+    </motion.div>
     </div>
   );
 }
@@ -196,10 +190,19 @@ export function LoginPage({ next }: { next: string }) {
             <AnimatePresence mode="wait" initial={false}>
               <motion.div key={step} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.28, ease }}>
                 <div className="mb-5 flex items-center gap-3">
+                  {step === 'password' ? (
+                    <h2 className="flex items-center gap-[0.4em] whitespace-nowrap text-[clamp(17px,5vw,24px)] font-extrabold leading-tight">
+                      {t('Welcome back to')}
+                      <img src={theme === 'light' ? '/brand/wordmark-black.webp' : '/brand/wordmark-white.webp'} alt={t('FrantoS')} draggable={false} className="relative top-[0.04em] h-[1.12em] w-auto" />
+                    </h2>
+                  ) : (
+                  <>
                   <span className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-[var(--lg-fill-soft)]">
                     {step === 'code' ? <ShieldCheck size={20} /> : step === 'newpw' ? <KeyRound size={20} /> : <img src={theme === 'light' ? '/brand/mark-black.webp' : '/brand/mark-white.webp'} alt="" className="h-6 w-6" />}
                   </span>
                   <h2 className="text-[24px] font-extrabold leading-tight">{title[step]}</h2>
+                  </>
+                  )}
                 </div>
 
                 {step === 'password' && (

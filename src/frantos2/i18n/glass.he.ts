@@ -819,6 +819,7 @@ export const glassHe: Record<string, string> = {
   "Save and continue": "שמירה והמשך",
   "Type your email and we will send a link to set a new password.": "הקלידו מייל ונשלח קישור לסיסמה חדשה.",
   "Use another account": "כניסה לחשבון אחר",
+  "Welcome back to": "ברוכים השבים ל־",
   "Welcome back": "ברוכים השבים",
   "Your data, your access": "הנתונים שלכם, הגישה שלכם",
   "Your references, boards, 3D objects and stories — in one quiet place that only your team and your clients can open.": "רפרנסים, בורדים, אובייקטים בתלת־ממד וסיפורים — במקום שקט אחד שרק הצוות והלקוחות שלכם יכולים לפתוח.",

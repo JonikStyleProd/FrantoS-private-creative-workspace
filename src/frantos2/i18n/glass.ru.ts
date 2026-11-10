@@ -819,6 +819,7 @@ export const glassRu: Record<string, string> = {
   "Save and continue": "Сохранить и продолжить",
   "Type your email and we will send a link to set a new password.": "Введите email — мы пришлём ссылку для нового пароля.",
   "Use another account": "Войти в другой аккаунт",
+  "Welcome back to": "С возвращением в",
   "Welcome back": "С возвращением",
   "Your data, your access": "Ваши данные — ваш доступ",
   "Your references, boards, 3D objects and stories — in one quiet place that only your team and your clients can open.": "Референсы, борды, 3D-объекты и истории — в одном спокойном месте, которое открывается только вашей команде и вашим клиентам.",
