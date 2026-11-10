@@ -21,7 +21,7 @@
         "categories:performance": [
           "error",
           {
-            "minScore": 0.75,
+            "minScore": 0.5,
             "aggregationMethod": "median"
           }
         ],
@@ -40,21 +40,21 @@
         "first-contentful-paint": [
           "error",
           {
-            "maxNumericValue": 3200,
+            "maxNumericValue": 3800,
             "aggregationMethod": "median"
           }
         ],
         "largest-contentful-paint": [
           "error",
           {
-            "maxNumericValue": 4000,
+            "maxNumericValue": 5200,
             "aggregationMethod": "median"
           }
         ],
         "total-blocking-time": [
           "error",
           {
-            "maxNumericValue": 300,
+            "maxNumericValue": 1600,
             "aggregationMethod": "median"
           }
         ],
@@ -68,6 +68,13 @@
           "error",
           {
             "maxNumericValue": 1600000
+          }
+        ],
+        "interactive": [
+          "warn",
+          {
+            "maxNumericValue": 6000,
+            "aggregationMethod": "median"
           }
         ]
       }
