@@ -2,22 +2,79 @@
   "ci": {
     "collect": {
       "staticDistDir": "./dist",
-      "url": ["http://localhost/index.html", "http://localhost/index.html#/app"],
+      "url": [
+        "http://localhost/index.html",
+        "http://localhost/index.html#/app"
+      ],
       "numberOfRuns": 2,
-      "settings": { "preset": "mobile", "onlyCategories": ["performance", "accessibility", "best-practices"] }
+      "settings": {
+        "preset": "mobile",
+        "onlyCategories": [
+          "performance",
+          "accessibility",
+          "best-practices"
+        ],
+        "chromeFlags": "--no-sandbox --headless=new --disable-dev-shm-usage"
+      }
     },
     "assert": {
       "assertions": {
-        "categories:performance": ["error", { "minScore": 0.75, "aggregationMethod": "median" }],
-        "categories:accessibility": ["error", { "minScore": 0.95 }],
-        "categories:best-practices": ["warn", { "minScore": 0.95 }],
-        "first-contentful-paint": ["error", { "maxNumericValue": 3200, "aggregationMethod": "median" }],
-        "largest-contentful-paint": ["error", { "maxNumericValue": 4000, "aggregationMethod": "median" }],
-        "total-blocking-time": ["error", { "maxNumericValue": 300, "aggregationMethod": "median" }],
-        "cumulative-layout-shift": ["error", { "maxNumericValue": 0.1 }],
-        "total-byte-weight": ["error", { "maxNumericValue": 1600000 }]
+        "categories:performance": [
+          "error",
+          {
+            "minScore": 0.75,
+            "aggregationMethod": "median"
+          }
+        ],
+        "categories:accessibility": [
+          "error",
+          {
+            "minScore": 0.95
+          }
+        ],
+        "categories:best-practices": [
+          "warn",
+          {
+            "minScore": 0.95
+          }
+        ],
+        "first-contentful-paint": [
+          "error",
+          {
+            "maxNumericValue": 3200,
+            "aggregationMethod": "median"
+          }
+        ],
+        "largest-contentful-paint": [
+          "error",
+          {
+            "maxNumericValue": 4000,
+            "aggregationMethod": "median"
+          }
+        ],
+        "total-blocking-time": [
+          "error",
+          {
+            "maxNumericValue": 300,
+            "aggregationMethod": "median"
+          }
+        ],
+        "cumulative-layout-shift": [
+          "error",
+          {
+            "maxNumericValue": 0.1
+          }
+        ],
+        "total-byte-weight": [
+          "error",
+          {
+            "maxNumericValue": 1600000
+          }
+        ]
       }
     },
-    "upload": { "target": "temporary-public-storage" }
+    "upload": {
+      "target": "temporary-public-storage"
+    }
   }
 }

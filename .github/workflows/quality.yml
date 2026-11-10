@@ -18,9 +18,12 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx tsc --noEmit -p .
-      - run: npx playwright install --with-deps chromium
+      # Google Chrome, not Chromium: the demo videos are H.264, and the screenshots were made with Chrome
+      - run: npx playwright install --with-deps chrome
       - name: End-to-end and visual tests
         run: npx playwright test --workers=2
+        env:
+          PW_CHROME: /opt/google/chrome/chrome
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
