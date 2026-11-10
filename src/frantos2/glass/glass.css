@@ -435,3 +435,7 @@ html[data-gfx='lite'] .login-orbit { animation-duration: 160s; }
 .login-word {
   background: linear-gradient(100deg, #1f5bff 0%, #4a6dff 30%, #8a78ef 58%, #c98bd6 80%, #ffb08a 100%);
 }
+
+/* menus that open over content: nearly opaque, so the page behind never reads through the items */
+.lg-pop.lg-glass-strong, .lg-pop { background: rgba(22, 26, 32, 0.975); }
+html[data-theme='light'] .lg-pop { background: rgba(250, 249, 246, 0.985); }

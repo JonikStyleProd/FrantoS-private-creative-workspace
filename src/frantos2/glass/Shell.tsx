@@ -80,7 +80,7 @@ export function AppHeader({ action }: { action?: React.ReactNode }) {
       </Pane>
       <AnimatePresence>
         {menu && (
-          <Pane strong key="menu" className="absolute end-3 top-[72px] z-50 flex w-[min(360px,calc(100vw-24px))] flex-col gap-1 rounded-[26px] p-2 sm:end-6">
+          <Pane strong key="menu" className="lg-pop absolute end-3 top-[72px] z-50 flex w-[min(360px,calc(100vw-24px))] flex-col gap-1 rounded-[26px] p-2 sm:end-6">
             <div className="flex flex-col gap-1 lg:hidden">{nav(true)}</div>
             <button type="button" onClick={() => go('/new')} className="flex h-11 items-center gap-2 rounded-full px-3.5 text-[13.5px] font-bold hover:bg-white/10">
               <Sparkles size={16} /> {t("What's new")}

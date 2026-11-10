@@ -70,3 +70,6 @@ export function useQuality() {
   );
   return { lite, pref, gpu: typeof window === 'undefined' ? null : gpuInfo(), setQuality };
 }
+
+/** A phone or tablet: focusing an input there pops the keyboard over the dialog, so focus only on tap. */
+export const touchFirst = () => typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches && !window.matchMedia('(pointer: fine)').matches;

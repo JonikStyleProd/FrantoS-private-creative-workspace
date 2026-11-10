@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Cloud, CloudOff, LogOut, LogIn, ShieldCheck, UserCog, UserRound, Users } from 'lucide-react';
 import { useI18n } from '../i18n';
@@ -23,6 +23,24 @@ export function GlassAccount() {
   const a = useAuth();
   const sync = useSync();
   const [open, setOpen] = useState(false);
+  // the menu sits under the photo but always fully on screen, whichever side the photo is on (RTL too)
+  const box = useRef<HTMLDivElement>(null);
+  const [place, setPlace] = useState<React.CSSProperties>({});
+  useLayoutEffect(() => {
+    if (!open || !box.current) return;
+    const fit = () => {
+      const r = box.current!.getBoundingClientRect();
+      const vw = document.documentElement.clientWidth;
+      const w = Math.min(300, vw - 24);
+      const rtl = getComputedStyle(box.current!).direction === 'rtl';
+      const want = rtl ? r.left : r.right - w;
+      const x = Math.max(12, Math.min(vw - 12 - w, want));
+      setPlace({ left: x - r.left, width: w });
+    };
+    fit();
+    window.addEventListener('resize', fit);
+    return () => window.removeEventListener('resize', fit);
+  }, [open]);
   const [signin, setSignin] = useState(false);
   const avatar = useMyAvatar();
   useEffect(() => {
@@ -45,14 +63,14 @@ export function GlassAccount() {
   const name = a.name || a.session.user.email || '?';
   const dot = sync === 'syncing' ? '#ffcf70' : sync === 'offline' || sync === 'error' ? '#c9c2b6' : '#7fe0a1';
   return (
-    <div className="relative">
+    <div className="relative" ref={box}>
       <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-label={t('Account')} className="relative flex h-11 w-11 items-center justify-center rounded-full transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">
         <Avatar src={avatar} name={name} size={38} ring />
         <span className="absolute bottom-0.5 end-0.5 h-3 w-3 rounded-full border-2 border-[#1a1e24]" style={{ background: dot }} title={sync} />
       </button>
       <AnimatePresence>
         {open && (
-          <Pane strong className="absolute end-0 top-14 z-50 w-[min(290px,calc(100vw-24px))] rounded-[22px] p-2" role="menu">
+          <Pane strong className="lg-pop absolute top-14 z-50 rounded-[22px] p-2" style={place} role="menu">
             <div className="flex items-center gap-3 px-3 py-2">
               <Avatar src={avatar} name={name} size={44} />
               <div className="min-w-0">

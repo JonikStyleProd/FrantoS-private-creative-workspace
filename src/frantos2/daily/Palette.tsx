@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { touchFirst } from '../glass/perf';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRight, FileImage, FolderOpen, Hash, MessageSquare, Search, Sparkles } from 'lucide-react';
 import { useWs, ws } from '../ws/store';
@@ -48,7 +49,7 @@ export function Palette() {
     if (open) {
       setQ('');
       setI(0);
-      setTimeout(() => inp.current?.focus(), 10);
+      if (!touchFirst()) setTimeout(() => inp.current?.focus(), 10);
     }
   }, [open]);
 

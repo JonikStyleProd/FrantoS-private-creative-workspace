@@ -4,7 +4,7 @@ import { ArrowLeft, Fingerprint, KeyRound, Lock, ShieldCheck } from 'lucide-reac
 import { useI18n } from '../i18n';
 import { go } from '../route';
 import { useTheme } from '../glass/theme';
-import { isLite } from '../glass/perf';
+import { isLite, touchFirst } from '../glass/perf';
 import { GlassLang, ThemeSwitch } from '../glass/kit';
 import '../glass/glass.css';
 import { changePassword, mfaStepUp, passwordProblem, sendPasswordReset, signInWithPassword, signOut, useAuth } from '../cloud/client';
@@ -211,7 +211,7 @@ export function LoginPage({ next }: { next: string }) {
                       <label className="lg-label" htmlFor="lp-email">
                         Email
                       </label>
-                      <input id="lp-email" type="email" required autoFocus dir="ltr" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} className="lg-input mt-1 text-[15px]" placeholder="you@studio.com" />
+                      <input id="lp-email" type="email" required autoFocus={!touchFirst()} dir="ltr" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} className="lg-input mt-1 text-[15px]" placeholder="you@studio.com" />
                     </div>
                     <PasswordInput id="lp-pw" label={t('Password')} value={pw} onChange={setPw} auto="current-password" />
                     {err && (
@@ -234,7 +234,7 @@ export function LoginPage({ next }: { next: string }) {
                 {step === 'forgot' && (
                   <form className="space-y-3.5" onSubmit={(e) => (e.preventDefault(), run(async () => (await sendPasswordReset(email), setStep('sent'))))}>
                     <p className="text-[14px] leading-[1.5] text-[var(--lg-ink-2)]">{t('Type your email and we will send a link to set a new password.')}</p>
-                    <input aria-label="Email" type="email" required autoFocus dir="ltr" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} className="lg-input text-[15px]" placeholder="you@studio.com" />
+                    <input aria-label="Email" type="email" required autoFocus={!touchFirst()} dir="ltr" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} className="lg-input text-[15px]" placeholder="you@studio.com" />
                     {err && (
                       <p role="alert" className="text-[13px] text-[#ff9a8a]">
                         {err}

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { touchFirst } from '../glass/perf';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, KeyRound, LogOut, MonitorSmartphone, ShieldCheck, Smartphone, X } from 'lucide-react';
@@ -49,7 +50,7 @@ export function PasswordInput({ id, value, onChange, auto, label }: { id: string
       <label className="lg-label" htmlFor={id}>
         {label}
       </label>
-      <div className="relative mt-1">
+      <div className="relative mt-1" dir="ltr">
         <input id={id} type={show ? 'text' : 'password'} required dir="ltr" autoComplete={auto} value={value} onChange={(e) => onChange(e.target.value)} className="lg-input pe-12 text-[15px]" />
         <button type="button" onClick={() => setShow((v) => !v)} className="absolute end-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full hover:bg-white/10" aria-label={show ? t('Hide the password') : t('Show the password')}>
           {show ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -137,7 +138,7 @@ export function GlassSignIn({ onClose }: { onClose: () => void }) {
             <label className="lg-label" htmlFor="si-email">
               Email
             </label>
-            <input id="si-email" type="email" required autoFocus dir="ltr" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} className="lg-input mt-1 text-[15px]" placeholder="you@studio.com" />
+            <input id="si-email" type="email" required autoFocus={!touchFirst()} dir="ltr" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} className="lg-input mt-1 text-[15px]" placeholder="you@studio.com" />
           </div>
           {mode === 'signin' && <PasswordInput id="si-pw" label={t('Password')} value={pw} onChange={setPw} auto="current-password" />}
           {err && (

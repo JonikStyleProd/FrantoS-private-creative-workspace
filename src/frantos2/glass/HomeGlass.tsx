@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { touchFirst } from './perf';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CalendarDays, ArrowRight, Cloud, Lock, Plus, RotateCcw, Search, X } from 'lucide-react';
 import './glass.css';
@@ -203,7 +204,9 @@ function NewProject({ onClose }: { onClose: () => void }) {
   const [where, setWhere] = useState<'local' | 'studio'>(auth.session && studio ? 'studio' : 'local');
   const [busy, setBusy] = useState(false);
   const inp = useRef<HTMLInputElement>(null);
-  useEffect(() => inp.current?.focus(), []);
+  useEffect(() => {
+    if (!touchFirst()) inp.current?.focus();
+  }, []);
   const create = async () => {
     setBusy(true);
     const id = ws.createProject(title);
