@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { WORK_TYPES, workTypeFor } from '../kits/disciplines';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
 import {
   ArrowLeft,
@@ -35,7 +36,7 @@ import { GlassAccount } from './account';
 import { useI18n } from '../i18n';
 import { go } from '../route';
 import { ws, useProject, ensureLoaded } from '../ws/store';
-import { Asset, Comment, Project, Work } from '../ws/types';
+import { Asset, Comment, Project, Work, WorkType } from '../ws/types';
 import { useAssetUrl } from '../ws/media';
 import { FilePick, upload, useDropZone } from '../ws/uploads';
 import { toast, ago, useMedia } from '../ws/kit';
@@ -661,6 +662,16 @@ function WorkPanel({ p, w, q, setQ }: { p: Project; w: Work; q: URLSearchParams;
           <input type="date" className="ms-auto bg-transparent text-[13px] font-semibold outline-none [color-scheme:dark]" value={due ? due.toISOString().slice(0, 10) : ''} onChange={(e) => ws.planWork(p.id, w.id, { due: e.target.value ? new Date(e.target.value + 'T18:00:00').getTime() : null })} aria-label={t('Due date')} />
         </label>
         {late && <p className="text-[12px] font-semibold text-[var(--lg-accent)]">{t('Past due')}</p>}
+        <label className="flex min-h-[38px] items-center gap-2 rounded-[12px] px-3 text-[13px] lg-soft">
+          <span className="text-white/75">{t('Kind of work')}</span>
+          <select value={w.type ?? workTypeFor(assetById(p, cur.assetId) ?? ({ kind: w.kind } as Asset))} onChange={(e) => ws.setWorkType(p.id, w.id, e.target.value as WorkType)} className="ms-auto bg-transparent text-end text-[13px] font-semibold outline-none [color-scheme:dark]" aria-label={t('Kind of work')}>
+            {WORK_TYPES.map((x) => (
+              <option key={x.id} value={x.id} className="text-black">
+                {t(x.label)}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       {/* versions */}

@@ -18,6 +18,7 @@ import { useStudioId } from '../cloud/Account';
 import { Backdrop, Credits, Pane, lgEase } from './kit';
 import { AppHeader } from './Shell';
 import { STAGES, STAGE_LABEL, assetById, itemsOf, latest } from './stages';
+import { KitPicker, KitStrip, kitSkipped } from '../kits/KitPicker';
 
 const DEMO_ID = 'form-01';
 
@@ -27,6 +28,12 @@ export function HomeGlass() {
   const { state, status } = useWs();
   const [creating, setCreating] = useState(false);
   useEffect(() => void ensureLoaded(), []);
+  // signed in for the first time and no profession yet: ask once
+  const auth = useAuth();
+  const [kitAsk, setKitAsk] = useState(false);
+  useEffect(() => {
+    if (status !== 'loading' && auth.session && !state.profile?.discipline && !kitSkipped()) setKitAsk(true);
+  }, [status, auth.session, state.profile?.discipline]);
 
   useEffect(() => {
     const on = () => setCreating(true);
@@ -98,6 +105,8 @@ export function HomeGlass() {
           )}
         </div>
 
+        <KitStrip />
+
         {dueSoon.length > 0 && (
           <Pane className="mt-6 flex flex-wrap items-center gap-2 rounded-[22px] p-2" delay={0.15}>
             <span className="lg-label flex items-center gap-1.5 px-2">
@@ -140,6 +149,7 @@ export function HomeGlass() {
         <Credits className="mt-8 border-t border-white/15 pt-6" />
       </div>
       <AnimatePresence>{creating && <NewProject onClose={() => setCreating(false)} />}</AnimatePresence>
+      {kitAsk && <KitPicker onClose={() => setKitAsk(false)} />}
     </div>
   );
 }

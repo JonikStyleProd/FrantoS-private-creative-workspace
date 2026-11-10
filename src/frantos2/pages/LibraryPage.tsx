@@ -1,26 +1,39 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Box, FolderInput, Image as ImageIcon, Pencil, Search, Sun, Upload, Video, X } from 'lucide-react';
+import { Box, Code2, FolderInput, Image as ImageIcon, Link2, Music, Pencil, PenTool, Search, Smartphone, Sparkles, Sun, Type as TypeIcon, Upload, Video, X } from 'lucide-react';
+import { MaterialView } from '../kits/MaterialView';
+import { kitOf } from '../kits/disciplines';
+import { EasingPanel } from '../kits/Easing';
 import { useI18n } from '../i18n';
 import { go } from '../route';
 import { useWs, ws } from '../ws/store';
 import type { Asset, MediaKind, Project } from '../ws/types';
 import { AssetThumb, toast } from '../ws/kit';
-import { assetUrl, extractPalette } from '../ws/media';
+import { assetUrl, extractPalette, linkAsset, UploadError } from '../ws/media';
 import { FilePick, upload, useDropZone } from '../ws/uploads';
 import { GlassPage } from '../glass/Shell';
 import { Pane, lgEase } from '../glass/kit';
 import { dist } from '../studio/palette';
 
 type Row = { a: Asset; p: Project };
-const KINDS: { id: 'all' | MediaKind | 'ref'; label: string; icon: React.ElementType }[] = [
-  { id: 'all', label: 'All', icon: Search },
-  { id: 'image', label: 'Images', icon: ImageIcon },
-  { id: 'video', label: 'Video', icon: Video },
-  { id: 'model', label: '3D', icon: Box },
-  { id: 'env', label: 'HDRI', icon: Sun },
-  { id: 'ref', label: 'References', icon: FolderInput },
+type KindId = 'all' | MediaKind | 'ref' | 'screen' | 'svg' | 'lottie' | 'font' | 'code' | 'link' | 'audio';
+const KINDS: { id: KindId; label: string; icon: React.ElementType; test: (a: Asset) => boolean }[] = [
+  { id: 'all', label: 'All', icon: Search, test: () => true },
+  { id: 'image', label: 'Images', icon: ImageIcon, test: (a) => a.kind === 'image' && !a.format },
+  { id: 'screen', label: 'Screens', icon: Smartphone, test: (a) => a.format === 'screen' },
+  { id: 'video', label: 'Video', icon: Video, test: (a) => a.kind === 'video' },
+  { id: 'lottie', label: 'Lottie', icon: Sparkles, test: (a) => a.format === 'lottie' },
+  { id: 'svg', label: 'Vector', icon: PenTool, test: (a) => a.format === 'svg' },
+  { id: 'font', label: 'Fonts', icon: TypeIcon, test: (a) => a.format === 'font' },
+  { id: 'code', label: 'Code', icon: Code2, test: (a) => a.format === 'code' },
+  { id: 'link', label: 'Websites', icon: Link2, test: (a) => a.format === 'link' },
+  { id: 'audio', label: 'Sound', icon: Music, test: (a) => a.format === 'audio' },
+  { id: 'model', label: '3D', icon: Box, test: (a) => a.kind === 'model' },
+  { id: 'env', label: 'HDRI', icon: Sun, test: (a) => a.kind === 'env' },
+  { id: 'ref', label: 'References', icon: FolderInput, test: (a) => a.isReference },
 ];
+const FORMAT_LABEL: Record<string, string> = { screen: 'screen', svg: 'vector', lottie: 'Lottie', font: 'font', code: 'code', link: 'website', audio: 'sound' };
+const hashParam = (k: string) => new URLSearchParams(window.location.hash.split('?')[1] ?? '').get(k);
 
 /**
  * Every file from every project in one grid: search by name or #tag, filter by kind,
@@ -30,7 +43,18 @@ export function LibraryPage() {
   const { t } = useI18n();
   const { state } = useWs();
   const [q, setQ] = useState('');
-  const [kind, setKind] = useState<(typeof KINDS)[number]['id']>('all');
+  // #/library?k=screen opens on one kind (the profession kits link here)
+  const [kind, setKind] = useState<KindId>(() => (KINDS.some((k) => k.id === hashParam('k')) ? (hashParam('k') as KindId) : 'all'));
+  const [view, setView] = useState<Row | null>(null);
+  const [linking, setLinking] = useState(false);
+  const [easing, setEasing] = useState(() => hashParam('easing') === '1');
+  const kit = kitOf(state.profile?.discipline);
+  // your profession's kinds first, the rest in their usual order; kinds you have no files of yet stay hidden
+  const kinds = useMemo(() => {
+    const has = (k: (typeof KINDS)[number]) => k.id === 'all' || k.id === kind || state.projects.some((p) => p.assets.some(k.test));
+    const first = kit ? KINDS.filter((k) => (kit.formats as string[]).includes(k.id)) : [];
+    return [KINDS[0], ...first, ...KINDS.slice(1).filter((k) => !first.includes(k))].filter(has);
+  }, [kit, kind, state.projects]);
   const [colour, setColour] = useState<string | null>(null);
   const [copy, setCopy] = useState<Row | null>(null);
   const target = state.projects.find((p) => p.id === state.lastProjectId) ?? state.projects.find((p) => p.kind === 'user') ?? state.projects[0];
@@ -62,7 +86,7 @@ export function LibraryPage() {
   }, [rows, state.projects]);
   const needle = q.trim().toLowerCase();
   const shown = rows.filter(({ a, p }) => {
-    if (kind === 'ref' ? !a.isReference : kind !== 'all' && a.kind !== kind) return false;
+    if (!KINDS.find((k) => k.id === kind)!.test(a)) return false;
     if (colour && !(a.palette ?? []).some((c) => dist(c, colour) < 110)) return false;
     if (!needle) return true;
     const tag = needle.startsWith('#') ? needle.slice(1) : null;
@@ -76,6 +100,7 @@ export function LibraryPage() {
   });
 
   const open = ({ a, p }: Row) => {
+    if (a.format) return setView({ a, p });
     if (a.kind === 'model') {
       const o = (p.objects ?? []).find((x) => x.source.kind === 'model' && x.source.assetId === a.id);
       return go(o ? `/s/${p.id}?o=${o.id}` : `/s/${p.id}`);
@@ -94,9 +119,22 @@ export function LibraryPage() {
       wide
       action={
         target && (
-          <FilePick onFiles={(f) => (upload(f, target.id, { isReference: true }), toast(t('Adding to {name}', { name: target.title })))} className="lg-btn lg-btn-primary">
-            <Upload size={16} /> {t('Add files')}
-          </FilePick>
+          <div className="flex flex-wrap gap-2">
+            <FilePick onFiles={(f) => (upload(f, target.id, { isReference: true }), toast(t('Adding to {name}', { name: target.title })))} className="lg-btn lg-btn-primary">
+              <Upload size={16} /> {t('Add files')}
+            </FilePick>
+            <FilePick accept="image/png,image/jpeg,image/webp" onFiles={(f) => (upload(f, target.id, { isReference: true, screen: true }), toast(t('Adding to {name}', { name: target.title })))} className="lg-btn lg-btn-ghost">
+              <Smartphone size={16} /> {t('Add screens')}
+            </FilePick>
+            <button type="button" onClick={() => setLinking(true)} className="lg-btn lg-btn-ghost">
+              <Link2 size={16} /> {t('Add a website')}
+            </button>
+            {(kit?.id === 'motion' || easing) && (
+              <button type="button" onClick={() => setEasing(true)} className="lg-btn lg-btn-ghost">
+                <Sparkles size={16} /> {t('Easing curves')}
+              </button>
+            )}
+          </div>
         )
       }
     >
@@ -117,8 +155,8 @@ export function LibraryPage() {
             )}
           </label>
           <div className="flex flex-wrap gap-1" role="radiogroup" aria-label={t('Kind')}>
-            {KINDS.map((k) => (
-              <button key={k.id} type="button" role="radio" aria-checked={kind === k.id} onClick={() => setKind(k.id)} className={`flex min-h-[38px] items-center gap-1.5 rounded-full px-3 text-[13px] font-bold ${kind === k.id ? 'bg-white text-[#11151a]' : 'text-white/80 hover:bg-white/10'}`}>
+            {kinds.map((k) => (
+              <button key={k.id} type="button" role="radio" aria-checked={kind === k.id} onClick={() => setKind(k.id)} className={`flex min-h-[38px] items-center gap-1.5 whitespace-nowrap rounded-full px-3 text-[13px] font-bold ${kind === k.id ? 'bg-white text-[#11151a]' : 'text-white/80 hover:bg-white/10'}`}>
                 <k.icon size={14} /> {t(k.label)}
               </button>
             ))}
@@ -159,12 +197,13 @@ export function LibraryPage() {
                     </span>
                     <span dir="auto" className="block truncate text-[11px] text-white/70">
                       {r.p.title}
+                      {r.a.format ? ` · ${t(FORMAT_LABEL[r.a.format])}` : ''}
                       {r.a.isReference ? ` · ${t('reference')}` : ''}
                     </span>
                   </span>
                 </button>
                 <div className="absolute end-1.5 top-1.5 flex gap-1 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
-                  {r.a.kind === 'image' && (
+                  {r.a.kind === 'image' && (!r.a.format || r.a.format === 'screen') && (
                     <button type="button" onClick={() => go(`/s/${r.p.id}?m=image&a=${r.a.id}`)} className="lg-glass flex h-8 w-8 items-center justify-center rounded-full" aria-label={t('Edit in the studio')} title={t('Edit in the studio')}>
                       <Pencil size={13} />
                     </button>
@@ -179,6 +218,9 @@ export function LibraryPage() {
         )}
       </div>
 
+      {view && <MaterialView a={view.a} sub={view.p.title} onClose={() => setView(null)} />}
+      {linking && target && <AddLink pid={target.id} pname={target.title} onClose={() => setLinking(false)} />}
+      {easing && <EasingPanel onClose={() => setEasing(false)} />}
       {copy && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/35 p-4" onClick={() => setCopy(null)}>
           <Pane strong className="w-full max-w-[420px] rounded-[26px] p-5" role="dialog" aria-modal aria-label={t('Add to another project')} onClick={(e: React.MouseEvent) => e.stopPropagation()}>
@@ -205,5 +247,51 @@ export function LibraryPage() {
         </div>
       )}
     </GlassPage>
+  );
+}
+
+/** a website as a reference: address, an optional name and why it matters */
+function AddLink({ pid, pname, onClose }: { pid: string; pname: string; onClose: () => void }) {
+  const { t } = useI18n();
+  const [url, setUrl] = useState('');
+  const [title, setTitle] = useState('');
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      const a = await linkAsset(url.trim(), title.trim() || undefined, { isReference: true });
+      ws.addAsset(pid, { ...a, note: note.trim() || undefined });
+      toast(t('Added to {name}', { name: pname }));
+      onClose();
+    } catch (err) {
+      toast(err instanceof UploadError ? err.message : t('Something went wrong while reading this file.'), { tone: 'error' });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <Pane strong className="lg-pop w-full max-w-[460px] rounded-[26px] p-5" role="dialog" aria-modal aria-labelledby="al-title" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+        <form onSubmit={save} className="space-y-3">
+          <p id="al-title" className="text-[18px] font-extrabold">
+            {t('Add a website')}
+          </p>
+          <p className="text-[13px] text-white/70">{t('Kept as a reference in {name}, with a card in the library and on boards.', { name: pname })}</p>
+          <input required dir="ltr" type="text" inputMode="url" autoComplete="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://" aria-label={t('Address')} className="lg-input text-[15px]" />
+          <input dir="auto" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t('Name (optional)')} aria-label={t('Name')} className="lg-input text-[15px]" />
+          <textarea dir="auto" rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('What to take from it (optional)')} aria-label={t('Note')} className="lg-input text-[14px]" />
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={onClose} className="lg-btn lg-btn-plain">
+              {t('Cancel')}
+            </button>
+            <button type="submit" disabled={busy || !url.trim()} className="lg-btn lg-btn-primary">
+              {t('Add')}
+            </button>
+          </div>
+        </form>
+      </Pane>
+    </div>
   );
 }

@@ -2,7 +2,7 @@ import React, { useSyncExternalStore } from 'react';
 import { tr as t } from '../i18n';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AlertTriangle, Check, Loader2, RotateCcw, X } from 'lucide-react';
-import { ingest, UploadError } from './media';
+import { ACCEPT, ingest, UploadError } from './media';
 import { ws } from './store';
 import { Asset } from './types';
 import { ease, toast } from './kit';
@@ -12,6 +12,7 @@ type Job = {
   file: File;
   pid: string;
   isReference: boolean;
+  screen?: boolean;
   state: 'reading' | 'done' | 'error';
   error?: string;
   retry?: boolean;
@@ -28,7 +29,7 @@ const emit = () => ls.forEach((l) => l()); const patch = (id: string, p: Partial
 async function run(job: Job) {
   patch(job.id, { state: 'reading', error: undefined });
   try {
-    const asset = await ingest(job.file, { isReference: job.isReference });
+    const asset = await ingest(job.file, { isReference: job.isReference, screen: job.screen });
     ws.addAsset(job.pid, asset);
     job.then?.(asset);
     patch(job.id, { state: 'done' });
@@ -42,10 +43,10 @@ async function run(job: Job) {
 }
 
 /** Add files to a project. `then` runs for each stored asset (e.g. add as a new version). */
-export function upload(files: FileList | File[], pid: string, opts: { isReference: boolean; then?: (a: Asset) => void }) {
+export function upload(files: FileList | File[], pid: string, opts: { isReference: boolean; screen?: boolean; then?: (a: Asset) => void }) {
   const list = Array.from(files);
   if (!list.length) return;
-  const created = list.map((file) => ({ id: Math.random().toString(36).slice(2), file, pid, isReference: opts.isReference, state: 'reading' as const, then: opts.then }));
+  const created = list.map((file) => ({ id: Math.random().toString(36).slice(2), file, pid, isReference: opts.isReference, screen: opts.screen, state: 'reading' as const, then: opts.then }));
   jobs = [...jobs, ...created];
   emit();
   created.forEach(run);
@@ -131,7 +132,7 @@ export function FilePick({
         type="file"
         hidden
         multiple={multiple}
-        accept={accept ?? 'image/*,video/*'}
+        accept={accept ?? ACCEPT}
         onChange={(e) => {
           if (e.target.files?.length) onFiles(e.target.files);
           e.target.value = '';

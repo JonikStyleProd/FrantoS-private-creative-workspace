@@ -1,6 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Box, Camera, Package, PenTool } from 'lucide-react';
+import { ArrowRight, Box, Camera, Clapperboard, Globe, Package, PenTool, Smartphone } from 'lucide-react';
+import { useWs } from '../ws/store';
+import { kitOf } from '../kits/disciplines';
 import { useI18n } from '../i18n';
 import { go } from '../route';
 import { ws } from '../ws/store';
@@ -10,6 +12,39 @@ import { FORMATS, placeholderBoard } from '../studio/compose';
 
 /** Four ways to start: each makes a project with a brief, the steps as notes on the board, and boards in the right formats. */
 const TEMPLATES = [
+  {
+    id: 'app',
+    icon: Smartphone,
+    title: 'Mobile app',
+    brief: 'Key screens of an app: a flow from first launch to the main task, a clickable prototype and a handoff.',
+    steps: ['Collect: apps and patterns you look up to', 'Make: the key screens and the flow between them', 'Review: notes on each screen with the client', 'Show: prototype link and the handoff page'],
+    tags: ['app', 'ui'],
+    formats: ['phone', 'phone', 'slide'],
+    colors: { bg: '#f4f2ee', ink: '#121418', accent: '#3a5bff' },
+    image: '/projects/halo/hero-sm.webp',
+  },
+  {
+    id: 'site',
+    icon: Globe,
+    title: 'Website redesign',
+    brief: 'From the old site to a new one: references, the home page on desktop and phone, tokens for the developer.',
+    steps: ['Collect: the current site and sites you look up to', 'Make: home page on desktop and phone', 'Review: one round per page', 'Show: before and after, tokens and handoff'],
+    tags: ['web', 'redesign'],
+    formats: ['desktop', 'phone', 'slide'],
+    colors: { bg: '#efeae2', ink: '#16130f', accent: '#c4542a' },
+    image: '/projects/casa-arca/lobby-sm.webp',
+  },
+  {
+    id: 'motion',
+    icon: Clapperboard,
+    title: 'Motion piece',
+    brief: 'A short film: storyboard frames with timings, an animatic on the beat and notes on the timecode.',
+    steps: ['Collect: references for pace and light', 'Make: storyboard frames, then the animatic', 'Review: notes on the timecode', 'Show: the cut, a loop and a story post'],
+    tags: ['motion', 'film'],
+    formats: ['slide', 'story', 'square'],
+    colors: { bg: '#121418', ink: '#f3efe7', accent: '#ff7a3d' },
+    image: '/projects/stride/hero-sm.webp',
+  },
   {
     id: 'launch',
     icon: Package,
@@ -58,6 +93,10 @@ const TEMPLATES = [
 
 export function TemplatesPage() {
   const { t } = useI18n();
+  const { state } = useWs();
+  // your profession's templates first, the rest after in their usual order
+  const kit = kitOf(state.profile?.discipline);
+  const order = kit ? [...kit.templates.map((id) => TEMPLATES.find((x) => x.id === id)!).filter(Boolean), ...TEMPLATES.filter((x) => !kit.templates.includes(x.id))] : TEMPLATES;
   const start = (tp: (typeof TEMPLATES)[number]) => {
     const boards = tp.formats.map((fid) => {
       const f = FORMATS.find((x) => x.id === fid)!;
@@ -69,13 +108,14 @@ export function TemplatesPage() {
   return (
     <GlassPage kicker={t('Templates')} title={t('Start with a shape')} lead={t('Each template makes a project with a brief, the steps as notes on its board, and boards in the formats you will need.')} bg="/projects/form-01/ref-window.webp">
       <ul className="grid gap-5 md:grid-cols-2">
-        {TEMPLATES.map((tp, i) => (
+        {order.map((tp, i) => (
           <motion.li key={tp.id} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: lgEase, delay: i * 0.06 }}>
             <Pane className="flex h-full flex-col overflow-hidden rounded-[28px] sm:flex-row">
               <img src={tp.image} alt="" className="aspect-[16/10] w-full object-cover sm:aspect-auto sm:w-[38%]" onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')} />
               <div className="flex flex-1 flex-col p-5">
                 <p className="flex items-center gap-2 text-[20px] font-extrabold tracking-[-0.02em]">
                   <tp.icon size={18} /> {t(tp.title)}
+                  {kit?.templates.includes(tp.id) && <span className="ms-auto rounded-full bg-white/15 px-2 py-0.5 text-[11px] font-bold">{t('For you')}</span>}
                 </p>
                 <p className="mt-2 text-[14px] leading-[1.5] text-white/80">{t(tp.brief)}</p>
                 <ol className="mt-3 space-y-1 text-[13px] text-white/75">
@@ -86,7 +126,7 @@ export function TemplatesPage() {
                   ))}
                 </ol>
                 <div className="mt-3 flex flex-wrap gap-1.5">
-                  {tp.formats.map((fid) => (
+                  {[...new Set(tp.formats)].map((fid) => (
                     <span key={fid} className="rounded-full px-2.5 py-1 text-[11.5px] font-bold lg-soft">
                       {t(FORMATS.find((x) => x.id === fid)!.label)}
                     </span>

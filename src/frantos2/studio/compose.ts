@@ -11,6 +11,8 @@ export const FORMATS = [
   { id: 'story', label: 'Story 9:16', w: 1080, h: 1920 },
   { id: 'slide', label: 'Slide 16:9', w: 1920, h: 1080 },
   { id: 'a4', label: 'A4 poster', w: 2480, h: 3508 },
+  { id: 'phone', label: 'Phone screen', w: 1170, h: 2532 },
+  { id: 'desktop', label: 'Desktop screen', w: 2880, h: 1800 },
 ];
 
 export const FONT = "'Manrope Variable', 'Heebo Variable', system-ui, sans-serif";

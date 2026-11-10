@@ -21,8 +21,8 @@ test('designer: own project, upload, second version, note survives reload', asyn
   await expect(page).toHaveURL(/#\/p\/p-.*s=collect/);
 
   // a wrong file explains itself
-  await page.locator('button[aria-label="Add references"] + input[type=file]').setInputFiles(fixture('notes.txt'));
-  await expect(page.getByText(/only images/)).toBeVisible();
+  await page.locator('button[aria-label="Add references"] + input[type=file]').setInputFiles(fixture('archive.zip'));
+  await expect(page.getByText(/cannot be added/)).toBeVisible();
   await page.getByRole('button', { name: 'Dismiss' }).first().click();
 
   // Make: a new work, then v2 on top of it

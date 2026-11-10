@@ -3,9 +3,23 @@
 /** 'model' = GLB for the studio, 'env' = an .hdr environment for studio lighting */
 export type MediaKind = 'image' | 'video' | 'model' | 'env';
 
+/**
+ * What a file is beyond its media kind. Every one of these is stored as kind 'image' with a rendered
+ * preview (so boards, the library, search by colour and links treat it like a picture), while the
+ * original stays in blobKey for the player, specimen or code view.
+ */
+export type AssetFormat = 'screen' | 'svg' | 'lottie' | 'font' | 'code' | 'link' | 'audio';
+
 export interface Asset {
   id: string;
   kind: MediaKind;
+  format?: AssetFormat;
+  /** screens: which frame they belong in */
+  device?: 'phone' | 'tablet' | 'desktop';
+  /** code: the source text; link: the address */
+  text?: string;
+  /** code: language for the view; font: family name read from the file */
+  lang?: string;
   title: string;
   /** static URL (demo) — user uploads use blobKey instead */
   src?: string;
@@ -41,10 +55,14 @@ export interface Version {
   label?: string;
 }
 
+/** what a work is, for its label and the tools offered on it; reviews and approval are the same for all */
+export type WorkType = 'image' | 'screen' | 'flow' | 'page' | 'animation' | 'identity' | 'mockup' | 'model' | 'video';
+
 export interface Work {
   id: string;
   title: string;
   kind: MediaKind;
+  type?: WorkType;
   versions: Version[];
   approvedVersionId?: string;
   createdAt: number;
@@ -291,7 +309,11 @@ export interface Project {
 }
 
 /** who you are on your portfolio */
+/** the profession picked at first sign-in: decides templates, the tool kit shown first and the demo */
+export type Discipline = 'web' | 'dev' | 'motion' | 'graphic' | 'photo' | '3d';
+
 export interface Profile {
+  discipline?: Discipline;
   name: string;
   handle: string;
   role?: string;

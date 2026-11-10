@@ -17,6 +17,9 @@ import { SecurityPanel } from '../cloud/Security';
 import { cloudEnabled, saveAvatar, useAuth } from '../cloud/client';
 import { Avatar, avatarFromFile } from '../glass/Avatar';
 import { useMyAvatar } from '../glass/account';
+import { KitGrid } from '../kits/KitPicker';
+import { TokensPanel } from '../kits/TokensPanel';
+import { Compass } from 'lucide-react';
 
 export function SettingsPage() {
   const { t } = useI18n();
@@ -30,8 +33,9 @@ export function SettingsPage() {
   }, []);
   // #/settings?security=1 opens on the security panel (account menu, password reset link)
   useEffect(() => {
-    if (!/security=1/.test(window.location.hash)) return;
-    const id = window.setTimeout(() => document.getElementById('security')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 400);
+    const target = /security=1/.test(window.location.hash) ? 'security' : /kit=1/.test(window.location.hash) ? 'kit' : /tokens=1/.test(window.location.hash) ? 'tokens' : null;
+    if (!target) return;
+    const id = window.setTimeout(() => document.getElementById(target)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 400);
     return () => window.clearTimeout(id);
   }, []);
   const mb = (n: number) => (n > 1e9 ? `${(n / 1e9).toFixed(1)} GB` : `${Math.round(n / 1e6)} MB`);
@@ -98,6 +102,13 @@ export function SettingsPage() {
     <GlassPage kicker={t('Settings')} title={t('Your studio')} lead={t('Who you are on your portfolio, how your work is dressed, and where it is stored.')} bg="/projects/form-01/ref-silk.webp">
       <div className="grid gap-5 lg:grid-cols-2">
         {cloudEnabled && <SecurityPanel />}
+        <Pane id="kit" className="space-y-3 rounded-[28px] p-5 lg:col-span-2">
+          <h2 className="flex items-center gap-2 text-[18px] font-extrabold">
+            <Compass size={18} /> {t('Your profession')}
+          </h2>
+          <p className="text-[13px] leading-[1.5] text-white/70">{t('Decides which templates, tools and demo come first. Every tool stays available whatever you pick.')}</p>
+          <KitGrid value={state.profile?.discipline} onPick={(d) => (ws.setProfile({ discipline: d }), toast(t('Saved')))} />
+        </Pane>
         <Pane className="space-y-4 rounded-[28px] p-5">
           <h2 className="flex items-center gap-2 text-[18px] font-extrabold">
             <UserRound size={18} /> {t('Profile')}
@@ -226,6 +237,8 @@ export function SettingsPage() {
             </p>
           </div>
         </Pane>
+
+        <TokensPanel />
 
         <Pane className="space-y-4 rounded-[28px] p-5">
           <h2 className="flex items-center gap-2 text-[18px] font-extrabold">

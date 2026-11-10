@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Snippet preview</title>
+<!--
+  FrantoS snippet sandbox. Loaded only inside <iframe sandbox="allow-scripts">: an opaque origin with
+  no access to the app, its storage or its session. The parent posts {html, css, js}; this page draws it.
+-->
+<script>
+  window.addEventListener('message', function (e) {
+    if (e.source !== window.parent) return;
+    var d = e.data || {};
+    if (d.type !== 'frantos:snippet') return;
+    document.open();
+    document.write('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0}' + (d.css || '').replace(/<\/style/gi, '<\\/style') + '</style></head><body>' + (d.html || '') + '</body></html>');
+    document.close();
+    if (d.js) {
+      var s = document.createElement('script');
+      s.textContent = d.js;
+      document.body.appendChild(s);
+    }
+  });
+  window.parent.postMessage({ type: 'frantos:sandbox-ready' }, '*');
+</script>
+</head>
+<body></body>
+</html>

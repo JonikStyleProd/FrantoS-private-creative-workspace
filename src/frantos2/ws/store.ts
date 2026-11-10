@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
+import { workTypeFor } from '../kits/disciplines';
 import { get, set, del, keys } from 'idb-keyval';
-import { Asset, Board, Brand, CanvasGroup, Profile, WorkStatus, CanvasNote, Comment, Decision, MaterialVariant, MoodItem, Project, StudioObject, WsState, Work } from './types';
+import { Asset, Board, Brand, CanvasGroup, Profile, WorkStatus, CanvasNote, Comment, Decision, MaterialVariant, MoodItem, Project, StudioObject, WsState, Work, WorkType } from './types';
 import { AH_ID, DEMO_ID, DEMO_REV, afterHoursProject, demoProject } from './seed';
 import { SERIES_IDS, SERIES_REV, seriesProject } from './seedSeries';
 import { STUDIO_IDS, STUDIO_REV, studioProject } from './seedStudio';
@@ -330,6 +331,7 @@ export const ws = {
       id,
       title: a.title.replace(/\.[a-z0-9]+$/i, ''),
       kind: a.kind,
+      type: workTypeFor(a),
       createdAt: Date.now(),
       versions: [{ id: uid('v-'), n: 1, assetId: aid, createdAt: Date.now() }],
     };
@@ -388,6 +390,9 @@ export const ws = {
   },
   planWork(pid: string, wid: string, patch: { due?: number | null; status?: WorkStatus }) {
     updateProject(pid, (p) => ({ ...p, works: p.works.map((w) => (w.id === wid ? { ...w, ...(patch.status ? { status: patch.status } : {}), ...(patch.due !== undefined ? { due: patch.due ?? undefined } : {}) } : w)) }), 'Plan changed');
+  },
+  setWorkType(pid: string, wid: string, type: WorkType) {
+    updateProject(pid, (p) => ({ ...p, works: p.works.map((w) => (w.id === wid ? { ...w, type } : w)) }), 'Kind of work changed');
   },
   approveAll(pid: string) {
     updateProject(pid, (p) => ({ ...p, works: p.works.map((w) => ({ ...w, approvedVersionId: w.versions[w.versions.length - 1]?.id, status: 'done' as const })) }), 'Approved all');
