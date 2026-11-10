@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Monitor, Maximize2, PenLine, Smartphone, Tablet } from 'lucide-react';
+import { ArrowLeft, Monitor, Maximize2, PenLine, RotateCcw, Smartphone, Tablet } from 'lucide-react';
 import '../glass/glass.css';
 import { tr as translate, useI18n } from '../i18n';
 import { go } from '../route';
@@ -11,10 +11,11 @@ import { runMotion } from './motion';
 import { makeCtx, useSiteMediaState } from './media';
 import { BPS } from './model';
 import { parseLink, viewRoot } from './collections';
+import { boardLayout } from './frames';
 
 /** A page as a visitor sees it, answering to its own width (container queries), so a phone frame on a desktop shows the phone layout. */
 /** links to other pages of the site (`slug.html`) open that page with `onPage`, or stay put */
-export function SiteView({ p, page: raw, entry, width, vh, tr, className = '', onPage }: { p: Project; page: Pick<SitePage, 'root' | 'theme' | 'dir'> & { collection?: string }; entry?: string; width?: number; vh?: string; tr?: (s: string) => string; className?: string; onPage?: (pageId: string, entry?: string) => void }) {
+export function SiteView({ p, page: raw, entry, width, height, vh, tr, className = '', onPage }: { p: Project; page: Pick<SitePage, 'root' | 'theme' | 'dir'> & { collection?: string }; entry?: string; width?: number; height?: number; vh?: string; tr?: (s: string) => string; className?: string; onPage?: (pageId: string, entry?: string) => void }) {
   const page = useMemo(() => ({ ...raw, root: viewRoot(p, raw, entry) }), [p, raw, entry]);
   const { media, ready } = useSiteMediaState(p, page.root);
   const { css, html } = useMemo(() => renderPage(page, makeCtx(p, media, { mode: 'container', vh, tr })), [p, page, media, vh, tr]);
@@ -29,7 +30,7 @@ export function SiteView({ p, page: raw, entry, width, vh, tr, className = '', o
   return (
     <div
       className={className}
-      style={{ width: width ?? '100%', containerType: 'inline-size', containerName: 'fs' }}
+      style={{ width: width ?? '100%', height, overflow: height ? 'hidden' : undefined, background: height ? raw.theme.bg : undefined, containerType: 'inline-size', containerName: 'fs' }}
       onClick={(e) => {
         const a = (e.target as HTMLElement).closest('a');
         const m = parseLink(a?.getAttribute('href') ?? '');
@@ -103,10 +104,28 @@ function PreviewFrame({ p, page: raw, snap, bp, w, setW, dir, tr, chrome, setChr
     window.addEventListener('resize', f);
     return () => window.removeEventListener('resize', f);
   }, []);
-  const zoom = bp ? Math.min(1, (vw - 24) / bp.w) : 1;
+  const [vh, setVh] = useState(window.innerHeight);
+  useEffect(() => {
+    const f = () => setVh(window.innerHeight);
+    window.addEventListener('resize', f);
+    return () => window.removeEventListener('resize', f);
+  }, []);
+  const [replay, setReplay] = useState(0);
+  const board = raw.board;
+  const lay = board ? boardLayout(board) : null;
+  const zoom = lay ? Math.min(lay.k, (vw - 48) / lay.w, (vh - 150) / lay.h) : bp ? Math.min(1, (vw - 24) / bp.w) : 1;
   return (
-    <div className={`fixed inset-0 overflow-y-auto ${bp ? 'lg lg-studio' : ''}`} style={bp ? undefined : { background: page.theme.bg }} dir={dir}>
-      {bp ? (
+    <div className={`fixed inset-0 overflow-y-auto ${bp || board ? 'lg lg-studio' : ''}`} style={bp || board ? undefined : { background: page.theme.bg }} dir={dir}>
+      {board ? (
+        <div className="flex min-h-full flex-col items-center justify-center gap-4 px-3 pb-10 pt-[84px]">
+          <div style={{ zoom }}>
+            <SiteView key={replay} p={p} page={view} width={lay!.w} height={lay!.h} vh={`${lay!.h}px`} tr={tr} className="shrink-0 overflow-hidden rounded-[10px] shadow-[0_30px_90px_rgba(0,0,0,.45)]" />
+          </div>
+          <button type="button" onClick={() => setReplay((r) => r + 1)} className="lg-btn lg-btn-ghost min-h-[38px] text-[13px]">
+            <RotateCcw size={14} /> {t('Play again')}
+          </button>
+        </div>
+      ) : bp ? (
         <div className="flex justify-center px-3 pb-16 pt-[84px]" style={{ zoom }}>
           <SiteView p={p} page={view} entry={entry} width={bp.w} vh={`${bp.h}px`} tr={tr} onPage={(id, e) => go(`/site/${p.id}/${id}?w=${w}${e ? `&entry=${e}` : ''}`)} className="shrink-0 overflow-hidden rounded-[18px] shadow-[0_30px_90px_rgba(0,0,0,.45)]" />
         </div>
@@ -123,7 +142,7 @@ function PreviewFrame({ p, page: raw, snap, bp, w, setW, dir, tr, chrome, setChr
           </span>
           {snap && <span className="ms-1 whitespace-nowrap rounded-full bg-white/15 px-2 py-0.5 text-[11.5px] font-bold">{t('Version from review')}</span>}
         </Pane>
-        <Pane as="nav" aria-label={t('Width')} className="lg mx-auto flex items-center gap-0.5 rounded-full p-1">
+        <Pane as="nav" aria-label={t('Width')} className={`lg mx-auto flex items-center gap-0.5 rounded-full p-1 ${board ? 'invisible' : ''}`}>
           {WIDTHS.map((x) => (
             <button key={x.id} type="button" onClick={() => setW(x.id)} aria-pressed={w === x.id} aria-label={t(x.label)} title={t(x.label)} className={`flex min-h-[38px] min-w-[38px] items-center justify-center gap-1.5 rounded-full px-2.5 text-[13px] font-bold ${w === x.id ? 'bg-white text-[#11151a]' : 'text-white/80 hover:bg-white/10'}`}>
               <x.icon size={15} /> <span className="hidden lg:inline">{t(x.label)}</span>

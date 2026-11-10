@@ -1,4 +1,4 @@
-import type { SiteNode, SiteNodeType, SiteStyle } from '../ws/types';
+import type { SiteAnim, SiteNode, SiteNodeType, SiteStyle } from '../ws/types';
 import { nid } from './model';
 
 /**
@@ -199,12 +199,52 @@ export const ELEMENTS: { id: ElementId; label: string; make: (e: Env, objectId?:
   { id: 'field', label: 'Form field', make: ({ t }) => N('field', { text: t('Name'), placeholder: t('Your name') }) },
 ];
 
-export type TemplateId = 'blank' | 'landing' | 'blog' | 'article' | 'portfolio';
-export const PAGE_TEMPLATES: { id: TemplateId; label: string; hint: string; blocks: BlockId[] }[] = [
+export type TemplateId = 'blank' | 'landing' | 'blog' | 'article' | 'portfolio' | 'square' | 'story' | 'wide' | 'banner';
+export const PAGE_TEMPLATES: { id: TemplateId; label: string; hint: string; blocks: BlockId[]; board?: { w: number; h: number } }[] = [
   { id: 'landing', label: 'Landing', hint: 'Header, hero, cards, gallery, quote, call to action', blocks: ['header', 'split', 'cards', 'gallery', 'quote', 'cta', 'footer'] },
   { id: 'blog', label: 'Blog', hint: 'Header, intro, posts, form', blocks: ['header', 'hero', 'posts', 'contact', 'footer'] },
   { id: 'article', label: 'Article', hint: 'One post and what to read next', blocks: ['header', 'article', 'posts', 'footer'] },
   { id: 'portfolio', label: 'Portfolio', hint: 'Gallery, quote, prices, contact', blocks: ['header', 'hero', 'gallery', 'quote', 'prices', 'faq', 'contact', 'footer'] },
   { id: 'blank', label: 'Blank', hint: 'Start from nothing', blocks: [] },
+  { id: 'square', label: 'Square post', hint: '1080 × 1080 · headline word by word', blocks: [], board: { w: 1080, h: 1080 } },
+  { id: 'story', label: 'Story', hint: '1080 × 1920 · picture, then the words', blocks: [], board: { w: 1080, h: 1920 } },
+  { id: 'wide', label: 'Landscape video', hint: '1920 × 1080 · for a reel or a screen', blocks: [], board: { w: 1920, h: 1080 } },
+  { id: 'banner', label: 'Banner', hint: '300 × 250 · a line and a button', blocks: [], board: { w: 300, h: 250 } },
 ];
-export const pageFrom = (id: TemplateId, e: Env) => (PAGE_TEMPLATES.find((x) => x.id === id)?.blocks ?? []).map((b) => BLOCKS.find((x) => x.id === b)!.make(e));
+
+/** an entrance that starts when the artboard starts */
+const A = (enter: SiteAnim['enter'], delay: number, x: Partial<SiteAnim> = {}): SiteAnim => ({ enter, trigger: 'load', dur: enter === 'words' ? 800 : enter === 'mask' ? 1200 : 900, delay, ease: enter === 'zoom' || enter === 'mask' ? 'expo-out' : 'frantos', ...(enter === 'words' ? { stagger: 90 } : {}), ...(enter === 'rise' ? { dist: 40 } : {}), ...x });
+/** artboards: one frame that fills the board, its parts entering in turn */
+export const BOARDS: Record<'square' | 'story' | 'wide' | 'banner', (e: Env) => SiteNode[]> = {
+  square: ({ t }) => [
+    SEC('Frame', { minH: 'screen', align: 'center', text: 'center', gap: '8', px: '16', bg: 'accent', color: 'onAccent' }, [
+      T(t('New collection'), { size: 'lg', weight: 700 }, { anim: A('fade', 0, { dur: 600 }), name: 'Eyebrow' }),
+      H(t('Made slowly, meant to stay'), 1, { size: '5xl' }, { anim: A('words', 250) }),
+      T(t('Opening on Saturday at ten'), { size: 'xl' }, { anim: A('rise', 1150) }),
+      B(t('See the work'), 'solid', { bg: 'bg', color: 'text', radius: 'pill', size: 'lg' }, { anim: A('zoom', 1450, { dur: 700 }) }),
+    ]),
+  ],
+  story: ({ t, img }) => [
+    SEC('Frame', { minH: 'screen', gap: '8', px: '12', py: '24' }, [
+      M(img(0), '4/5', { radius: 'lg' }, { anim: A('mask', 0) }),
+      T(t('New collection'), { size: 'lg', weight: 700, color: 'accent' }, { anim: A('fade', 700, { dur: 600 }), name: 'Eyebrow' }),
+      H(t('Made slowly, meant to stay'), 1, { size: '4xl' }, { anim: A('words', 850) }),
+      T(t('Opening on Saturday at ten'), { size: 'xl', color: 'muted' }, { anim: A('rise', 1700) }),
+    ]),
+  ],
+  wide: ({ t, img }) => [
+    SEC('Frame', { minH: 'screen', px: '24' }, [
+      G(2, { align: 'center', gap: '16' }, [
+        S({ gap: '6', align: 'start' }, [T(t('New collection'), { size: 'lg', weight: 700, color: 'accent' }, { anim: A('fade', 0, { dur: 600 }), name: 'Eyebrow' }), H(t('Made slowly, meant to stay'), 1, { size: '5xl' }, { anim: A('words', 200) }), T(t('Opening on Saturday at ten'), { size: 'xl', color: 'muted' }, { anim: A('rise', 1100) })]),
+        M(img(0), '1/1', { radius: 'lg' }, { anim: A('zoom', 300, { dur: 1400 }) }),
+      ]),
+    ]),
+  ],
+  banner: ({ t }) => [
+    SEC('Frame', { minH: 'screen', align: 'center', text: 'center', gap: '3', px: '4', py: '4', bg: 'accent', color: 'onAccent' }, [
+      H(t('Made slowly, meant to stay'), 2, { size: 'xl' }, { anim: A('rise', 0, { dist: 16 }) }),
+      B(t('See the work'), 'solid', { bg: 'bg', color: 'text', radius: 'pill' }, { anim: A('zoom', 500, { dur: 600 }) }),
+    ]),
+  ],
+};
+export const pageFrom = (id: TemplateId, e: Env) => (id in BOARDS ? BOARDS[id as keyof typeof BOARDS](e) : null) ?? (PAGE_TEMPLATES.find((x) => x.id === id)?.blocks ?? []).map((b) => BLOCKS.find((x) => x.id === b)!.make(e));

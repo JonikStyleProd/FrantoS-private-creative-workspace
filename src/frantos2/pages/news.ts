@@ -11,6 +11,15 @@ export interface NewsItem {
 
 export const NEWS: NewsItem[] = [
   {
+    n: 13,
+    date: '2026-11-10',
+    title: 'Posts that move',
+    body: 'A page can now be an artboard: a square post, a story, a landscape video or a banner. Build it from the same blocks, give it entrances on the timeline, and take it out as an MP4, a GIF, a Lottie file for apps or a poster — rendered frame by frame from what you see in the editor.',
+    path: '/s/halden?m=site&pg=halden-pg-post',
+    cta: 'Open the Halden autumn post',
+    image: '/projects/halden/chair-sm.webp',
+  },
+  {
     n: 12,
     date: '2026-11-10',
     title: 'Components, a blog and a check',

@@ -5,6 +5,7 @@ import type { MediaInfo } from './render';
 import { renderPage } from './render';
 import { makeCtx } from './media';
 import { viewRoot } from './collections';
+import { boardLayout } from './frames';
 
 /**
  * A page → a picture of the whole page at desktop width. The picture becomes a version of the page's
@@ -12,11 +13,14 @@ import { viewRoot } from './collections';
  * the tree is kept with the version, so the live page of that version can be opened again.
  */
 export async function capturePage(p: Project, page: SitePage, media: Record<string, MediaInfo>, width = 1440, tr?: (s: string) => string): Promise<{ blob: Blob; w: number; h: number }> {
+  // an artboard is pictured at its own size, everything in place
+  const lay = page.board ? boardLayout(page.board) : null;
+  if (lay) width = lay.w;
   const { toBlob } = await import('html-to-image');
-  const { css, html } = renderPage({ ...page, root: viewRoot(p, page) }, makeCtx(p, media, { mode: 'container', vh: '900px', tr, motion: 'off' }));
+  const { css, html } = renderPage({ ...page, root: viewRoot(p, page) }, makeCtx(p, media, { mode: 'container', vh: lay ? `${lay.h}px` : '900px', tr, motion: 'off' }));
   const host = document.createElement('div');
   host.setAttribute('aria-hidden', 'true');
-  host.style.cssText = `position:fixed;left:-30000px;top:0;width:${width}px;container:fs / inline-size;pointer-events:none`;
+  host.style.cssText = `position:fixed;left:-30000px;top:0;width:${width}px;${lay ? `height:${lay.h}px;overflow:hidden;` : ''}container:fs / inline-size;pointer-events:none`;
   host.innerHTML = `<style>${css}</style>${html}`;
   // videos and Lottie become their first look: a still of the frame
   host.querySelectorAll('video').forEach((v) => v.replaceWith(Object.assign(document.createElement('div'), { style: 'width:100%;height:100%;background:var(--c-surface)' })));
@@ -29,10 +33,10 @@ export async function capturePage(p: Project, page: SitePage, media: Record<stri
         return i.decode().catch(() => undefined);
       }),
     ]);
-    const h = Math.min(16000, Math.ceil(host.scrollHeight));
-    const blob = await toBlob(host, { width, height: h, pixelRatio: 1, backgroundColor: page.theme.bg, cacheBust: false, skipAutoScale: true, style: { position: 'static', left: '0', top: '0', transform: 'none' } });
+    const h = lay ? lay.h : Math.min(16000, Math.ceil(host.scrollHeight));
+    const blob = await toBlob(host, { width, height: h, pixelRatio: lay ? lay.k : 1, backgroundColor: page.theme.bg, cacheBust: false, skipAutoScale: true, style: { position: 'static', left: '0', top: '0', transform: 'none' } });
     if (!blob) throw new Error('capture');
-    return { blob, w: width, h };
+    return { blob, w: lay ? page.board!.w : width, h: lay ? page.board!.h : h };
   } finally {
     host.remove();
   }

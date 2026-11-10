@@ -34,6 +34,8 @@ export interface RenderCtx {
   motion?: MotionMode;
   /** an extra class on the page root; every rule is scoped to it (several pages in one app) */
   scope?: string;
+  /** data-n on every node without the editing helpers (frames for video and Lottie) */
+  ids?: boolean;
 }
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -126,6 +128,7 @@ const BASE = (th: SiteTheme) => `
 .fs-page :where(.t-heading.l2){font-size:var(--fs-2xl);line-height:1.12}
 .fs-page :where(.t-heading.l3){font-size:var(--fs-xl);line-height:1.2}
 .fs-page :where(.t-text){text-wrap:pretty;overflow-wrap:anywhere}
+.fs-page :where(.w){display:inline-block}
 .fs-page :where(.t-button){display:inline-flex;align-items:center;justify-content:center;gap:8px;width:fit-content;max-width:100%;padding:12px 22px;border-radius:${RADIUS[th.round].md}px;font-weight:600;font-size:var(--fs-sm);line-height:1.2;cursor:pointer;transition:transform .2s,opacity .2s}
 .fs-page :where(.t-button:hover){opacity:.88}
 .fs-page :where(.t-button:focus-visible){outline:2px solid var(--c-accent);outline-offset:3px}
@@ -163,7 +166,7 @@ function nodeHtml(n: SiteNode, ctx: RenderCtx, extra?: { cls: string; i: number 
   const c = cls(n.id) + (extra ? ' ' + extra.cls : '');
   const a = n.anim;
   const data =
-    (ctx.edit ? ` data-n="${esc(n.id)}"` : '') +
+    (ctx.edit || ctx.ids ? ` data-n="${esc(n.id)}"` : '') +
     (a ? ` data-a="${a.trigger === 'load' ? 'load' : 'scroll'}"` : '') +
     (a?.enter === 'count' ? ` data-count="${Math.round(a.dur)}"` : '') +
     (n.depth ? ` data-depth="${Math.max(-0.4, Math.min(0.4, n.depth))}"` : '') +

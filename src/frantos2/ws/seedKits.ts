@@ -1,4 +1,4 @@
-import { haldenComponents, haldenPages, saltwaterCollections, saltwaterPages } from '../site/demoPages';
+import { haldenComponents, haldenPages, haldenPost, saltwaterCollections, saltwaterPages } from '../site/demoPages';
 import { autoMotion } from '../site/motion';
 import type { Asset, AssetFormat, BoardLayer, Comment, Flow, MoodItem, Project, StoryFrame, Work, WorkType } from './types';
 
@@ -12,8 +12,8 @@ import type { Asset, AssetFormat, BoardLayer, Comment, Flow, MoodItem, Project, 
  * code, sound, Lottie and links were drawn by the app's own preview code. Files: public/projects/<id>/.
  */
 
-/** 2: pages built in the constructor for Halden and Saltwater · 3: those pages move · 4: Halden's product card is a component, the Saltwater journal a collection */
-export const KIT_REV = 4;
+/** 2: pages built in the constructor for Halden and Saltwater · 3: those pages move · 4: Halden's product card is a component, the Saltwater journal a collection · 5: an animated Halden post */
+export const KIT_REV = 5;
 const day = 86400000;
 const H = 3600000;
 
@@ -494,7 +494,7 @@ export function kitProject(id: string): Project {
     palette: k.palette,
     tags: k.tags,
     ...(k.id === 'velo' ? { animatic: VELO.extra!.animatic } : {}),
-    ...(k.id === 'halden' || k.id === 'saltwater' ? { pages: (k.id === 'halden' ? haldenPages(aid) : saltwaterPages(aid)).map((pg) => ({ ...pg, root: autoMotion(pg.root), createdAt: k.t0 + 5 * day, updatedAt: now - 2 * H })) } : {}),
+    ...(k.id === 'halden' || k.id === 'saltwater' ? { pages: [...(k.id === 'halden' ? haldenPages(aid) : saltwaterPages(aid)).map((pg) => ({ ...pg, root: autoMotion(pg.root) })), ...(k.id === 'halden' ? [haldenPost(aid)] : [])].map((pg) => ({ ...pg, createdAt: k.t0 + 5 * day, updatedAt: now - 2 * H })) } : {}),
     ...(k.id === 'halden' ? { components: haldenComponents(aid) } : {}),
     ...(k.id === 'saltwater' ? { collections: saltwaterCollections(aid) } : {}),
   };

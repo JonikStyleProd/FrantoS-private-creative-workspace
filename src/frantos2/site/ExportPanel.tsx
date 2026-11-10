@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Code2, Copy, ExternalLink, FileCode2, FileDown, FileImage, Globe, Loader2, Monitor, Smartphone, Tablet, X } from 'lucide-react';
 import { go } from '../route';
 import { publishBlock, publishPage, publicPageUrl, suggestSlug, unpublishPage, validSlug } from './publish';
@@ -11,6 +11,10 @@ import { BPS } from './model';
 import { useSiteMediaState } from './media';
 import { useSiteTr } from './SiteView';
 import { exportHtml, exportReact, fileSlug, pagePdf, pagePng, saveFile } from './exportSite';
+import { boardGif, boardLottie, boardPoster, boardVideo, canVideo } from './frames';
+import { viewRoot } from './collections';
+import { upload } from '../ws/uploads';
+import { Film, ImagePlus, Sparkles } from 'lucide-react';
 import { COLOR_ROLES } from './theme';
 
 /** CSS variables of a page's tokens, ready to paste */
@@ -29,7 +33,9 @@ export function ExportBody({ p, page }: { p: Project; page?: SitePage }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const target = page ?? pages[0];
-  const { media, ready } = useSiteMediaState(p, target?.root ?? []);
+  const drawn = useMemo(() => (target ? viewRoot(p, target) : []), [p, target]);
+  const { media, ready } = useSiteMediaState(p, drawn);
+  if (target?.board) return <BoardExport p={p} page={target} media={media} ready={ready} tr={tr} />;
   if (!target) return <p className="text-[13px] text-white/70">{t('No pages yet. Build one in the studio’s Site mode.')}</p>;
   const list = scope === 'one' && page ? [page] : pages;
   const name = fileSlug(tr ? tr(target.title) : target.title);
@@ -215,4 +221,106 @@ export function PublishSection({ p, page }: { p: Project; page: SitePage }) {
       )}
     </section>
   );
+}
+
+/** an artboard out as a video, a GIF, a Lottie file or a picture — frame by frame, exact */
+function BoardExport({ p, page, media, ready, tr }: { p: Project; page: SitePage; media: Record<string, import('./render').MediaInfo>; ready: boolean; tr?: (s: string) => string }) {
+  const { t } = useI18n();
+  const [busy, setBusy] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [half, setHalf] = useState(page.board!.w * page.board!.h > 1920 * 1080 * 0.9);
+  const [result, setResult] = useState<{ blob: Blob; name: string; kind: string } | null>(null);
+  const abort = useRef<AbortController | null>(null);
+  const name = fileSlug(tr ? tr(page.title) : page.title);
+  const job = () => ({ p, page, media, tr, signal: abort.current!.signal, onProgress: setProgress });
+  const run = async (k: string, make: () => Promise<Blob>, file: string) => {
+    abort.current = new AbortController();
+    setBusy(k);
+    setProgress(0);
+    setResult(null);
+    try {
+      const blob = await make();
+      saveFile(blob, file);
+      setResult({ blob, name: file, kind: k });
+    } catch (err) {
+      if ((err as DOMException)?.name !== 'AbortError') {
+        console.warn(err);
+        toast((err as Error)?.message === 'no-codec' ? t('This browser cannot write MP4. Try Chrome, Edge or Safari, or export a GIF.') : t('The export did not work. Try again.'), { tone: 'error' });
+      }
+    } finally {
+      setBusy(null);
+    }
+  };
+  const Btn = ({ k, icon, title, sub, onClick, disabled }: { k: string; icon: React.ReactNode; title: string; sub: string; onClick: () => void; disabled?: boolean }) => (
+    <button type="button" disabled={!!busy || !ready || disabled} onClick={onClick} className="flex w-full items-start gap-3 rounded-[18px] bg-white/[.08] p-3 text-start transition-colors hover:bg-white/15 disabled:opacity-50">
+      <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-white/15">{busy === k ? <Loader2 size={16} className="animate-spin" /> : icon}</span>
+      <span className="min-w-0">
+        <span className="block text-[14px] font-bold">{title}</span>
+        <span className="block text-[12px] leading-[1.4] text-white/65">{sub}</span>
+      </span>
+    </button>
+  );
+  const b = page.board!;
+  return (
+    <div className="space-y-3">
+      <p className="lg-label flex items-center gap-1.5">
+        <Film size={13} /> {t('Animation')} · {b.w} × {b.h}
+      </p>
+      <Seg label={t('Size')} value={half ? 'half' : 'full'} options={[{ id: 'full', label: `${b.w} × ${b.h}` }, { id: 'half', label: `${Math.round(b.w / 2)} × ${Math.round(b.h / 2)}` }]} onChange={(v) => setHalf(v === 'half')} />
+      <Btn k="mp4" icon={<Film size={17} />} title={t('Video · MP4')} sub={canVideo() ? t('Frame by frame, {fps} a second: smooth on any device, ready for Instagram, a reel or a screen.', { fps: b.fps ?? 30 }) : t('This browser cannot write MP4. Try Chrome, Edge or Safari, or export a GIF.')} disabled={!canVideo()} onClick={() => run('mp4', () => boardVideo(job(), half), `${name}.mp4`)} />
+      <Btn k="gif" icon={<ImagePlus size={17} />} title={t('GIF')} sub={t('Up to 600 px wide, 15 frames a second; plays anywhere, even in an email.')} onClick={() => run('gif', () => boardGif(job()), `${name}.gif`)} />
+      <Btn k="lottie" icon={<Sparkles size={17} />} title={t('Lottie · JSON')} sub={t('For apps and sites: every moving part is a layer with its own keyframes. Reveals and blurs become fades.')} onClick={() => run('lottie', () => boardLottie(job()), `${name}.json`)} />
+      <Btn k="png" icon={<FileImage size={17} />} title={t('Poster · PNG')} sub={t('The last frame, everything in place.')} onClick={() => run('png', () => boardPoster(job()), `${name}.png`)} />
+      {busy && (
+        <div className="flex items-center gap-2" role="status">
+          <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/15">
+            <div className="h-full rounded-full bg-[#4f8bff] transition-[width]" style={{ width: `${Math.round(progress * 100)}%` }} />
+          </div>
+          <span className="w-10 text-end text-[12px] tabular-nums">{Math.round(progress * 100)}%</span>
+          <button type="button" onClick={() => abort.current?.abort()} className="lg-btn lg-btn-plain min-h-[30px] px-2.5 text-[12px]">
+            {t('Cancel')}
+          </button>
+        </div>
+      )}
+      {result && (
+        <div className="space-y-2 rounded-[16px] bg-[#2fbf71]/15 p-3">
+          <p className="text-[12.5px] font-bold">
+            {t('Saved: {file}', { file: result.name })} · {(result.blob.size / 1024 / 1024).toFixed(1)} MB
+          </p>
+          {result.kind === 'lottie' && <LottiePreview blob={result.blob} w={b.w} h={b.h} />}
+          {result.kind !== 'png' && (
+            <button
+              type="button"
+              onClick={() => {
+                upload([new File([result.blob], result.name, { type: result.blob.type })], p.id, { isReference: false });
+                toast(t('Added to the project: it opens in Review and can go on a page'));
+              }}
+              className="lg-btn lg-btn-ghost min-h-[34px] w-full text-[12.5px]"
+            >
+              <ImagePlus size={13} /> {t('Add to the project')}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** the exported Lottie, played by the same player apps use */
+function LottiePreview({ blob, w, h }: { blob: Blob; w: number; h: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    let anim: { destroy: () => void } | undefined;
+    let live = true;
+    (async () => {
+      const [{ default: lottie }, data] = await Promise.all([import('lottie-web/build/player/lottie_light'), blob.text().then((x) => JSON.parse(x))]);
+      if (!live || !ref.current) return;
+      anim = lottie.loadAnimation({ container: ref.current, renderer: 'svg', loop: true, autoplay: true, animationData: data }) as unknown as { destroy: () => void };
+    })();
+    return () => {
+      live = false;
+      anim?.destroy();
+    };
+  }, [blob]);
+  return <div ref={ref} data-lottie-preview className="mx-auto overflow-hidden rounded-[10px] bg-black/20" style={{ width: Math.min(280, (280 * w) / Math.max(w, h)), aspectRatio: `${w} / ${h}` }} />;
 }

@@ -4,6 +4,7 @@ import type { MediaInfo } from './render';
 import { renderPage } from './render';
 import { makeCtx } from './media';
 import { contrast } from './theme';
+import { boardLayout } from './frames';
 
 /**
  * Checks a page the way a careful reviewer would, on the page as drawn at phone and desktop width:
@@ -39,8 +40,8 @@ function bgOf(el: Element, fallback: string): string {
   return fallback;
 }
 
-async function drawAt(p: Project, page: Pick<SitePage, 'root' | 'theme' | 'dir'>, media: Record<string, MediaInfo>, width: number, tr?: (s: string) => string) {
-  const { css, html } = renderPage(page, makeCtx(p, media, { mode: 'container', edit: true, vh: '844px', tr, motion: 'off' }));
+async function drawAt(p: Project, page: Pick<SitePage, 'root' | 'theme' | 'dir' | 'board'>, media: Record<string, MediaInfo>, width: number, tr?: (s: string) => string) {
+  const { css, html } = renderPage(page, makeCtx(p, media, { mode: 'container', edit: true, vh: page.board ? `${boardLayout(page.board).h}px` : '844px', tr, motion: 'off' }));
   const host = document.createElement('div');
   host.setAttribute('aria-hidden', 'true');
   host.style.cssText = `position:fixed;left:-30000px;top:0;width:${width}px;container:fs / inline-size;pointer-events:none;visibility:hidden`;
@@ -50,13 +51,13 @@ async function drawAt(p: Project, page: Pick<SitePage, 'root' | 'theme' | 'dir'>
   return host;
 }
 
-export async function checkPage(p: Project, page: Pick<SitePage, 'root' | 'theme' | 'dir'>, media: Record<string, MediaInfo>, tr?: (s: string) => string): Promise<Issue[]> {
+export async function checkPage(p: Project, page: Pick<SitePage, 'root' | 'theme' | 'dir' | 'board'>, media: Record<string, MediaInfo>, tr?: (s: string) => string): Promise<Issue[]> {
   const out: Issue[] = [];
   const add = (i: Issue) => !out.some((x) => x.key === i.key) && out.push(i);
   const nodeOf = (el: Element) => (el.closest('[data-n]') as HTMLElement | null)?.dataset.n;
 
   // desktop: reading contrast
-  const lg = await drawAt(p, page, media, 1440, tr);
+  const lg = await drawAt(p, page, media, page.board ? boardLayout(page.board).w : 1440, tr);
   try {
     lg.querySelectorAll<HTMLElement>('.t-heading, .t-text, .t-button, .t-field > span').forEach((el) => {
       if (!el.textContent?.trim() || el.offsetParent === null) return;
@@ -69,13 +70,29 @@ export async function checkPage(p: Project, page: Pick<SitePage, 'root' | 'theme
       const id = nodeOf(el);
       if (ratio < need) add({ key: `contrast-${id}`, node: id, bp: 'lg', level: ratio < need - 1.2 ? 'error' : 'warn', text: 'Hard to read: contrast {r}:1, needs {n}:1', vars: { r: ratio.toFixed(1), n: need } });
     });
+    // an artboard: nothing may run past its frame
+    const bd = page.board ? boardLayout(page.board) : null;
+    if (bd) {
+      const W = lg.getBoundingClientRect();
+      const past = (el: Element) => {
+        const r = el.getBoundingClientRect();
+        return Math.max(r.bottom - W.top - bd.h, r.right - W.left - bd.w);
+      };
+      lg.querySelectorAll<HTMLElement>('[data-n]').forEach((el) => {
+        if (el.offsetParent === null || past(el) < 1) return;
+        const parent = el.parentElement?.closest<HTMLElement>('[data-n]');
+        if (parent && past(parent) >= 1) return;
+        const id = el.dataset.n;
+        add({ key: `board-${id}`, node: id, bp: 'lg', level: 'error', text: 'Runs past the artboard by {d} px: it will be cut off', vars: { d: Math.round(past(el)) } });
+      });
+    }
   } finally {
     lg.remove();
   }
 
   // phone: finger-sized buttons, nothing past the edge, text not too small
-  const sm = await drawAt(p, page, media, 390, tr);
-  try {
+  const sm = page.board ? null : await drawAt(p, page, media, 390, tr);
+  if (sm) try {
     const W = sm.getBoundingClientRect();
     sm.querySelectorAll<HTMLElement>('.t-button, .t-field input, .t-field textarea').forEach((el) => {
       if (el.offsetParent === null) return;
@@ -114,11 +131,11 @@ export async function checkPage(p: Project, page: Pick<SitePage, 'root' | 'theme
       if (!a) add({ key: `empty-${n.id}`, node: n.id, bp: 'lg', level: 'warn', text: 'A picture frame is empty' });
       else if (!n.alt && /\.[a-z0-9]{2,4}$|^(img|dsc|image|photo|screenshot)[\s_-]?\d*/i.test(a.title)) add({ key: `alt-${n.id}`, node: n.id, bp: 'lg', level: 'warn', text: 'The picture has no description for screen readers' });
     }
-    if (n.type === 'button' && (!n.href || n.href === '#')) add({ key: `link-${n.id}`, node: n.id, bp: 'lg', level: 'warn', text: 'The button goes nowhere yet' });
+    if (n.type === 'button' && !page.board && (!n.href || n.href === '#')) add({ key: `link-${n.id}`, node: n.id, bp: 'lg', level: 'warn', text: 'The button goes nowhere yet' });
     if ((n.type === 'heading' || n.type === 'text') && !n.text?.trim() && !n.bind) add({ key: `blank-${n.id}`, node: n.id, bp: 'lg', level: 'warn', text: 'Empty text' });
   });
   const h1 = heads.filter((h) => h.l === 1);
-  if (!h1.length) add({ key: 'h1-none', bp: 'lg', level: 'warn', text: 'No main headline (H1): search engines and screen readers look for one' });
+  if (!h1.length && !page.board) add({ key: 'h1-none', bp: 'lg', level: 'warn', text: 'No main headline (H1): search engines and screen readers look for one' });
   if (h1.length > 1) add({ key: 'h1-many', node: h1[1].id, bp: 'lg', level: 'warn', text: '{n} main headlines (H1): keep one', vars: { n: h1.length } });
   heads.forEach((h, i) => {
     const prev = heads[i - 1];

@@ -424,6 +424,15 @@ export interface SiteNode {
   children?: SiteNode[];
 }
 
+export interface SiteBoard {
+  w: number;
+  h: number;
+  /** ms the last frame stays after the motion ends */
+  hold?: number;
+  fps?: 24 | 30 | 60;
+  loop?: boolean;
+}
+
 export type SiteBind = 'title' | 'excerpt' | 'body' | 'date' | 'cover' | 'link';
 export interface SiteOverride {
   text?: string;
@@ -493,6 +502,8 @@ export interface SitePage {
   workId?: string;
   /** a collection page: drawn once per entry (fields come from the entry through `bind`) */
   collection?: string;
+  /** an artboard: a fixed frame that plays its motion once (or in a loop) and exports as video, GIF or Lottie */
+  board?: SiteBoard;
   /** published on purpose at #/w/<slug> (cloud projects only) */
   published?: { slug: string; at: number };
   /** the page as it was at each review version */

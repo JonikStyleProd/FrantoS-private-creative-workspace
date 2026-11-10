@@ -91,6 +91,27 @@ export function haldenPages(aid: (key: string) => string): Page[] {
   ];
 }
 
+/** a square post for Halden, made on an artboard: it plays and exports as MP4, GIF or Lottie */
+export function haldenPost(aid: (key: string) => string): Page {
+  const A = (enter: import('../ws/types').SiteAnim['enter'], delay: number, x: object = {}) => ({ enter, trigger: 'load' as const, dur: enter === 'words' ? 800 : enter === 'mask' ? 1200 : 900, delay, ease: enter === 'mask' || enter === 'zoom' ? 'expo-out' : 'frantos', ...(enter === 'words' ? { stagger: 90 } : {}), ...(enter === 'rise' ? { dist: 30 } : {}), ...x });
+  return {
+    id: 'halden-pg-post',
+    title: 'Halden · Autumn post',
+    slug: 'autumn-post',
+    dir: 'ltr',
+    board: { w: 1080, h: 1080, hold: 1400, fps: 30, loop: true },
+    theme: { bg: '#f4f0ea', surface: '#e8e0d4', text: '#1d1b18', muted: '#6f675e', accent: '#b8875a', onAccent: '#1d1b18', line: '#d9d1c6', heading: 'instrument-serif', body: 'manrope', round: 'soft' },
+    root: [
+      SEC('Frame', { minH: 'screen', gap: '4', px: '12', py: '12' }, [
+        M(aid('chair'), '16/9', { radius: 'lg' }, { alt: 'Ask chair', anim: A('mask', 0) }),
+        T('New this autumn', { size: 'sm', weight: 700, color: 'muted' }, { name: 'Eyebrow', anim: A('fade', 700, { dur: 600 }) }),
+        S({ dir: 'row', justify: 'between', align: 'end', gap: '4', wrap: true }, [H('The Ask chair', 1, { size: '3xl' }, { anim: A('words', 850) }), T('€640', { size: 'xl', weight: 700 }, { name: 'Price', anim: A('count', 1300, { dur: 1100 }) })], { name: 'Name and price' }),
+        T('Oak and paper cord, made to order in six weeks.', { size: 'md', color: 'muted' }, { anim: A('rise', 1700) }),
+      ]),
+    ],
+  };
+}
+
 export const SALT_JOURNAL = 'col-saltwater-journal';
 const LOAF_BODY = ['Lea starts the dough at four in the afternoon. Flour, water, the starter we have kept alive since 2019, and nothing else. Then it waits.', 'Overnight the cold slows everything down. The dough gets its sour, the crumb opens, and by morning it is ready for the oven at six.', 'Sam brings the salt in a bucket from the works on the pier. A pinch goes on top just before baking: that is the crunch you hear when you break the loaf.'].join('\n\n');
 export const SALT_BODIES = {

@@ -79,6 +79,7 @@ import { BindField, ComponentSection, ComponentsList, ContentPanel, ListSection,
 import { dsl } from './blocks';
 import { Issue, checkPage } from './quality';
 import { MotionMode, autoMotion, pageSpan, staggers } from './motion';
+import { BOARD_SIZES, boardLayout, boardLength } from './frames';
 import { MotionSection, Timeline, TimelineApi } from './MotionUI';
 import { ExportDialog } from './ExportPanel';
 
@@ -129,8 +130,8 @@ export function SiteMode({ p, q, setQ }: { p: Project; q: URLSearchParams; setQ:
   const page = pages.find((x) => x.id === q.get('pg')) ?? pages[0];
   const create = (tid: TemplateId) => {
     const tpl = PAGE_TEMPLATES.find((x) => x.id === tid)!;
-    const title = pages.length ? t(tpl.label) : env.name;
-    const id = ws.addPage(p.id, { title, slug: slugify(title), dir, theme: themeFrom(state.brand, projectPalette(p)), root: pageFrom(tid, env) });
+    const title = pages.length || tpl.board ? t(tpl.label) : env.name;
+    const id = ws.addPage(p.id, { title, slug: slugify(title), dir, theme: themeFrom(state.brand, projectPalette(p)), root: pageFrom(tid, env), ...(tpl.board ? { board: { ...tpl.board, hold: 1200, fps: 30 as const, loop: true } } : {}) });
     setQ({ pg: id });
   };
   if (!page)
@@ -150,10 +151,14 @@ export function SiteMode({ p, q, setQ }: { p: Project; q: URLSearchParams; setQ:
 function TemplateGrid({ onPick }: { onPick: (id: TemplateId) => void }) {
   const { t } = useI18n();
   return (
-    <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
-      {PAGE_TEMPLATES.map((x) => (
+    <>
+    {[false, true].map((boards) => (
+    <div key={String(boards)}>
+    {boards && <p className="lg-label mt-5 px-1">{t('Animations · video, GIF, Lottie')}</p>}
+    <div className={`grid grid-cols-1 gap-2 sm:grid-cols-2 ${boards ? 'mt-2' : 'mt-5'}`}>
+      {PAGE_TEMPLATES.filter((x) => !!x.board === boards).map((x) => (
         <button key={x.id} type="button" onClick={() => onPick(x.id)} className="flex items-start gap-3 rounded-[18px] bg-white/10 p-3 text-start transition-colors hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white">
-          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-white/15">{x.id === 'blank' ? <Plus size={16} /> : x.id === 'blog' ? <Newspaper size={16} /> : x.id === 'article' ? <FileText size={16} /> : x.id === 'portfolio' ? <Images size={16} /> : <LayoutTemplate size={16} />}</span>
+          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-white/15">{x.board ? <span className="block rounded-[3px] border-2 border-current" style={{ width: Math.max(8, Math.min(20, (20 * x.board.w) / Math.max(x.board.w, x.board.h))), height: Math.max(6, Math.min(20, (20 * x.board.h) / Math.max(x.board.w, x.board.h))) }} /> : x.id === 'blank' ? <Plus size={16} /> : x.id === 'blog' ? <Newspaper size={16} /> : x.id === 'article' ? <FileText size={16} /> : x.id === 'portfolio' ? <Images size={16} /> : <LayoutTemplate size={16} />}</span>
           <span className="min-w-0">
             <span className="block text-[14px] font-bold">{t(x.label)}</span>
             <span className="block text-[12.5px] leading-[1.35] text-white/70">{t(x.hint)}</span>
@@ -161,6 +166,9 @@ function TemplateGrid({ onPick }: { onPick: (id: TemplateId) => void }) {
         </button>
       ))}
     </div>
+    </div>
+    ))}
+    </>
   );
 }
 
@@ -201,7 +209,7 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
     const x = pgRef.current;
     const d = dataDirty.current ? { components: dataRef.current.comps, collections: dataRef.current.colls } : undefined;
     dataDirty.current = false;
-    ws.patchSite(p.id, x.id, { root: x.root, theme: x.theme, title: x.title, slug: x.slug, dir: x.dir, collection: x.collection }, d, firstLabel.current);
+    ws.patchSite(p.id, x.id, { root: x.root, theme: x.theme, title: x.title, slug: x.slug, dir: x.dir, collection: x.collection, board: x.board }, d, firstLabel.current);
     firstLabel.current = undefined;
   }, [p.id]);
   const commit = useCallback(
@@ -251,9 +259,14 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
   const [sel, setSel] = useState<string | null>(null);
   const [hover, setHover] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
-  const [bp, setBpState] = useState<Bp>(() => (localStorage.getItem('frantos-site-bp') as Bp) || (window.innerWidth < 700 ? 'sm' : 'lg'));
+  const [bpState, setBpState] = useState<Bp>(() => (localStorage.getItem('frantos-site-bp') as Bp) || (window.innerWidth < 700 ? 'sm' : 'lg'));
+  // an artboard has one size: its own
+  const board = pg.board;
+  const bp: Bp = board ? 'lg' : bpState;
   const setBp = (b: Bp) => (localStorage.setItem('frantos-site-bp', b), setBpState(b));
-  const bpDef = BPS.find((b) => b.id === bp)!;
+  // drawn at its design size (boardLayout), shown at the board's own proportions
+  const bLay = board ? boardLayout(board) : null;
+  const bpDef = bLay ? { id: 'lg' as Bp, label: 'Artboard', w: bLay.w, h: bLay.h } : BPS.find((b) => b.id === bp)!;
   const node = sel ? find(R.root, sel) : undefined;
   const virt = sel ? R.reg.get(sel) : undefined;
   useEffect(() => {
@@ -333,7 +346,8 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
     const sc = scroller.current;
     const fr = frame.current;
     if (!sc || !fr) return;
-    const fit = () => setScale(Math.min(1, (sc.clientWidth - (narrow ? 16 : 48)) / bpDef.w));
+    // an artboard fits the free area (it may grow up to its real size); a page fits its width
+    const fit = () => setScale(bLay ? Math.min(bLay.k, (sc.clientWidth - (narrow ? 16 : 48)) / bLay.w, (sc.clientHeight - 40) / bLay.h) : Math.min(1, (sc.clientWidth - (narrow ? 16 : 48)) / bpDef.w));
     fit();
     const ro = new ResizeObserver(() => {
       fit();
@@ -343,7 +357,7 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
     ro.observe(sc);
     ro.observe(fr);
     return () => ro.disconnect();
-  }, [bpDef.w, narrow]);
+  }, [bpDef.w, narrow, bLay?.h]);
 
   const elOf = useCallback((id: string | null) => (id ? host.current?.querySelector<HTMLElement>(`[data-n="${CSS.escape(id)}"]`) ?? null : null), []);
   const rel = useCallback((el: Element): Rect => {
@@ -925,7 +939,7 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
             <div
               ref={frame}
               className="absolute left-0 top-0 origin-top-left overflow-hidden rounded-[6px] shadow-[0_30px_90px_rgba(0,0,0,.4)]"
-              style={{ width: bpDef.w, minHeight: bpDef.h, transform: `scale(${scale})`, containerType: 'inline-size', containerName: 'fs', background: pg.theme.bg }}
+              style={{ width: bpDef.w, minHeight: bpDef.h, height: bLay ? bLay.h : undefined, transform: `scale(${scale})`, containerType: 'inline-size', containerName: 'fs', background: pg.theme.bg }}
               onPointerMove={onFrameMove}
               onPointerLeave={() => setHover(null)}
               onClick={onFrameClick}
@@ -984,6 +998,11 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
       {/* width + actions */}
       <div className={`absolute z-20 ${narrow ? 'inset-x-3 top-[72px] flex justify-center' : 'start-1/2 top-[84px] -translate-x-1/2 rtl:translate-x-1/2'}`}>
         <Pane className="flex items-center gap-1 rounded-full p-1">
+          {board ? (
+            <span className="flex min-h-[38px] items-center gap-1.5 rounded-full bg-white px-3 text-[12.5px] font-bold tabular-nums text-[#11151a]" title={t('Artboard')}>
+              <span className="block h-3 rounded-[2px] border-2 border-current" style={{ width: Math.max(6, (12 * board.w) / board.h) }} /> {board.w} × {board.h}
+            </span>
+          ) : (
           <div role="radiogroup" aria-label={t('Width')} className="flex items-center gap-0.5">
             {BPS.map((b) => {
               const Ic = BP_ICON[b.id];
@@ -995,6 +1014,7 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
               );
             })}
           </div>
+          )}
           <span className="mx-0.5 h-5 w-px bg-white/20" />
           <button type="button" onClick={() => (flush(), go(`/site/${p.id}/${pg.id}?w=${bp}`))} className="lg-btn lg-btn-plain min-h-[38px] text-[12.5px]" aria-label={t('Preview')} title={t('Open the live page')}>
             <Eye size={15} /> <span className="max-2xl:hidden">{t('Preview')}</span>
@@ -1341,6 +1361,7 @@ function PageInspector({ p, pg, commit, sending, onReview }: { p: Project; pg: S
         </p>
         <Seg label={t('Reading direction')} value={pg.dir} options={[{ id: 'ltr' as const, label: t('Left to right') }, { id: 'rtl' as const, label: t('Right to left') }]} onChange={(dir) => commit({ dir }, 'Page edited')} />
       </Section>
+      {pg.board && <BoardSection pg={pg} commit={commit} />}
       <Section title={t('Colours and type')} icon={<Sparkles size={15} />}>
         <button type="button" onClick={() => (commit({ theme: { ...themeFrom(state.brand, projectPalette(p)), round: pg.theme.round } }, 'Theme changed'), toast(t('Colours and type taken from the brand kit')))} className="lg-btn lg-btn-ghost min-h-[36px] w-full text-[12.5px]">
           <RotateCcw size={13} /> {t('Take from the brand kit')}
@@ -1427,5 +1448,47 @@ function PageInspector({ p, pg, commit, sending, onReview }: { p: Project; pg: S
         <Trash2 size={13} /> {t('Remove the page')}
       </button>
     </div>
+  );
+}
+
+/** an artboard: its size, how long it lasts, frames per second, whether it loops */
+function BoardSection({ pg, commit }: { pg: SitePage; commit: (patch: Partial<SitePage>, label?: string, now?: boolean) => void }) {
+  const { t } = useI18n();
+  const b = pg.board!;
+  const set = (patch: Partial<NonNullable<SitePage['board']>>, now = true) => commit({ board: { ...b, ...patch } }, 'Artboard changed', now);
+  const size = BOARD_SIZES.find((x) => x.w === b.w && x.h === b.h)?.id ?? 'custom';
+  const motion = pageSpan(pg.root);
+  return (
+    <Section title={t('Artboard')} icon={<LayoutTemplate size={15} />}>
+      <label className="block text-[12px] text-white/75">
+        {t('Size')}
+        <select value={size} onChange={(e) => { const x = BOARD_SIZES.find((y) => y.id === e.target.value); if (x) set({ w: x.w, h: x.h }); }} className="lg-input mt-1.5 min-h-[36px] w-full px-2 text-[13px]">
+          {BOARD_SIZES.map((x) => (
+            <option key={x.id} value={x.id}>
+              {t(x.label)} · {x.w} × {x.h}
+            </option>
+          ))}
+          {size === 'custom' && <option value="custom">{t('Own size')}</option>}
+        </select>
+      </label>
+      <div className="grid grid-cols-2 gap-2">
+        {(['w', 'h'] as const).map((k) => (
+          <label key={k} className="block text-[12px] text-white/75">
+            {k === 'w' ? t('Width') : t('Height')}
+            <input type="number" min={60} max={3840} step={2} value={b[k]} onChange={(e) => set({ [k]: Math.max(60, Math.min(3840, Math.round(+e.target.value / 2) * 2 || 60)) }, false)} className="lg-input mt-1.5 min-h-[36px] w-full px-2.5 text-[13px] tabular-nums" />
+          </label>
+        ))}
+      </div>
+      <label className="block text-[12px] text-white/75">
+        <span className="flex justify-between">
+          {t('Pause at the end')}
+          <span className="tabular-nums font-bold">{((b.hold ?? 1000) / 1000).toFixed(1)} s</span>
+        </span>
+        <input type="range" min={0} max={5000} step={100} value={b.hold ?? 1000} onChange={(e) => set({ hold: +e.target.value }, false)} className="mt-1 w-full accent-[#4f8bff]" aria-label={t('Pause at the end')} />
+      </label>
+      <p className="text-[12px] text-white/65">{t('Length: {s} s — the motion ({m} s) and the pause', { s: (boardLength(pg) / 1000).toFixed(1), m: (motion / 1000).toFixed(1) })}</p>
+      <Seg label={t('Frames per second')} value={b.fps ?? 30} options={[24, 30, 60].map((f) => ({ id: f as 24 | 30 | 60, label: String(f) }))} onChange={(fps) => set({ fps })} />
+      <Seg label={t('Repeat')} value={b.loop === false ? 'n' : 'y'} options={[{ id: 'y', label: t('Again and again') }, { id: 'n', label: t('Once') }]} onChange={(v) => set({ loop: v === 'y' })} />
+    </Section>
   );
 }

@@ -1851,4 +1851,7 @@ export const glassHe: Record<string, string> = {
   "Painting the sign by hand": "מציירים את השלט ביד",
   "21 September · 4 min read": "21 בספטמבר · 4 דק׳ קריאה",
   "Three days on a ladder with a brush, a level and the wordmark.": "שלושה ימים על סולם עם מכחול, פלס וסמליל.",
+  "Posts that move": "פוסטים שזזים",
+  "A page can now be an artboard: a square post, a story, a landscape video or a banner. Build it from the same blocks, give it entrances on the timeline, and take it out as an MP4, a GIF, a Lottie file for apps or a poster — rendered frame by frame from what you see in the editor.": "עמוד יכול עכשיו להיות משטח עבודה: פוסט מרובע, סטורי, וידאו לרוחב או באנר. בונים אותו מאותם בלוקים, נותנים כניסות על ציר הזמן ומייצאים כ־MP4, ‏GIF, ‏Lottie לאפליקציות או פוסטר — פריים אחר פריים, בדיוק כמו בעורך.",
+  "Open the Halden autumn post": "לפתוח את פוסט הסתיו של Halden",
 };

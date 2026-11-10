@@ -273,3 +273,173 @@ export function autoMotion(root: SiteNode[]): SiteNode[] {
     return section(s, top);
   });
 }
+
+/* ───────── motion at any moment (frames for video, GIF and Lottie) ───────── */
+
+/** what an element looks like at a moment of its entrance */
+export interface MState {
+  opacity: number;
+  tx: number;
+  ty: number;
+  scale: number;
+  rotate: number;
+  /** % hidden from the bottom (the reveal) */
+  clip: number;
+  blur: number;
+}
+export const STILL: MState = { opacity: 1, tx: 0, ty: 0, scale: 1, rotate: 0, clip: 0, blur: 0 };
+
+/** cubic-bezier easing, as CSS solves it */
+export function bezier(x1: number, y1: number, x2: number, y2: number) {
+  const cx = 3 * x1,
+    bx = 3 * (x2 - x1) - cx,
+    ax = 1 - cx - bx;
+  const cy = 3 * y1,
+    by = 3 * (y2 - y1) - cy,
+    ay = 1 - cy - by;
+  const sx = (t: number) => ((ax * t + bx) * t + cx) * t;
+  const sy = (t: number) => ((ay * t + by) * t + cy) * t;
+  const dx = (t: number) => (3 * ax * t + 2 * bx) * t + cx;
+  return (x: number) => {
+    if (x <= 0) return 0;
+    if (x >= 1) return 1;
+    let t = x;
+    for (let i = 0; i < 8; i++) {
+      const e = sx(t) - x;
+      if (Math.abs(e) < 1e-6) break;
+      const d = dx(t);
+      if (Math.abs(d) < 1e-6) break;
+      t -= e / d;
+    }
+    let lo = 0,
+      hi = 1;
+    if (Math.abs(sx(t) - x) > 1e-4)
+      for (let i = 0; i < 30; i++) {
+        t = (lo + hi) / 2;
+        sx(t) < x ? (lo = t) : (hi = t);
+      }
+    return sy(t);
+  };
+}
+const curveCache = new Map<string, (x: number) => number>();
+const easeFn = (id?: string) => {
+  const key = id ?? 'frantos';
+  let f = curveCache.get(key);
+  if (!f) {
+    const c = CURVES.find((x) => x.id === key) ?? CURVES.find((x) => x.id === 'frantos')!;
+    f = bezier(c.v[0], c.v[1], c.v[2], c.v[3]);
+    curveCache.set(key, f);
+  }
+  return f;
+};
+
+function keyStates(a: SiteAnim, rtl: boolean, em: number): { at: number; s: Partial<MState> }[] {
+  const d = a.dist ?? 32;
+  switch (a.enter) {
+    case 'fade':
+    case 'count':
+      return [{ at: 0, s: { opacity: 0 } }, { at: 1, s: {} }];
+    case 'rise':
+      return [{ at: 0, s: { opacity: 0, ty: d } }, { at: 1, s: {} }];
+    case 'slide':
+      return [{ at: 0, s: { opacity: 0, tx: rtl ? d : -d } }, { at: 1, s: {} }];
+    case 'zoom':
+      return [{ at: 0, s: { opacity: 0, scale: 0.9 } }, { at: 1, s: {} }];
+    case 'mask':
+      return [{ at: 0, s: { clip: 100 } }, { at: 1, s: {} }];
+    case 'blur':
+      return [{ at: 0, s: { opacity: 0, blur: 14 } }, { at: 1, s: {} }];
+    case 'words':
+      return [{ at: 0, s: { opacity: 0, ty: 0.55 * em } }, { at: 1, s: {} }];
+    case 'custom': {
+      const ks = [...(a.keys ?? [])].sort((x, y) => x.at - y.at).map((k) => ({ at: Math.max(0, Math.min(1, k.at)), s: { tx: k.x ?? 0, ty: k.y ?? 0, scale: k.scale ?? 1, rotate: k.rotate ?? 0, opacity: k.opacity ?? 1 } }));
+      if (!ks.length || ks[0].at > 0) ks.unshift({ at: 0, s: { ...STILL } });
+      if (ks[ks.length - 1].at < 1) ks.push({ at: 1, s: { ...STILL } });
+      return ks;
+    }
+  }
+}
+
+/** the state of one animated target at `t` ms; `i` is its place in a stagger (children or words) */
+export function stateAt(a: SiteAnim, t: number, i = 0, rtl = false, em = 16): MState {
+  const step = a.stagger ?? (a.enter === 'words' ? 60 : 0);
+  let p = (t - a.delay - i * step) / a.dur;
+  if (a.enter === 'custom' && a.loop && p > 1) p = p % 1;
+  p = Math.max(0, Math.min(1, p));
+  const ks = keyStates(a, rtl, em);
+  let j = 0;
+  while (j < ks.length - 2 && p > ks[j + 1].at) j++;
+  const k0 = { ...STILL, ...ks[j].s };
+  const k1 = { ...STILL, ...ks[j + 1].s };
+  const span = ks[j + 1].at - ks[j].at || 1;
+  // like CSS: the curve runs within each keyframe interval
+  const e = easeFn(a.ease)((p - ks[j].at) / span);
+  const out = { ...STILL };
+  (Object.keys(STILL) as (keyof MState)[]).forEach((k) => (out[k] = k0[k] + (k1[k] - k0[k]) * e));
+  return out;
+}
+
+/** every element that moves on its own: the node itself, each child of a stagger, or each word */
+export interface Target {
+  node: SiteNode;
+  anim: SiteAnim;
+  /** the element: data-n of the node or child */
+  id: string;
+  i: number;
+  /** -1: the words inside the element move one by one */
+  word?: number;
+}
+export function targetsOf(root: SiteNode[]): Target[] {
+  const out: Target[] = [];
+  walk(root, (n) => {
+    const a = n.anim;
+    if (!a) return;
+    if (staggers(n)) (n.children ?? []).forEach((k, i) => out.push({ node: n, anim: a, id: k.id, i }));
+    // words are counted on the drawn page (a translation can have more or fewer)
+    else if (a.enter === 'words') out.push({ node: n, anim: a, id: n.id, i: 0, word: -1 });
+    else out.push({ node: n, anim: a, id: n.id, i: 0 });
+  });
+  return out;
+}
+
+export function styleOf(s: MState) {
+  return {
+    opacity: String(Math.round(s.opacity * 1000) / 1000),
+    translate: `${s.tx.toFixed(2)}px ${s.ty.toFixed(2)}px`,
+    scale: String(Math.round(s.scale * 10000) / 10000),
+    rotate: `${s.rotate.toFixed(2)}deg`,
+    clipPath: s.clip > 0.01 ? `inset(0 0 ${s.clip.toFixed(2)}% 0)` : '',
+    filter: s.blur > 0.01 ? `blur(${s.blur.toFixed(2)}px)` : '',
+  };
+}
+
+/** put a page (drawn with data-n ids and no CSS motion) into its state at `t` ms */
+export function applyAt(host: HTMLElement, root: SiteNode[], t: number, rtl: boolean) {
+  for (const tg of targetsOf(root)) {
+    const el = host.querySelector<HTMLElement>(`[data-n="${CSS.escape(tg.id)}"]`);
+    if (!el) continue;
+    if (tg.word !== undefined) {
+      const em = parseFloat(getComputedStyle(el).fontSize) || 16;
+      el.querySelectorAll<HTMLElement>('.w').forEach((w, i) => Object.assign(w.style, styleOf(stateAt(tg.anim, t, i, rtl, em))));
+      continue;
+    }
+    Object.assign(el.style, styleOf(stateAt(tg.anim, t, tg.i, rtl)));
+    if (tg.anim.enter === 'count') countAt(el, tg.anim, t);
+  }
+}
+function countAt(el: HTMLElement, a: SiteAnim, t: number) {
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  let node: Text | null = null;
+  while (walker.nextNode()) if (/\d/.test((walker.currentNode as Text).data) || (walker.currentNode as Text & { __o?: string }).__o) node = walker.currentNode as Text;
+  if (!node) return;
+  const n = node as Text & { __o?: string };
+  n.__o ??= n.data;
+  const src = n.__o;
+  const m = src.match(/\d[\d\s.,  ]*\d|\d/);
+  if (!m) return;
+  const sep = m[0].match(/[\s.,  ](?=\d{3}(\D|$))/)?.[0] ?? '';
+  const target = parseInt(m[0].replace(/\D/g, ''), 10);
+  const k = Math.max(0, Math.min(1, (t - a.delay) / a.dur));
+  const v = String(Math.round(target * (1 - Math.pow(1 - k, 3))));
+  n.data = src.replace(m[0], sep ? v.replace(/\B(?=(\d{3})+(?!\d))/g, sep) : v);
+}

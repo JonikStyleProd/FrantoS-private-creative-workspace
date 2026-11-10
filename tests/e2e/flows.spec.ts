@@ -316,3 +316,37 @@ test('site parts: component copies follow the main, entries feed the cards and t
   await page.locator('.fs-page a', { hasText: 'Read the story' }).nth(2).click();
   await expect(page.locator('.fs-page h1')).toHaveText('Bags that walk around town');
 });
+
+test('site artboards: the demo post opens at its size and goes out as GIF, Lottie and PNG poster', async ({ page }) => {
+  test.skip(isPhone(page), 'frame-by-frame export is checked on desktop');
+  test.setTimeout(150_000);
+  // the demo artboard opens at its own size
+  await page.goto('/#/s/halden?m=site&pg=halden-pg-post');
+  await expect(page.getByText('1080 × 1080').first()).toBeVisible();
+  await expect(page.locator('.fs-page h1')).toContainText('The Ask chair');
+
+  await page.getByRole('button', { name: 'Export' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Export' });
+  const read = async (name: RegExp) => {
+    const [d] = await Promise.all([page.waitForEvent('download', { timeout: 90_000 }), dialog.getByRole('button', { name }).click()]);
+    const fs = await import('fs');
+    return { file: d.suggestedFilename(), buf: fs.readFileSync((await d.path())!) };
+  };
+  const gif = await read(/^GIF/);
+  expect(gif.file).toMatch(/\.gif$/);
+  expect(gif.buf.subarray(0, 6).toString('latin1')).toBe('GIF89a');
+  expect(gif.buf.readUInt16LE(6)).toBeLessThanOrEqual(600);
+  await expect(dialog.getByText(/Saved: .*\.gif/)).toBeVisible();
+
+  const lot = await read(/^Lottie/);
+  const json = JSON.parse(lot.buf.toString('utf8'));
+  expect(json.w).toBe(1080);
+  expect(json.h).toBe(1080);
+  expect(json.layers.length).toBeGreaterThan(3);
+  expect(json.layers.some((l: { ks: { o: { a: number } } }) => l.ks.o.a === 1)).toBe(true);
+  await expect(dialog.locator('svg').first()).toBeVisible();
+
+  const png = await read(/^Poster/);
+  expect(png.buf.subarray(1, 4).toString('latin1')).toBe('PNG');
+  expect(png.buf.readUInt32BE(16)).toBe(1080);
+});

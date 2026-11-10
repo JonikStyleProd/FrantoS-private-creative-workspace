@@ -15,7 +15,7 @@ function Range({ label, value, min, max, step = 50, unit = 'ms', onChange }: { l
     <label className="block text-[12px] text-white/75">
       <span className="flex justify-between">
         {label}
-        <span className="tabular-nums text-white">
+        <span className="tabular-nums font-bold">
           {value} {unit}
         </span>
       </span>

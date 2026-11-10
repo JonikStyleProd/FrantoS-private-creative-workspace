@@ -1851,4 +1851,7 @@ export const glassRu: Record<string, string> = {
   "Painting the sign by hand": "Вывеска, нарисованная от руки",
   "21 September · 4 min read": "21 сентября · 4 мин чтения",
   "Three days on a ladder with a brush, a level and the wordmark.": "Три дня на стремянке с кистью, уровнем и логотипом.",
+  "Posts that move": "Посты, которые двигаются",
+  "A page can now be an artboard: a square post, a story, a landscape video or a banner. Build it from the same blocks, give it entrances on the timeline, and take it out as an MP4, a GIF, a Lottie file for apps or a poster — rendered frame by frame from what you see in the editor.": "Страница теперь может быть артбордом: квадратный пост, сторис, горизонтальное видео или баннер. Соберите его из тех же блоков, задайте появления на таймлайне и выгрузите как MP4, GIF, Lottie для приложений или постер — кадр за кадром, ровно как в редакторе.",
+  "Open the Halden autumn post": "Открыть осенний пост Halden",
 };
