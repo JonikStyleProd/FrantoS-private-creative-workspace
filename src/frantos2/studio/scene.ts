@@ -6,7 +6,8 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import type { LightPreset, MaterialVariant, StageProp, StudioObject } from '../ws/types';
+import type { LightPreset, MaterialVariant, SceneExtras, StageProp, StudioObject } from '../ws/types';
+import { envScene, makeDecal, reflectorFloor, scaleFigure } from './sceneExtras';
 import { buildVessel, VesselMaterial } from './vessel';
 import { isLite } from '../glass/perf';
 
@@ -38,6 +39,14 @@ export interface ObjectScene {
   setCompare(a: MaterialVariant | null, split?: number): void;
   getPose(): Pose;
   setPose(p: Pose): void;
+  /** environment, floor, figure for scale, logo on the surface */
+  setExtras(e: SceneExtras | undefined): void;
+  /** the point on the object under a screen position (client px), in scene units */
+  pick(clientX: number, clientY: number): [number, number, number] | null;
+  /** where a scene point sits on the canvas (px from its top-left), and whether the object hides it */
+  project(p: [number, number, number]): { x: number; y: number; hidden: boolean } | null;
+  /** called after every drawn frame (annotation dots follow the camera) */
+  onFrame(cb: () => void): () => void;
   /** draw one frame now (recording drives the camera itself) */
   draw(): void;
   /** keep full resolution while recording, and paint the backdrop into the frames (video has no transparency) */
@@ -172,8 +181,8 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
     camera.setFocalLength(lens);
     const fov = THREE.MathUtils.degToRad(camera.fov);
     const aspect = camera.aspect || 1;
-    const fitH = ((height + propH) * 2.15) / 2 / Math.tan(fov / 2);
-    const fitW = ((aspect < 0.8 ? 1.75 : 2.6) / aspect) / 2 / Math.tan(fov / 2);
+    const fitH = ((Math.max(height, figH) + propH) * 2.15) / 2 / Math.tan(fov / 2);
+    const fitW = (((aspect < 0.8 ? 1.75 : 2.6) + figW * 1.6) / aspect) / 2 / Math.tan(fov / 2);
     const d = Math.max(fitH, fitW);
     fitD = d;
     const dir = camera.position.clone().sub(target);
@@ -182,10 +191,13 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
     camera.position.copy(target).add(dir);
     controls.minDistance = d * 0.45;
     controls.maxDistance = d * 2.2;
+    camera.far = Math.max(50, d * 4);
     camera.updateProjectionMatrix();
     dirty = true;
   }
   let lens = 85;
+  let figH = 0;
+  let figW = 0;
 
   function placeLights() {
     const a = THREE.MathUtils.degToRad(light.angle);
@@ -194,7 +206,7 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
     const dist = 5;
     key.color.set('#fff4e8');
     rim.color.set('#ffffff');
-    scene.environment = p === 'hdri' && hdriEnv ? hdriEnv : roomEnv;
+    scene.environment = p === 'hdri' && hdriEnv ? hdriEnv : envFor(extras?.env);
     if (p === 'softbox') {
       key.position.set(Math.sin(a) * dist, 3.2, Math.cos(a) * dist);
       key.intensity = 1.6 * k;
@@ -340,6 +352,9 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
     u: { uTint: { value: THREE.Color }; uAmount: { value: number } };
   }
   let modelMats: ModelMat[] = [];
+  // imported models compare A/B by repainting between the two halves of one frame
+  let modelV: MaterialVariant | null = null;
+  let compareModelV: MaterialVariant | null = null;
   function prepModel(root: THREE.Object3D) {
     modelMats = [];
     root.traverse((x) => {
@@ -364,11 +379,27 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
       modelMats.push({ m, map: m.map, color: m.color.clone(), roughness: m.roughness, metalness: m.metalness, env: m.envMapIntensity, u });
     });
   }
-  function paintModel(v: MaterialVariant) {
+  let photoTex: { src: string; tex: THREE.Texture } | null = null;
+  const photoFor = (src: string) => {
+    if (photoTex?.src === src) return photoTex.tex;
+    photoTex?.tex.dispose();
+    const tex = new THREE.TextureLoader().load(src, () => (dirty = true));
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    photoTex = { src, tex };
+    return tex;
+  };
+  function paintModel(v: MaterialVariant, mark = true) {
     const mode = v.finish ?? 'original';
     for (const x of modelMats) {
       const hadMap = !!x.m.map;
-      if (mode === 'original') {
+      if (mode === 'photo' && v.photo) {
+        x.m.map = photoFor(v.photo);
+        x.m.color.set('#ffffff');
+        x.u.uAmount.value = 0;
+        x.m.roughness = Math.max(0.04, v.roughness * (1 - v.gloss * 0.45));
+        x.m.metalness = v.metal ?? 0;
+      } else if (mode === 'original') {
         x.m.map = x.map;
         x.m.color.copy(x.color);
         x.m.roughness = x.roughness;
@@ -392,7 +423,7 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
       }
       if (hadMap !== !!x.m.map) x.m.needsUpdate = true;
     }
-    dirty = true;
+    if (mark) dirty = true;
   }
 
   async function setObject(o: StudioObject, modelUrl?: string, quality: 'draft' | 'full' = 'full') {
@@ -423,7 +454,8 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
         if (m.isMesh) (m.castShadow = true), (m.receiveShadow = true);
       });
       prepModel(root);
-      paintModel(o.variants.find((x) => x.id === o.variantId) ?? o.variants[0]);
+      modelV = o.variants.find((x) => x.id === o.variantId) ?? o.variants[0];
+      paintModel(modelV);
       mesh = root;
     }
     if (mesh) holder.add(mesh);
@@ -435,13 +467,110 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
     if (!keepCamera) frame(lens);
     keepCamera = true;
     applyView();
+    applyExtras(o.extras);
     reshadow();
   }
   let keepCamera = false;
 
+  /* ───────── extras ───────── */
+  let extras: SceneExtras | undefined;
+  const envs = new Map<string, THREE.Texture>();
+  function envFor(k?: SceneExtras['env']) {
+    if (!k || k === 'room') return roomEnv;
+    if (!envs.has(k)) envs.set(k, pmrem.fromScene(envScene(k), 0.02).texture);
+    return envs.get(k)!;
+  }
+  const extraGroup = new THREE.Group();
+  scene.add(extraGroup);
+  let decalKey = '';
+  let decalTex: THREE.Texture | null = null;
+  function applyExtras(e: SceneExtras | undefined) {
+    extras = e;
+    extraGroup.children.slice().forEach((c) => {
+      extraGroup.remove(c);
+      const m = c as THREE.Mesh & { dispose?: () => void };
+      m.geometry?.dispose();
+      (m.material as THREE.Material | undefined)?.dispose?.();
+      m.dispose?.();
+    });
+    const floorY = blob.position.y;
+    // floor
+    catcher.visible = true;
+    if (e?.floor === 'mirror' || e?.floor === 'water') {
+      // without a GPU a real reflection doubles the work: a polished floor stands in for it
+      const f = lite
+        ? new THREE.Mesh(new THREE.CircleGeometry(3.2, 64), new THREE.MeshStandardMaterial({ color: e.floor === 'water' ? '#1f4f57' : '#2a2c30', roughness: 0.08, metalness: 0.7 }))
+        : reflectorFloor(e.floor, canvas.width || 1024, canvas.height || 768);
+      f.rotation.x = -Math.PI / 2;
+      f.position.y = floorY - 0.002;
+      extraGroup.add(f);
+    }
+    // figure for scale
+    figH = 0;
+    figW = 0;
+    target.x = 0;
+    if (e?.scale && e.scale !== 'none' && mesh) {
+      const real = e.scale === 'person' ? 175 : 19;
+      const h = height * (real / Math.max(1, e.sizeCm ?? 30));
+      const fig = scaleFigure(e.scale, h);
+      const box = new THREE.Box3().setFromObject(mesh);
+      const half = Math.max(0.3, (box.max.x - box.min.x) / 2);
+      figW = fig.userData.width as number;
+      fig.position.set(-(half + figW / 2 + 0.12), floorY + h / 2, 0);
+      extraGroup.add(fig);
+      figH = h;
+      target.x = -(figW / 2 + 0.06);
+    }
+    controls.target.copy(target);
+    // logo on the surface
+    const d = e?.decal;
+    const key = d && mesh ? `${d.src.length}:${d.src.slice(-40)}:${d.size}:${d.angle}:${d.y}` : '';
+    if (d && mesh) {
+      const build = (tex: THREE.Texture) => {
+        if (decalKey !== key || !mesh) return;
+        const m = makeDecal(mesh, tex, d, height);
+        if (m) extraGroup.add(m);
+        dirty = true;
+      };
+      decalKey = key;
+      if (decalTex && (decalTex.userData.src as string) === d.src) build(decalTex);
+      else {
+        decalTex?.dispose();
+        decalTex = null;
+        const img = new Image();
+        img.onload = () => {
+          const c = document.createElement('canvas');
+          const w = img.naturalWidth || 512;
+          const h = img.naturalHeight || 512;
+          const k = 1024 / Math.max(w, h);
+          c.width = Math.round(w * k);
+          c.height = Math.round(h * k);
+          c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height);
+          const tx = new THREE.CanvasTexture(c);
+          tx.colorSpace = THREE.SRGBColorSpace;
+          tx.userData.src = d.src;
+          decalTex = tx;
+          build(tx);
+        };
+        img.src = d.src;
+      }
+    } else decalKey = '';
+    placeLights();
+    frame(lens);
+    reshadow();
+  }
+
+  const frameListeners = new Set<() => void>();
+  const ray = new THREE.Raycaster();
+  const ndc = (cx: number, cy: number) => {
+    const r = canvas.getBoundingClientRect();
+    return new THREE.Vector2(((cx - r.left) / r.width) * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
+  };
+
   function setVariant(v: MaterialVariant, _quality: 'draft' | 'full' = 'full') {
     if (!mesh) return;
     if (!(mesh as THREE.Mesh).isMesh) {
+      modelV = v;
       paintModel(v);
       return;
     }
@@ -483,6 +612,17 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
       renderer.setScissor(x, 0, size.x - x, size.y);
       renderer.render(scene, camera);
       renderer.setScissorTest(false);
+    } else if (compareModelV && modelV && m && !m.isMesh && view === 'render') {
+      const size = renderer.getSize(new THREE.Vector2());
+      const x = Math.round(size.x * split);
+      renderer.setScissorTest(true);
+      paintModel(compareModelV, false);
+      renderer.setScissor(0, 0, x, size.y);
+      renderer.render(scene, camera);
+      paintModel(modelV, false);
+      renderer.setScissor(x, 0, size.x - x, size.y);
+      renderer.render(scene, camera);
+      renderer.setScissorTest(false);
     } else renderer.render(scene, camera);
   }
 
@@ -518,6 +658,7 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
     if (recording) return; // the recorder draws its own frames
     if (moved || dirty || controls.autoRotate) {
       draw();
+      frameListeners.forEach((f) => f());
       dirty = false;
       adapt(now);
     } else last = 0;
@@ -597,6 +738,7 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
       return new Blob([out], { type: 'model/gltf-binary' });
     },
     setStage(kind) {
+      queueMicrotask(() => applyExtras(extras));
       applyStage(kind);
       frame(lens);
     },
@@ -617,6 +759,12 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
     },
     setCompare(a, s = 0.5) {
       split = s;
+      if (mesh && !(mesh as THREE.Mesh).isMesh) {
+        compareModelV = a;
+        if (!a && modelV) paintModel(modelV);
+        dirty = true;
+        return;
+      }
       if (!a) {
         compareMat?.dispose();
         compareMat = null;
@@ -655,6 +803,32 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
     onInteract(cb) {
       listeners.push(cb);
     },
+    setExtras(e) {
+      applyExtras(e);
+    },
+    pick(cx, cy) {
+      if (!mesh) return null;
+      ray.setFromCamera(ndc(cx, cy), camera);
+      const hit = ray.intersectObject(mesh, true)[0];
+      return hit ? [hit.point.x, hit.point.y, hit.point.z].map((v) => Math.round(v * 1000) / 1000) as [number, number, number] : null;
+    },
+    project(p) {
+      const v = new THREE.Vector3(...p);
+      const d = v.distanceTo(camera.position);
+      const sp = v.clone().project(camera);
+      if (sp.z > 1) return null;
+      let hidden = false;
+      if (mesh) {
+        ray.set(camera.position, v.clone().sub(camera.position).normalize());
+        const hit = ray.intersectObject(mesh, true)[0];
+        hidden = !!hit && hit.distance < d - 0.03;
+      }
+      return { x: ((sp.x + 1) / 2) * canvas.clientWidth, y: ((1 - sp.y) / 2) * canvas.clientHeight, hidden };
+    },
+    onFrame(cb) {
+      frameListeners.add(cb);
+      return () => frameListeners.delete(cb);
+    },
     dispose() {
       renderer.setAnimationLoop(null);
       ro.disconnect();
@@ -666,6 +840,9 @@ export function createObjectScene(canvas: HTMLCanvasElement, opts: { interactive
       vesselMat?.dispose();
       compareMat?.dispose();
       hdriEnv?.dispose();
+      envs.forEach((t) => t.dispose());
+      decalTex?.dispose();
+      photoTex?.tex.dispose();
       roomEnv.dispose();
       pmrem.dispose();
       renderer.dispose();

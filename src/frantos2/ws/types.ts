@@ -164,7 +164,9 @@ export interface MaterialVariant {
   roughness: number;
   gloss: number;
   /** imported models only: keep the model's own look, recolour its texture, or paint one solid colour (topColor) */
-  finish?: 'original' | 'tint' | 'solid';
+  finish?: 'original' | 'tint' | 'solid' | 'photo';
+  /** material from a photo: a square crop of a reference (WebP/JPEG data URL), wrapped around the object */
+  photo?: string;
   /** imported models: how strongly the recolour replaces the texture's colour, 0–1 */
   tint?: number;
   /** imported models: metalness, 0–1 */
@@ -174,6 +176,17 @@ export interface MaterialVariant {
 export type LightPreset = 'softbox' | 'window' | 'spot' | 'rim' | 'morning' | 'sunset' | 'gallery' | 'hdri';
 
 export type StageProp = 'none' | 'plinth' | 'block' | 'arch';
+
+export type EnvPreset = 'room' | 'sunset' | 'overcast' | 'neon' | 'night';
+export interface SceneExtras {
+  env?: EnvPreset;
+  floor?: 'shadow' | 'mirror' | 'water';
+  scale?: 'none' | 'hand' | 'person';
+  /** the object's real height, for the scale figure */
+  sizeCm?: number;
+  /** a logo or sticker on the surface: image data URL, size as a share of the object height, where around it */
+  decal?: { src: string; size: number; angle: number; y: number } | null;
+}
 
 /** a title over the motion clip, shown between two fractions of its length */
 export interface MotionTitle {
@@ -212,6 +225,10 @@ export interface StudioObject {
   motion?: { seconds: number; keys: CameraKey[]; titles?: MotionTitle[]; audio?: { blobKey: string; name: string } };
   /** what the object stands on in the scene */
   stage?: StageProp;
+  /** the scene around it: light environment, floor, a figure for scale, a logo on the surface */
+  extras?: SceneExtras;
+  /** numbered points on the object with a note each, shown in the showroom */
+  notes3d?: { id: string; p: [number, number, number]; text: string }[];
   /** small preview, a data URL or a static path */
   thumb?: string;
   note?: string;

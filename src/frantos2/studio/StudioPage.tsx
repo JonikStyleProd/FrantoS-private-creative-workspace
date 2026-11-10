@@ -21,6 +21,9 @@ import { projectPalette, variations } from './palette';
 import { canRecord, recordCanvas, recordGif, videoFormat } from './record';
 import { VESSEL_VARIANTS } from '../ws/seed';
 import { ColorField, PaletteRow, Section, Seg, Slider, Swatch } from './ui';
+import { PhotoMaterialButton, SceneSection } from './SceneSection';
+import { NotesOverlay } from './NotesOverlay';
+import { Globe2 } from 'lucide-react';
 import { ImageMode } from './ImageMode';
 import { CanvasMode } from './CanvasMode';
 import { MotionMode } from './MotionMode';
@@ -285,6 +288,7 @@ function ObjectEditor({ p, o, narrow, onImport, onAddVessel, onPick }: { p: Proj
   const hdriAsset = draft.light.hdriAssetId ? p.assets.find((a) => a.id === draft.light.hdriAssetId) : undefined;
   const hdriUrl = useAssetUrl(hdriAsset, 'full').url;
   const [compareId, setCompareId] = useState<string | null>(null);
+  const [placing, setPlacing] = useState(false);
   const [split, setSplit] = useState(0.5);
   const [rec, setRec] = useState<number | null>(null);
   const recAbort = useRef<AbortController | null>(null);
@@ -372,6 +376,12 @@ function ObjectEditor({ p, o, narrow, onImport, onAddVessel, onPick }: { p: Proj
     sceneRef.current?.setStage(draft.stage);
   }, [draft.stage, ready]);
   useEffect(() => sceneRef.current?.setView(view), [view, ready]);
+  const firstExtras = useRef(true);
+  useEffect(() => {
+    if (!ready) return;
+    if (firstExtras.current) return void (firstExtras.current = false);
+    sceneRef.current?.setExtras(draft.extras);
+  }, [JSON.stringify(draft.extras ?? null), ready]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => sceneRef.current?.setTurntable(spin, draft.turntable.seconds), [spin, draft.turntable.seconds]);
 
   // edits: live in the draft, saved shortly after (one undo step per pause)
@@ -609,6 +619,9 @@ function ObjectEditor({ p, o, narrow, onImport, onAddVessel, onPick }: { p: Proj
         hdri: hdriAsset,
         envs: p.assets.filter((a) => a.kind === 'env'),
         onImportHDRI: importHDRI,
+        project: p,
+        placing,
+        onPlace: setPlacing,
       }}
     />
   );
@@ -619,6 +632,17 @@ function ObjectEditor({ p, o, narrow, onImport, onAddVessel, onPick }: { p: Proj
       <div className="absolute inset-0" style={bgStyle}>
         <canvas ref={canvasRef} style={{ opacity: ready ? 1 : 0, transition: 'opacity .35s ease' }} className="absolute inset-0 h-full w-full touch-none outline-none" aria-label={t('3D viewport: drag to orbit, pinch or scroll to zoom')} />
         {compareVariant && <SplitHandle split={split} onSplit={setSplit} a={t(compareVariant.name)} b={t(variant.name)} />}
+        {ready && (
+          <NotesOverlay
+            scene={sceneRef.current}
+            notes={draft.notes3d ?? []}
+            placing={placing}
+            onPlace={(pt) => {
+              setPlacing(false);
+              edit({ notes3d: [...(draft.notes3d ?? []), { id: `n3-${Date.now().toString(36)}`, p: pt, text: '' }] }, 'Point added');
+            }}
+          />
+        )}
         {rec != null && (
           <p className="lg-glass absolute start-1/2 top-[84px] z-30 flex -translate-x-1/2 items-center gap-2 rounded-full px-4 py-2 text-[13px] font-bold rtl:translate-x-1/2" role="status">
             <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-[#ff5a4f]" /> {t('Recording')} · {Math.round(rec * 100)}%
@@ -809,6 +833,9 @@ interface InspectorProps {
     hdri?: Asset;
     envs: Asset[];
     onImportHDRI: (f: FileList) => void;
+    project: Project;
+    placing: boolean;
+    onPlace: (on: boolean) => void;
   };
 }
 
@@ -852,6 +879,7 @@ function Inspector(props: InspectorProps) {
               </button>
             )}
           </div>
+          <PhotoMaterialButton p={x.project} onPick={() => undefined} variant={variant} editVariant={editVariant} />
           {isModel ? (
             <>
           <Seg
@@ -912,7 +940,7 @@ function Inspector(props: InspectorProps) {
               </button>
               <button
                 type="button"
-                disabled={draft.variants.length < 2 || isModel}
+                disabled={draft.variants.length < 2}
                 onClick={() => x.onCompare(x.compareId ? null : (draft.variants.find((v) => v.id !== variant.id)?.id ?? null))}
                 aria-pressed={!!x.compareId}
                 className={`lg-btn min-h-[38px] px-2 text-[12.5px] disabled:opacity-40 ${x.compareId ? 'lg-btn-primary' : 'lg-btn-ghost'}`}
@@ -1023,6 +1051,12 @@ function Inspector(props: InspectorProps) {
             )}
           </div>
           <Slider label={t('Turntable, one turn')} value={draft.turntable.seconds} min={4} max={30} step={1} fmt={(v) => `${v} s`} onChange={(v) => edit({ turntable: { seconds: v } })} />
+        </Section>
+      )}
+
+      {show('light') && (
+        <Section title={t('Scene')} icon={<Globe2 size={16} />}>
+          <SceneSection p={x.project} draft={draft} edit={edit} placing={x.placing} onPlace={x.onPlace} />
         </Section>
       )}
 

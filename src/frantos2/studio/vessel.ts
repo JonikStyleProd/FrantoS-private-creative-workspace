@@ -260,9 +260,24 @@ export class VesselMaterial {
     }
     this.update(v);
   }
+  private photoSrc: string | null = null;
   update(v: MaterialVariant) {
     const [a, b, c, d] = this.canvases;
     paintInto(a, b, c, d, v);
+    // material from a photo: the crop tiled twice around and once up, over the painted colour
+    const src = v.finish === 'photo' && v.photo ? v.photo : null;
+    this.photoSrc = src;
+    if (src) {
+      const img = new Image();
+      img.onload = () => {
+        if (this.photoSrc !== src) return;
+        const x = a.getContext('2d')!;
+        const tw = a.width / 2;
+        for (let i = 0; i < 2; i++) x.drawImage(img, i * tw, 0, tw, a.height);
+        this.maps.map.needsUpdate = true;
+      };
+      img.src = src;
+    }
     this.material.clearcoatRoughness = Math.max(0.03, v.roughness * 0.7);
     for (const t of Object.values(this.maps)) t.needsUpdate = true;
   }

@@ -105,7 +105,10 @@ export function KitStrip() {
         <span className="lg-label flex items-center gap-1.5">
           <kit.icon size={13} /> {t(kit.label)}
         </span>
-        <button type="button" onClick={() => go('/settings?kit=1')} className="ms-auto text-[12px] font-bold text-white/60 underline-offset-2 hover:text-white hover:underline">
+        <button type="button" onClick={() => go(`/p/${kit.demo}`)} className="ms-auto text-[12px] font-bold text-white/80 underline-offset-2 hover:text-white hover:underline">
+          {t('Open the demo')}
+        </button>
+        <button type="button" onClick={() => go('/settings?kit=1')} className=" text-[12px] font-bold text-white/60 underline-offset-2 hover:text-white hover:underline">
           {t('Change')}
         </button>
       </div>

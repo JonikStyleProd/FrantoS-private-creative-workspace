@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { NotesOverlay } from './NotesOverlay';
 import { ArrowLeft, Box, Copy, Pause, Play, Smartphone, Wand2 } from 'lucide-react';
 import '../glass/glass.css';
 import { useI18n } from '../i18n';
@@ -103,6 +104,7 @@ function Room({ pid, title, o }: { pid: string; title: string; o: StudioObject }
   return (
     <div className="lg lg-studio fixed inset-0 overflow-hidden" dir={dir} style={{ background: `radial-gradient(ellipse at 50% 40%, ${bg} 0%, color-mix(in srgb, ${bg} 50%, #15110e) 60%, #0c0a09 100%)` }}>
       <canvas ref={ref} className="absolute inset-0 h-full w-full touch-none" aria-label={t('{name}, 3D: drag to turn, pinch or scroll to zoom', { name: t(o.title) })} />
+      {ready && (o.notes3d?.length ?? 0) > 0 && <NotesOverlay scene={scene.current} notes={o.notes3d!} readOnly />}
 
       <header className="absolute inset-x-3 top-3 z-20 flex items-center gap-2 sm:inset-x-4 sm:top-4">
         <Pane className="flex min-w-0 items-center gap-1 rounded-full py-1 pe-4 ps-1">

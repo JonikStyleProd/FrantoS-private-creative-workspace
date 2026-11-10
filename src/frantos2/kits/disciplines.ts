@@ -34,7 +34,7 @@ export const KITS: Kit[] = [
       { label: 'Websites', hint: 'Sites you look up to, kept as links', to: '/library?k=link' },
       { label: 'Design tokens', hint: 'Your brand as CSS, Tailwind and JSON', to: '/settings?tokens=1' },
     ],
-    demo: 'halo',
+    demo: 'wavelength',
   },
   {
     id: 'dev',
@@ -48,7 +48,7 @@ export const KITS: Kit[] = [
       { label: 'Snippets', hint: 'HTML, CSS and JS with a live preview', to: '/library?k=code' },
       { label: 'Screens', hint: 'What to build, in device frames', to: '/library?k=screen' },
     ],
-    demo: 'halo',
+    demo: 'halden',
   },
   {
     id: 'motion',
@@ -58,11 +58,11 @@ export const KITS: Kit[] = [
     templates: ['motion', 'launch', 'object'],
     formats: ['video', 'lottie', 'audio'],
     tools: [
-      { label: 'Motion', hint: 'Camera moves, titles and sound over a 3D object', to: '/s/form-01?m=motion' },
+      { label: 'Animatic', hint: 'Story frames cut on the beat into a film', to: '/p/velo/animatic' },
       { label: 'Lottie & sound', hint: 'Animations and tracks in the library', to: '/library?k=lottie' },
       { label: 'Easing curves', hint: 'Curves with a live preview, ready to copy', to: '/library?easing=1' },
     ],
-    demo: 'stride',
+    demo: 'velo',
   },
   {
     id: 'graphic',
@@ -74,9 +74,9 @@ export const KITS: Kit[] = [
     tools: [
       { label: 'Typefaces', hint: 'Fonts with a heading-and-text pairing preview', to: '/library?k=font' },
       { label: 'Brand kit', hint: 'Colour, type and logo used across boards and pages', to: '/settings' },
-      { label: 'Canvas', hint: 'Posts, posters and slides in the right formats', to: '/s/form-01?m=canvas' },
+      { label: 'Canvas', hint: 'Posts, posters and slides in the right formats', to: '/s/saltwater?m=canvas' },
     ],
-    demo: 'ritual',
+    demo: 'saltwater',
   },
   {
     id: 'photo',
