@@ -16,7 +16,8 @@ alter table public.profiles
   add column if not exists platform_role public.platform_role not null default 'developer',
   add column if not exists must_change_password boolean not null default false,
   add column if not exists email text,
-  add column if not exists disabled boolean not null default false;
+  add column if not exists disabled boolean not null default false,
+  add column if not exists avatar text check (avatar is null or (avatar like 'data:image/%' and length(avatar) < 200000));
 
 -- users may change their name only; role, flags and email are set by the server
 -- if the admin's account was made before this migration, the oldest account is the admin
@@ -26,7 +27,7 @@ update public.profiles p set platform_role = 'admin', email = lower(u.email)
 update public.profiles p set email = lower(u.email) from auth.users u where p.id = u.id and p.email is null;
 
 revoke update on public.profiles from authenticated, anon;
-grant update (name) on public.profiles to authenticated;
+grant update (name, avatar) on public.profiles to authenticated;
 
 create or replace function public.is_admin()
 returns boolean language sql stable security definer set search_path = public as $$

@@ -162,8 +162,8 @@ export function Canvas({ p, Sheet }: { p: Project; Sheet: React.FC<{ children: R
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-4 md:px-6">
         <div className="flex items-center gap-1 rounded-full border border-[var(--rule)] p-0.5" role="radiogroup" aria-label={t('Tool')}>
           {tools.map((tl) => (
-            <button key={tl.id} role="radio" aria-checked={mode === tl.id} onClick={() => (setMode(tl.id), setLinkFrom(null))} className="inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[12.5px] font-medium" style={{ background: mode === tl.id ? 'var(--ink)' : 'transparent', color: mode === tl.id ? 'var(--paper)' : 'var(--ink-2)' }}>
-              {tl.icon} {tl.label}
+            <button key={tl.id} role="radio" aria-checked={mode === tl.id} title={tl.label} onClick={() => (setMode(tl.id), setLinkFrom(null))} className="inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[12.5px] font-medium" style={{ background: mode === tl.id ? 'var(--ink)' : 'transparent', color: mode === tl.id ? 'var(--paper)' : 'var(--ink-2)' }}>
+              {tl.icon} <span className="max-sm:sr-only">{tl.label}</span>
             </button>
           ))}
         </div>

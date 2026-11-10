@@ -18,7 +18,7 @@ const Showroom = lazy(() => import('./studio/Showroom').then((m) => ({ default: 
 const ProjectPage = lazy(() => import('./ws/Project').then((m) => ({ default: m.ProjectPage })));
 const Show = lazy(() => import('./ws/Show').then((m) => ({ default: m.Show })));
 const GuestReview = lazy(() => import('./cloud/GuestReview').then((m) => ({ default: m.GuestReview })));
-const TeamPage = lazy(() => import('./cloud/Account').then((m) => ({ default: m.TeamPage })));
+const TeamPage = lazy(() => import('./pages/TeamGlass').then((m) => ({ default: m.TeamGlass })));
 const JoinPage = lazy(() => import('./cloud/Account').then((m) => ({ default: m.JoinPage })));
 const CasePage = lazy(() => import('./tell/CasePage').then((m) => ({ default: m.CasePage })));
 const LibraryPage = lazy(() => import('./pages/LibraryPage').then((m) => ({ default: m.LibraryPage })));
@@ -79,7 +79,7 @@ function Redirect({ to }: { to: string }) {
 
 const Blank = ({ dark }: { dark?: boolean }) => <div className={`fixed inset-0 ${dark ? (document.documentElement.dataset.theme === 'light' ? 'bg-[#f3f1ec]' : 'bg-[#0e0e10]') : 'bg-[#eee8dd]'}`} />;
 const APP_ROUTES = new Set(['app', 'project', 'pshow', 'team', 'join', 'editor', 'showroom', 'library', 'objects', 'templates', 'settings', 'admin', 'news', 'portfolio', 'share', 'deck', 'guide']);
-const GLASS = new Set(['login', 'landing', 'app', 'project', 'editor', 'showroom', 'library', 'objects', 'templates', 'settings', 'admin', 'news', 'portfolio', 'folio', 'share', 'deck']);
+const GLASS = new Set(['team', 'login', 'landing', 'app', 'project', 'editor', 'showroom', 'library', 'objects', 'templates', 'settings', 'admin', 'news', 'portfolio', 'folio', 'share', 'deck']);
 
 export function Root() {
   const hash = useHash();

@@ -63,7 +63,7 @@ export function GlassLanding() {
         <LensStage src={scene.src} alt={t(scene.alt)} id={stage} />
 
         <header className="relative z-10 px-4 pt-4 sm:px-6 sm:pt-5">
-          <Pane as="nav" className="mx-auto flex max-w-[1360px] items-center gap-2 rounded-full py-1.5 pe-1.5 ps-5" aria-label={t('Main')}>
+          <Pane as="nav" className="mx-auto flex min-w-0 max-w-[1360px] items-center gap-2 rounded-full py-1.5 pe-1.5 ps-4 sm:ps-5" aria-label={t('Main')}>
             <Mark />
             <div className="ms-auto hidden items-center gap-1 md:flex">
               <a href="#how" className="lg-btn lg-btn-plain">
@@ -76,18 +76,20 @@ export function GlassLanding() {
                 {t('Studio')}
               </button>
             </div>
-            <div className="ms-auto flex items-center gap-1.5 md:ms-2">
+            <div className="ms-auto flex min-w-0 shrink-0 items-center gap-1.5 md:ms-2">
               <span className="hidden sm:block">
                 <GlassLang />
               </span>
-              <ThemeSwitch />
-              <InstallButton />
+              <span className="hidden sm:contents">
+                <ThemeSwitch />
+                <InstallButton />
+              </span>
               {CLOUD && !signedIn() && (
-                <button type="button" onClick={() => go('/login?next=%2Fapp')} className="lg-btn lg-btn-ghost">
+                <button type="button" onClick={() => go('/login?next=%2Fapp')} className="lg-btn lg-btn-ghost max-sm:!px-2.5" aria-label={t('Sign in')}>
                   <LogIn size={15} /> <span className="max-sm:hidden">{t('Sign in')}</span>
                 </button>
               )}
-              <button type="button" onClick={() => go('/app')} className="lg-btn lg-btn-primary">
+              <button type="button" onClick={() => go('/app')} className="lg-btn lg-btn-primary whitespace-nowrap max-sm:!px-3.5 max-sm:text-[13px]">
                 {t('Open workspace')}
               </button>
             </div>
@@ -137,7 +139,7 @@ export function GlassLanding() {
 
         {/* the four moments: click to hold one */}
         <div className="relative z-10 mx-auto w-full max-w-[1360px] px-4 pb-5 sm:px-10 sm:pb-8">
-          <div className="grid grid-cols-4 gap-2 sm:gap-3" role="tablist" aria-label={t('Stages of a project')}>
+          <div className="grid grid-cols-2 gap-2 min-[480px]:grid-cols-4 sm:gap-3" role="tablist" aria-label={t('Stages of a project')}>
             {STAGES.map((s, i) => {
               const on = s === stage;
               return (
@@ -146,10 +148,10 @@ export function GlassLanding() {
                   role="tab"
                   aria-selected={on}
                   onClick={() => (setStage(s), setPaused(true))}
-                  className={`relative overflow-hidden rounded-[20px] px-3 py-3 text-start transition-colors sm:px-5 sm:py-4 ${on ? 'lg-glass-strong' : 'lg-glass hover:bg-white/10'}`}
+                  className={`relative overflow-hidden min-w-0 rounded-[20px] px-3 py-2.5 text-start transition-colors sm:px-5 sm:py-4 ${on ? 'lg-glass-strong' : 'lg-glass hover:bg-white/10'}`}
                 >
                   <span className="block text-[11px] font-bold text-white/70 sm:text-[12px]">0{i + 1}</span>
-                  <span className="mt-0.5 block text-[15px] font-bold sm:text-[20px]">{t(STAGE_LABEL[s])}</span>
+                  <span className="mt-0.5 block truncate text-[15px] font-bold sm:text-[20px]">{t(STAGE_LABEL[s])}</span>
                   {on && auto && <motion.span key={`bar-${stage}`} aria-hidden className="absolute bottom-0 start-0 h-[3px] bg-white" initial={{ width: '0%' }} animate={{ width: '100%' }} transition={{ duration: HOLD / 1000, ease: 'linear' }} />}
                   {on && !auto && <span aria-hidden className="absolute bottom-0 start-0 h-[3px] w-full bg-white" />}
                 </button>

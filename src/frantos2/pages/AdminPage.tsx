@@ -7,6 +7,7 @@ import { toast } from '../ws/kit';
 import { GlassPage } from '../glass/Shell';
 import { Pane } from '../glass/kit';
 import { adminCall, cloudEnabled, useAuth } from '../cloud/client';
+import { Avatar } from '../glass/Avatar';
 
 interface Account {
   id: string;
@@ -19,6 +20,7 @@ interface Account {
   last_sign_in_at: string | null;
   mfa: boolean;
   projects: string[];
+  avatar?: string | null;
 }
 interface Listing {
   me: string;
@@ -132,7 +134,7 @@ export function AdminPage() {
     return (
       <li className={`rounded-[18px] p-3.5 ${u.disabled ? 'bg-white/[0.04] opacity-70' : 'bg-white/[0.08]'}`}>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 text-[14px] font-bold">{(u.name || u.email).slice(0, 1).toUpperCase()}</span>
+          <Avatar src={u.avatar} name={u.name || u.email} size={38} />
           <div className="min-w-0 flex-1">
             <p className="truncate text-[14.5px] font-bold" dir="auto">
               {u.name} {self && <span className="text-white/60">· {t('you')}</span>}

@@ -169,7 +169,7 @@ export function PortfolioPage() {
                 </div>
               </>
             )}
-            <button type="button" onClick={() => go('/settings')} className="lg-btn lg-btn-plain min-h-[34px] text-[12.5px]">
+            <button type="button" onClick={() => go("/settings")} className="lg-btn lg-btn-plain h-auto min-h-[34px] whitespace-normal py-1.5 text-start text-[12.5px]">
               {t('Name, address, about and brand → Settings')}
             </button>
           </Pane>
@@ -180,8 +180,8 @@ export function PortfolioPage() {
                 const on = chosen.includes(p.id);
                 const pub = p.visibility === 'public' && !!p.cloud;
                 return (
-                  <li key={p.id} className={`flex items-center gap-2 rounded-[16px] p-1.5 ${on ? 'bg-white/15' : ''}`}>
-                    <button type="button" role="switch" aria-checked={on} onClick={() => toggle(p.id)} className="flex min-w-0 flex-1 items-center gap-2 text-start">
+                  <li key={p.id} className={`flex flex-wrap items-center gap-2 rounded-[16px] p-1.5 ${on ? 'bg-white/15' : ''}`}>
+                    <button type="button" role="switch" aria-checked={on} onClick={() => toggle(p.id)} className="flex min-w-0 grow basis-[190px] items-center gap-2 text-start">
                       <span className="h-11 w-11 shrink-0 overflow-hidden rounded-[10px] bg-white/10">
                         <AssetThumb asset={coverOf(p)} className="h-full w-full" />
                       </span>
@@ -189,11 +189,11 @@ export function PortfolioPage() {
                         <span dir="auto" className="block truncate text-[13.5px] font-bold">
                           {p.title}
                         </span>
-                        <span className="block text-[11.5px] text-white/60">{pub ? t('Case page public') : t('Case page private — preview only')}</span>
+                        <span className="line-clamp-2 block text-[11.5px] text-white/60">{pub ? t('Case page public') : t('Case page private — preview only')}</span>
                       </span>
                     </button>
                     {on && (
-                      <span className="flex">
+                      <span className="ms-auto flex">
                         <button type="button" onClick={() => move(p.id, -1)} className="lg-btn lg-btn-plain h-8 min-h-0 w-8 p-0" aria-label={t('Move up')}>
                           ↑
                         </button>

@@ -50,7 +50,7 @@ export function AppHeader({ action }: { action?: React.ReactNode }) {
     });
   return (
     <>
-      <Pane as="header" className="relative z-40 flex h-[60px] items-center gap-2 rounded-full pe-2 ps-5">
+      <Pane as="header" className="relative z-40 flex h-[60px] items-center gap-2 rounded-full pe-2 ps-4 sm:ps-5">
         <span className="shrink-0">
           <Mark onClick={() => go('/')} />
         </span>
@@ -58,17 +58,19 @@ export function AppHeader({ action }: { action?: React.ReactNode }) {
           {nav()}
         </nav>
         <div className="ms-auto flex shrink-0 items-center gap-1 lg:ms-0">
-          <SyncBadge />
+          <span className="max-sm:hidden">
+            <SyncBadge />
+          </span>
           <button type="button" onClick={openPalette} className="lg-btn lg-btn-plain lg-icon max-md:!hidden" aria-label={t('Search or run a command')} title={`${t('Search or run a command')} (⌘K)`}>
             <Search size={17} />
           </button>
-          <ThemeSwitch />
+          <span className="max-sm:hidden">
+            <ThemeSwitch />
+          </span>
           <span className="max-sm:hidden">
             <InstallButton compact />
           </span>
-          <span className="hidden xl:block">
-            <GlassAccount />
-          </span>
+          <GlassAccount />
           {action}
           <button type="button" onClick={() => setMenu((v) => !v)} aria-expanded={menu} className="lg-btn lg-btn-plain lg-icon relative" aria-label={t('Menu')} title={t('Menu')}>
             {menu ? <X size={18} /> : <Menu size={18} />}
@@ -89,12 +91,10 @@ export function AppHeader({ action }: { action?: React.ReactNode }) {
             </button>
             <div className="mt-1 flex items-center justify-between gap-2 border-t border-white/15 px-1.5 pt-2">
               <GlassLang />
-              <span className="sm:hidden">
+              <span className="flex items-center gap-1 sm:hidden">
+                <ThemeSwitch />
                 <InstallButton compact />
               </span>
-            </div>
-            <div className="px-1.5 pb-1 xl:hidden">
-              <GlassAccount />
             </div>
           </Pane>
         )}

@@ -421,3 +421,7 @@ html[data-theme='light'] .lg-section-bg { background: linear-gradient(180deg, #e
 .login-dots { width: 34px; height: 8px; background: radial-gradient(circle 4px, currentColor 98%, transparent) 0 50% / 12px 8px repeat-x; animation: login-dot 1s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .login-orbit, .login-sheen, .login-dots { animation: none; } }
 html[data-gfx='lite'] .login-orbit { animation-duration: 160s; }
+
+/* grid items may shrink below their content: a truncated line never widens a column past the screen */
+.f2 .grid > * { min-width: 0; }
+.lg h1, .lg h2 { overflow-wrap: anywhere; }

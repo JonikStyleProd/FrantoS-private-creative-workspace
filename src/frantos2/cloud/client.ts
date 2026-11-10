@@ -31,9 +31,11 @@ interface AuthState {
   mustChangePassword: boolean;
   /** signed in with a password but the account's 2FA code has not been entered yet */
   needsCode: boolean;
+  /** the account photo stored with the profile (data URL) */
+  avatar: string | null;
 }
 
-let auth: AuthState = { ready: !sb, session: null, name: '', studios: [], role: null, mustChangePassword: false, needsCode: false };
+let auth: AuthState = { ready: !sb, session: null, name: '', studios: [], role: null, mustChangePassword: false, needsCode: false, avatar: null };
 const ls = new Set<() => void>();
 const emit = (patch: Partial<AuthState>) => {
   auth = { ...auth, ...patch };
@@ -42,11 +44,17 @@ const emit = (patch: Partial<AuthState>) => {
 
 async function loadProfile(session: Session | null) {
   if (!sb || !session) {
-    emit({ ready: true, session: null, name: '', studios: [], role: null, mustChangePassword: false, needsCode: false });
+    emit({ ready: true, session: null, name: '', studios: [], role: null, mustChangePassword: false, needsCode: false, avatar: null });
     return;
   }
+  // newer columns may not exist yet on an older database: fall back to the name alone
+  const profile = async () => {
+    const full = await sb!.from('profiles').select('name, platform_role, must_change_password, avatar').eq('id', session.user.id).maybeSingle();
+    if (!full.error) return full;
+    return sb!.from('profiles').select('name').eq('id', session.user.id).maybeSingle();
+  };
   const [{ data: prof }, { data: mem }, { data: aal }] = await Promise.all([
-    sb.from('profiles').select('name, platform_role, must_change_password').eq('id', session.user.id).maybeSingle(),
+    profile() as Promise<{ data: any }>,
     sb.from('studio_members').select('role, studios(id, name)').eq('user_id', session.user.id),
     sb.auth.mfa.getAuthenticatorAssuranceLevel(),
   ]);
@@ -59,6 +67,7 @@ async function loadProfile(session: Session | null) {
     role: (prof?.platform_role as PlatformRole) ?? null,
     mustChangePassword: !!prof?.must_change_password,
     needsCode: aal?.currentLevel === 'aal1' && aal?.nextLevel === 'aal2',
+    avatar: prof?.avatar ?? null,
   });
 }
 
@@ -92,6 +101,13 @@ export async function signInWithEmail(email: string) {
 
 export async function signOut() {
   await sb?.auth.signOut();
+}
+
+/** keep the account photo with the profile (no-op until the database has the column) */
+export async function saveAvatar(avatar: string | null) {
+  if (!sb || !auth.session) return;
+  const { error } = await sb.from('profiles').update({ avatar }).eq('id', auth.session.user.id);
+  if (!error) emit({ ...auth, avatar });
 }
 
 /* ───────── password sign-in, password change, 2FA ───────── */

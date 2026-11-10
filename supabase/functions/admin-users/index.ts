@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
       case 'list': {
         const [{ data: users }, { data: profiles }, { data: access }, { data: log }] = await Promise.all([
           admin.auth.admin.listUsers({ perPage: 200 }),
-          admin.from('profiles').select('id, name, email, platform_role, must_change_password, disabled, created_at'),
+          admin.from('profiles').select('id, name, email, platform_role, must_change_password, disabled, created_at, avatar'),
           admin.from('project_access').select('project_id, user_id, can_approve'),
           admin.from('admin_audit').select('action, target, meta, at').order('at', { ascending: false }).limit(40),
         ]);

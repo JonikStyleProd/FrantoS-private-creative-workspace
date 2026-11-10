@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Download, HardDrive, Image as ImageIcon, Palette as PaletteIcon, Plus, Trash2, Type, UserRound, X } from 'lucide-react';
+import { Camera, Download, HardDrive, Image as ImageIcon, Palette as PaletteIcon, Plus, Trash2, Type, UserRound, X } from 'lucide-react';
 import { useI18n } from '../i18n';
 import { go } from '../route';
 import { useWs, ws } from '../ws/store';
@@ -14,7 +14,9 @@ import { projectPalette } from '../studio/palette';
 
 /** Profile, brand kit, language and theme, storage, export. Everything here stays in this browser until you publish. */
 import { SecurityPanel } from '../cloud/Security';
-import { cloudEnabled } from '../cloud/client';
+import { cloudEnabled, saveAvatar, useAuth } from '../cloud/client';
+import { Avatar, avatarFromFile } from '../glass/Avatar';
+import { useMyAvatar } from '../glass/account';
 
 export function SettingsPage() {
   const { t } = useI18n();
@@ -35,6 +37,19 @@ export function SettingsPage() {
   const mb = (n: number) => (n > 1e9 ? `${(n / 1e9).toFixed(1)} GB` : `${Math.round(n / 1e6)} MB`);
   const allColours = [...new Set(state.projects.flatMap((p) => projectPalette(p)))].slice(0, 24);
 
+  const auth = useAuth();
+  const myAvatar = useMyAvatar();
+  const pickAvatar = async (f: File) => {
+    if (!f.type.startsWith('image/')) return toast(t('Pick a photo: JPG, PNG or WebP.'), { tone: 'error' });
+    try {
+      const url = await avatarFromFile(f);
+      ws.setProfile({ avatar: url });
+      await saveAvatar(url);
+      toast(t('Photo updated'));
+    } catch {
+      toast(t('This photo could not be read. Try another file.'), { tone: 'error' });
+    }
+  };
   const pickLogo = async (files: FileList) => {
     const f = files[0];
     if (!f) return;
@@ -87,6 +102,36 @@ export function SettingsPage() {
           <h2 className="flex items-center gap-2 text-[18px] font-extrabold">
             <UserRound size={18} /> {t('Profile')}
           </h2>
+          <div className="flex flex-wrap items-center gap-4">
+            <label className="group relative cursor-pointer rounded-full focus-within:outline focus-within:outline-2 focus-within:outline-offset-4" title={t('Change the photo')}>
+              <Avatar src={myAvatar} name={profile.name || auth.name || 'You'} size={88} ring />
+              <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/45 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                <Camera size={22} />
+              </span>
+              <input type="file" accept="image/jpeg,image/png,image/webp,image/heic" className="sr-only" aria-label={t('Upload a photo')} onChange={(e) => (e.target.files?.[0] && pickAvatar(e.target.files[0]), (e.target.value = ''))} />
+            </label>
+            <div className="min-w-0 flex-1">
+              <p className="text-[15px] font-bold">{profile.name || auth.name || t('Your photo')}</p>
+              <p className="mt-0.5 text-[12.5px] text-white/65">{t('Shown in the header, on your comments and to your team. Square crop, kept small.')}</p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                <FilePick onFiles={(f) => f[0] && pickAvatar(f[0])} multiple={false} accept="image/jpeg,image/png,image/webp" className="lg-btn lg-btn-ghost min-h-[36px] text-[12.5px]">
+                  <Camera size={14} /> {myAvatar ? t('Change the photo') : t('Upload a photo')}
+                </FilePick>
+                {myAvatar && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      ws.setProfile({ avatar: undefined });
+                      saveAvatar(null);
+                    }}
+                    className="lg-btn lg-btn-plain min-h-[36px] text-[12.5px]"
+                  >
+                    <Trash2 size={13} /> {t('Remove')}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label={t('Name on the portfolio')} value={profile.name} onChange={(v) => ws.setProfile({ name: v })} />
             <Field label={t('Portfolio address')} prefix="/u/" value={profile.handle} onChange={(v) => ws.setProfile({ handle: v.toLowerCase().replace(/[^a-z0-9-]+/g, '-').slice(0, 32) })} />

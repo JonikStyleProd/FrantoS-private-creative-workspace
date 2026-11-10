@@ -296,6 +296,8 @@ export interface Profile {
   handle: string;
   role?: string;
   bio?: string;
+  /** a small square photo (WebP data URL) */
+  avatar?: string;
   links?: { label: string; url: string }[];
   /** projects shown on the portfolio, in order (only published case pages appear publicly) */
   projects?: string[];
