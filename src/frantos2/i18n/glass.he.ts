@@ -1367,4 +1367,7 @@ export const glassHe: Record<string, string> = {
   "Align to the top": "יישור למעלה",
   "Centre vertically": "מרכוז אנכי",
   "Align to the bottom": "יישור למטה",
+  "End on a 3D object": "סיום עם אובייקט תלת־ממדי",
+  "No — the story only": "לא — רק הסיפור",
+  "Turns once over the last {n} seconds.": "מסתובב פעם אחת ב־{n} השניות האחרונות.",
 };

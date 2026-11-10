@@ -1367,4 +1367,7 @@ export const glassRu: Record<string, string> = {
   "Align to the top": "Выровнять по верху",
   "Centre vertically": "По центру по вертикали",
   "Align to the bottom": "Выровнять по низу",
+  "End on a 3D object": "Финал с 3D-объектом",
+  "No — the story only": "Нет — только история",
+  "Turns once over the last {n} seconds.": "Делает один оборот за последние {n} с.",
 };

@@ -10,6 +10,8 @@ import { FilePick, upload } from '../ws/uploads';
 import { Pane } from '../glass/kit';
 import { DEFAULT_BRAND, fontCss } from '../studio/brand';
 import { canRecord, recordCanvas } from '../studio/record';
+import type { ObjectScene } from '../studio/scene';
+import { Box } from 'lucide-react';
 import { findBeats, fitToBeats } from './beats';
 import '../glass/glass.css';
 
@@ -41,7 +43,38 @@ function Animatic({ p }: { p: Project }) {
   const brand = { ...DEFAULT_BRAND, ...state.brand };
   const frames = p.story;
   const durs = frames.map((f) => f.duration ?? DEFAULT_DUR);
-  const total = durs.reduce((a, b) => a + b, 0);
+  // case film: the story, then one of the project's 3D objects turning once
+  const objects = (p.objects ?? []).filter((o) => o.source.kind === 'vessel' || p.assets.some((a) => a.id === (o.source as { assetId: string }).assetId));
+  const [objId, setObjId] = useState<string>('');
+  const OBJ_SECONDS = 5;
+  const storyTotal = durs.reduce((a, b) => a + b, 0);
+  const total = storyTotal + (objId ? OBJ_SECONDS : 0);
+  const sceneCanvas = useRef<HTMLCanvasElement>(null);
+  const obj3d = useRef<ObjectScene | null>(null);
+  const [objReady, setObjReady] = useState(false);
+  useEffect(() => {
+    setObjReady(false);
+    const o = objects.find((x) => x.id === objId);
+    if (!o || !sceneCanvas.current) return;
+    let dead = false;
+    let sc: ObjectScene | null = null;
+    (async () => {
+      const { createObjectScene } = await import('../studio/scene');
+      if (dead) return;
+      sc = createObjectScene(sceneCanvas.current!, { interactive: false, pixelRatio: 1 });
+      obj3d.current = sc;
+      const a = o.source.kind === 'model' ? p.assets.find((x) => x.id === (o.source as { assetId: string }).assetId) : undefined;
+      const url = a ? await assetUrl(a, 'full') : undefined;
+      await sc.setObject(o, url);
+      sc.setRecording(true, o.background);
+      if (!dead) setObjReady(true);
+    })();
+    return () => {
+      dead = true;
+      sc?.dispose();
+      obj3d.current = null;
+    };
+  }, [objId]); // eslint-disable-line react-hooks/exhaustive-deps
   const fade = p.animatic?.fade ?? 0.4;
   const sounds = p.assets.filter((a) => a.format === 'audio');
   const sound = sounds.find((a) => a.id === p.animatic?.audioAssetId);
@@ -85,6 +118,17 @@ function Animatic({ p }: { p: Project }) {
   const draw = (x: CanvasRenderingContext2D, tt: number, W: number, H: number) => {
     x.fillStyle = '#0b0c0f';
     x.fillRect(0, 0, W, H);
+    if (objId && tt >= storyTotal - fade && obj3d.current && sceneCanvas.current) {
+      const f = Math.max(0, (tt - storyTotal + fade) / (OBJ_SECONDS + fade));
+      obj3d.current.setPose({ az: -30 + f * 360, el: 12, zoom: 1 });
+      obj3d.current.draw();
+      const c = sceneCanvas.current;
+      const s2 = Math.max(W / c.width, H / c.height);
+      x.globalAlpha = tt < storyTotal ? 1 - (storyTotal - tt) / fade : 1;
+      x.drawImage(c, (W - c.width * s2) / 2, (H - c.height * s2) / 2, c.width * s2, c.height * s2);
+      x.globalAlpha = 1;
+      if (tt >= storyTotal) return;
+    }
     let start = 0;
     frames.forEach((f, i) => {
       const d = durs[i];
@@ -167,7 +211,7 @@ function Animatic({ p }: { p: Project }) {
       cancelAnimationFrame(raf);
       audio.current?.pause();
     };
-  }, [playing, ready, size, fade, durs.join(), frames.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [playing, ready, size, fade, durs.join(), frames.length, objId, objReady]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (playing || !ready || !canvas.current) return;
     draw(canvas.current.getContext('2d')!, time, canvas.current.width, canvas.current.height);
@@ -226,6 +270,8 @@ function Animatic({ p }: { p: Project }) {
   return (
     <div className="lg fixed inset-0 flex flex-col overflow-hidden" dir={dir}>
       {soundUrl && <audio ref={audio} src={soundUrl} preload="auto" />}
+      {/* the 3D object renders here, off screen, and is copied into the film */}
+      <canvas ref={sceneCanvas} aria-hidden className="pointer-events-none fixed -left-[4000px] top-0" style={{ width: S.w, height: S.h }} />
       <header className="flex flex-wrap items-center gap-2 p-3 sm:p-4">
         <Pane className="flex min-w-0 items-center gap-1 rounded-full py-1 pe-4 ps-1">
           <button type="button" onClick={() => go(`/p/${p.id}`)} className="lg-btn lg-btn-plain lg-icon" aria-label={t('Back to the project')}>
@@ -334,6 +380,23 @@ function Animatic({ p }: { p: Project }) {
                 </div>
               )}
             </div>
+
+            {objects.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="lg-label flex items-center gap-1.5">
+                  <Box size={13} /> {t('End on a 3D object')}
+                </p>
+                <select value={objId} onChange={(e) => setObjId(e.target.value)} className="lg-input h-10 text-[13px] [color-scheme:dark]" aria-label={t('End on a 3D object')}>
+                  <option value="">{t('No — the story only')}</option>
+                  {objects.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {t(o.title)}
+                    </option>
+                  ))}
+                </select>
+                {objId && <p className="text-[12px] text-white/60">{objReady ? t('Turns once over the last {n} seconds.', { n: OBJ_SECONDS }) : t('Preparing the object…')}</p>}
+              </div>
+            )}
 
             <label className="block space-y-1">
               <span className="lg-label">{t('Crossfade')}</span>
