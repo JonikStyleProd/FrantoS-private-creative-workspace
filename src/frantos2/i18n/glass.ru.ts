@@ -1370,4 +1370,7 @@ export const glassRu: Record<string, string> = {
   "End on a 3D object": "Финал с 3D-объектом",
   "No — the story only": "Нет — только история",
   "Turns once over the last {n} seconds.": "Делает один оборот за последние {n} с.",
+  "Demos ready offline · {n} files": "Демо доступны офлайн · файлов: {n}",
+  "Demos kept offline": "Демо сохранены офлайн",
+  "Keep the demos offline": "Сохранить демо для офлайна",
 };

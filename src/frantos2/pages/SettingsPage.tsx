@@ -19,6 +19,7 @@ import { Avatar, avatarFromFile } from '../glass/Avatar';
 import { useMyAvatar } from '../glass/account';
 import { KitGrid } from '../kits/KitPicker';
 import { TokensPanel } from '../kits/TokensPanel';
+import { OfflineDemos } from '../kits/OfflineDemos';
 import { Compass } from 'lucide-react';
 
 export function SettingsPage() {
@@ -277,9 +278,12 @@ export function SettingsPage() {
               <p className="mt-1.5 text-[12.5px] text-white/70">{t('{used} used of {quota} this browser allows', { used: mb(usage.used), quota: mb(usage.quota) })}</p>
             </div>
           )}
-          <button type="button" onClick={exportAll} className="lg-btn lg-btn-ghost">
-            <Download size={15} /> {t('Export all data (JSON)')}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={exportAll} className="lg-btn lg-btn-ghost">
+              <Download size={15} /> {t('Export all data (JSON)')}
+            </button>
+            <OfflineDemos />
+          </div>
           <p className="text-[12px] text-white/60">{t('The export holds projects, notes, boards and settings. Uploaded files stay in the browser.')}</p>
         </Pane>
       </div>

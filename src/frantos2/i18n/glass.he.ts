@@ -1370,4 +1370,7 @@ export const glassHe: Record<string, string> = {
   "End on a 3D object": "סיום עם אובייקט תלת־ממדי",
   "No — the story only": "לא — רק הסיפור",
   "Turns once over the last {n} seconds.": "מסתובב פעם אחת ב־{n} השניות האחרונות.",
+  "Demos ready offline · {n} files": "ההדגמות זמינות במצב לא מקוון · {n} קבצים",
+  "Demos kept offline": "ההדגמות שמורות לא מקוון",
+  "Keep the demos offline": "לשמור את ההדגמות לשימוש לא מקוון",
 };
