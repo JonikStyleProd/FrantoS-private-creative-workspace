@@ -250,6 +250,9 @@ export interface BoardLayer {
   h: number;
   rot?: number;
   opacity?: number;
+  /** locked layers cannot be moved by accident; hidden ones stay out of exports and presentations */
+  locked?: boolean;
+  hidden?: boolean;
   assetId?: string;
   objectId?: string;
   /** image crop: how the picture fills its frame */

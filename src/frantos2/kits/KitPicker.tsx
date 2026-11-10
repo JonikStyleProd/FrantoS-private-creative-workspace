@@ -57,7 +57,11 @@ export function KitPicker({ onClose }: { onClose: () => void }) {
   const { state } = useWs();
   const pick = (d: Discipline) => {
     ws.setProfile({ discipline: d });
-    window.setTimeout(onClose, 260);
+    window.setTimeout(() => {
+      onClose();
+      // right after the first choice: the five-step tour, once
+      import('./Help').then((m) => !m.tourDone() && m.openTour());
+    }, 260);
   };
   const skip = () => {
     try {

@@ -450,3 +450,24 @@ html[data-theme='light'] .lg-pop { background: rgba(250, 249, 246, 0.985); }
   .handoff-print, .handoff-print * { color: #14171c !important; background: transparent !important; box-shadow: none !important; backdrop-filter: none !important; }
   .handoff-print .no-print { display: none !important; }
 }
+
+/* sections that stay dark in both themes (landing configurator, demo gallery): the light theme's mirror stops here */
+html[data-theme='light'] .lg .lg-dark {
+  --lg-ink: #f4f0ea;
+  --lg-ink-2: rgba(244, 240, 234, 0.8);
+  --lg-ink-3: rgba(244, 240, 234, 0.62);
+  --lg-fill: rgba(28, 32, 38, 0.55);
+  --lg-fill-strong: rgba(28, 32, 38, 0.86);
+  --lg-fill-soft: rgba(255, 255, 255, 0.1);
+  --lg-line: rgba(255, 255, 255, 0.16);
+  --lg-hi: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 18px 50px rgba(0, 0, 0, 0.35);
+  color: #f4f0ea;
+}
+html[data-theme='light'] .lg .lg-dark .text-white\/75 { color: rgba(255, 255, 255, 0.75); }
+html[data-theme='light'] .lg .lg-dark .text-white\/70 { color: rgba(255, 255, 255, 0.7); }
+html[data-theme='light'] .lg .lg-dark .bg-white { background-color: #ffffff; }
+html[data-theme='light'] .lg .lg-dark .text-\[\#11151a\] { color: #11151a; }
+html[data-theme='light'] .lg .lg-dark .lg-btn-primary { background: #ffffff; color: #11151a; }
+html[data-theme='light'] .lg .lg-dark .lg-btn-ghost { background: rgba(255, 255, 255, 0.1); color: #f4f0ea; border-color: rgba(255, 255, 255, 0.2); }
+html[data-theme='light'] .lg .lg-dark .lg-glass,
+html[data-theme='light'] .lg .lg-dark .lg-glass-strong { background: rgba(255, 255, 255, 0.1); color: #f4f0ea; border-color: rgba(255, 255, 255, 0.18); }

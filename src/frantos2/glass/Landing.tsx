@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { BeforeAfter, Configurator, DemoGallery, ScrollCase } from './LandingMore';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ArrowRight, Cloud, Languages, Lock, LogIn, MessageSquare, Play, Sparkles } from 'lucide-react';
 
@@ -166,6 +167,18 @@ export function GlassLanding() {
 
       {/* ───────── the studio, four modes ───────── */}
       <StudioModes />
+
+      {/* ───────── one case, told by scrolling ───────── */}
+      <ScrollCase />
+
+      {/* ───────── recolour the runner, live ───────── */}
+      <Configurator />
+
+      {/* ───────── v1 → v2 with the client's words ───────── */}
+      <BeforeAfter />
+
+      {/* ───────── eight demos ───────── */}
+      <DemoGallery />
 
       {/* ───────── how it works ───────── */}
       <section id="how" className="relative isolate overflow-hidden">

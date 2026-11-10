@@ -53,7 +53,7 @@ test('designer: own project, upload, second version, note survives reload', asyn
 
 test('art director: open a waiting note, resolve and reopen, timecoded note, present', async ({ page }) => {
   await page.goto('/#/app');
-  await page.getByRole('button', { name: /Shadow side could go one stop deeper/ }).click();
+  await page.getByRole('button', { name: /Shadow side could go one stop deeper/ }).first().click();
   await expect(page).toHaveURL(/c=c-shadow/);
   if (isPhone(page)) await expect(page.getByRole('complementary', { name: 'Details' })).toBeVisible();
   await page.getByRole('button', { name: 'Resolve' }).click();

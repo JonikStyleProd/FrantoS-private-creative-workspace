@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Box, Code2, FolderInput, Image as ImageIcon, Link2, Music, Pencil, PenTool, Search, Smartphone, Sparkles, Sun, Type as TypeIcon, Upload, Video, X } from 'lucide-react';
+import { Plus, Box, Code2, FolderInput, Image as ImageIcon, Link2, Music, Pencil, PenTool, Search, Smartphone, Sparkles, Sun, Type as TypeIcon, Upload, Video, X } from 'lucide-react';
 import { MaterialView } from '../kits/MaterialView';
 import { kitOf } from '../kits/disciplines';
 import { EasingPanel } from '../kits/Easing';
@@ -33,6 +33,21 @@ const KINDS: { id: KindId; label: string; icon: React.ElementType; test: (a: Ass
   { id: 'ref', label: 'References', icon: FolderInput, test: (a) => a.isReference },
 ];
 const FORMAT_LABEL: Record<string, string> = { screen: 'screen', svg: 'vector', lottie: 'Lottie', font: 'font', code: 'code', link: 'website', audio: 'sound' };
+/** smart collections: a few that keep themselves up to date, plus searches you save */
+type Saved = { id: string; name: string; q: string; kind: KindId; colour: string | null };
+const SMART: { id: string; label: string; test: (a: Asset, p: Project) => boolean }[] = [
+  { id: 'week', label: 'Added this week', test: (a) => a.createdAt > Date.now() - 7 * 864e5 },
+  { id: 'review', label: 'Waiting for the client', test: (a, p) => p.works.some((w) => w.status === 'client' && w.versions[w.versions.length - 1]?.assetId === a.id) },
+  { id: 'approved', label: 'Approved', test: (a, p) => p.works.some((w) => w.versions.some((v) => v.id === w.approvedVersionId && v.assetId === a.id)) },
+  { id: 'untagged', label: 'Without tags', test: (a) => !a.tags?.length },
+];
+const loadSaved = (): Saved[] => {
+  try {
+    return JSON.parse(localStorage.getItem('frantos-collections') ?? '[]');
+  } catch {
+    return [];
+  }
+};
 const hashParam = (k: string) => new URLSearchParams(window.location.hash.split('?')[1] ?? '').get(k);
 
 /**
@@ -49,6 +64,17 @@ export function LibraryPage() {
   const [linking, setLinking] = useState(false);
   const [easing, setEasing] = useState(() => hashParam('easing') === '1');
   const kit = kitOf(state.profile?.discipline);
+  const [smart, setSmart] = useState<string | null>(null);
+  const [saved, setSaved] = useState<Saved[]>(loadSaved);
+  const [naming, setNaming] = useState<string | null>(null);
+  const storeSaved = (list: Saved[]) => {
+    setSaved(list);
+    try {
+      localStorage.setItem('frantos-collections', JSON.stringify(list));
+    } catch {
+      /* fine */
+    }
+  };
   // your profession's kinds first, the rest in their usual order; kinds you have no files of yet stay hidden
   const kinds = useMemo(() => {
     const has = (k: (typeof KINDS)[number]) => k.id === 'all' || k.id === kind || state.projects.some((p) => p.assets.some(k.test));
@@ -87,6 +113,7 @@ export function LibraryPage() {
   const needle = q.trim().toLowerCase();
   const shown = rows.filter(({ a, p }) => {
     if (!KINDS.find((k) => k.id === kind)!.test(a)) return false;
+    if (smart && !SMART.find((x) => x.id === smart)?.test(a, p)) return false;
     if (colour && !(a.palette ?? []).some((c) => dist(c, colour) < 110)) return false;
     if (!needle) return true;
     const tag = needle.startsWith('#') ? needle.slice(1) : null;
@@ -162,6 +189,48 @@ export function LibraryPage() {
             ))}
           </div>
         </Pane>
+        <div className="mt-3 flex flex-wrap items-center gap-1.5" role="group" aria-label={t('Collections')}>
+          <span className="lg-label lg-shadow-text me-1">{t('Collections')}</span>
+          {SMART.map((c) => (
+            <button key={c.id} type="button" aria-pressed={smart === c.id} onClick={() => setSmart(smart === c.id ? null : c.id)} className={`min-h-[32px] whitespace-nowrap rounded-full px-3 text-[12.5px] font-bold ${smart === c.id ? 'bg-white text-[#11151a]' : 'lg-glass hover:bg-white/15'}`}>
+              {t(c.label)}
+            </button>
+          ))}
+          {saved.map((c) => {
+            const on = q === c.q && kind === c.kind && colour === c.colour;
+            return (
+              <span key={c.id} className={`group flex min-h-[32px] items-center rounded-full ps-3 text-[12.5px] font-bold ${on ? 'bg-white text-[#11151a]' : 'lg-glass'}`}>
+                <button type="button" onClick={() => (setQ(c.q), setKind(c.kind), setColour(c.colour), setSmart(null))} className="whitespace-nowrap">
+                  {c.name}
+                </button>
+                <button type="button" onClick={() => storeSaved(saved.filter((x) => x.id !== c.id))} className="px-2 opacity-50 hover:opacity-100" aria-label={t('Remove {name}', { name: c.name })}>
+                  <X size={11} />
+                </button>
+              </span>
+            );
+          })}
+          {(q || kind !== 'all' || colour) &&
+            (naming == null ? (
+              <button type="button" onClick={() => setNaming(q.trim() || t(KINDS.find((k) => k.id === kind)!.label))} className="lg-btn lg-btn-plain min-h-[32px] px-2.5 text-[12px]">
+                <Plus size={12} /> {t('Save this view')}
+              </button>
+            ) : (
+              <form
+                className="flex items-center gap-1"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!naming.trim()) return;
+                  storeSaved([...saved, { id: Math.random().toString(36).slice(2), name: naming.trim().slice(0, 40), q, kind, colour }]);
+                  setNaming(null);
+                }}
+              >
+                <input autoFocus dir="auto" value={naming} onChange={(e) => setNaming(e.target.value)} aria-label={t('Collection name')} className="lg-input h-8 w-40 px-2.5 text-[12.5px]" />
+                <button type="submit" className="lg-btn lg-btn-primary min-h-[32px] px-3 text-[12px]">
+                  {t('Save view')}
+                </button>
+              </form>
+            ))}
+        </div>
         {colours.length > 0 && (
           <div className="mt-3 flex flex-wrap items-center gap-1.5" role="group" aria-label={t('Find by colour')}>
             <span className="lg-label lg-shadow-text me-1">{t('By colour')}</span>

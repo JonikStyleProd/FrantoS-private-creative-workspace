@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { PrintDialog } from '../kits/PrintDialog';
-import { Printer } from 'lucide-react';
+import { AlignCenterHorizontal, AlignEndHorizontal, AlignStartHorizontal, Eye, EyeOff, Grid3x3, LayoutDashboard, Lock, Printer, Unlock } from 'lucide-react';
+import { boardFromMoodboard, fourLayouts } from '../kits/layouts';
 import { AnimatePresence } from 'framer-motion';
 import { Play, AlignCenter, AlignLeft, AlignRight, ArrowDown, ArrowUp, Box, Copy, Download, Image as ImageIcon, Layers, LayoutTemplate, Palette as PaletteIcon, Plus, Square, Trash2, Type, Wand2, X } from 'lucide-react';
 import { useI18n } from '../i18n';
@@ -60,6 +61,11 @@ function BoardEditor({ p, stored, narrow, onPick, onCreate }: { p: Project; stor
   const [sel, setSel] = useState<string | null>(null);
   const [guides, setGuides] = useState<{ v: number[]; h: number[] }>({ v: [], h: [] });
   const [adding, setAdding] = useState(false);
+  // a snapping grid: 24 cells across the short side
+  const [grid, setGrid] = useState(() => localStorage.getItem('frantos-grid') === '1');
+  const gridStep = Math.max(4, Math.round(Math.min(stored.w, stored.h) / 24));
+  const toggleGrid = () => setGrid((g) => (localStorage.setItem('frantos-grid', g ? '0' : '1'), !g));
+  const [layouts, setLayouts] = useState(false);
   // #/s/:id?m=canvas&print=1 (the project's Tools menu) opens the print export straight away
   const [printing, setPrinting] = useState(() => /[?&]print=1/.test(window.location.hash));
   const [sheet, setSheet] = useState<null | 'boards' | 'layer'>(null);
@@ -136,6 +142,7 @@ function BoardEditor({ p, stored, narrow, onPick, onCreate }: { p: Project; stor
   const onDown = (e: React.PointerEvent, l: BoardLayer, h: Handle) => {
     e.stopPropagation();
     setSel(l.id);
+    if (l.locked) return;
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     drag.current = { id: l.id, h, sx: e.clientX, sy: e.clientY, o: l };
   };
@@ -151,6 +158,10 @@ function BoardEditor({ p, stored, narrow, onPick, onCreate }: { p: Project; stor
     if (d.h === 'move') {
       let x = o.x + dx;
       let y = o.y + dy;
+      if (grid && !e.altKey) {
+        x = Math.round(x / gridStep) * gridStep;
+        y = Math.round(y / gridStep) * gridStep;
+      }
       const xs = [0, b.w / 2, b.w, ...b.layers.filter((l) => l.id !== o.id).flatMap((l) => [l.x, l.x + l.w / 2, l.x + l.w])];
       const ys = [0, b.h / 2, b.h, ...b.layers.filter((l) => l.id !== o.id).flatMap((l) => [l.y, l.y + l.h / 2, l.y + l.h])];
       for (const [k, off] of [[0, 0], [1, o.w / 2], [2, o.w]] as const) {
@@ -379,7 +390,20 @@ function BoardEditor({ p, stored, narrow, onPick, onCreate }: { p: Project; stor
                 {a === 'start' ? <AlignLeft size={15} /> : a === 'center' ? <AlignCenter size={15} /> : <AlignRight size={15} />}
               </button>
             ))}
-            <span className="ms-auto self-center text-[11.5px] tabular-nums text-white/60">
+            {(['top', 'middle', 'bottom'] as const).map((a) => (
+              <button key={a} type="button" onClick={() => patchLayer(layer.id, { y: Math.round(a === 'top' ? 0 : a === 'middle' ? (b.h - layer.h) / 2 : b.h - layer.h) }, true)} className="lg-btn lg-btn-plain lg-icon min-h-[34px]" title={t(a === 'top' ? 'Align to the top' : a === 'middle' ? 'Centre vertically' : 'Align to the bottom')} aria-label={t(a === 'top' ? 'Align to the top' : a === 'middle' ? 'Centre vertically' : 'Align to the bottom')}>
+                {a === 'top' ? <AlignStartHorizontal size={15} /> : a === 'middle' ? <AlignCenterHorizontal size={15} /> : <AlignEndHorizontal size={15} />}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button type="button" onClick={() => patchLayer(layer.id, { locked: !layer.locked }, true)} aria-pressed={!!layer.locked} className={`lg-btn min-h-[34px] flex-1 text-[12px] ${layer.locked ? 'lg-btn-primary' : 'lg-btn-ghost'}`}>
+              {layer.locked ? <Lock size={13} /> : <Unlock size={13} />} {layer.locked ? t('Locked') : t('Lock')}
+            </button>
+            <button type="button" onClick={() => patchLayer(layer.id, { hidden: !layer.hidden }, true)} aria-pressed={!!layer.hidden} className={`lg-btn min-h-[34px] flex-1 text-[12px] ${layer.hidden ? 'lg-btn-primary' : 'lg-btn-ghost'}`}>
+              {layer.hidden ? <EyeOff size={13} /> : <Eye size={13} />} {layer.hidden ? t('Hidden') : t('Hide')}
+            </button>
+            <span className="ms-1 self-center whitespace-nowrap text-[11.5px] tabular-nums text-white/60">
               {Math.round(layer.w)} × {Math.round(layer.h)}
             </span>
           </div>
@@ -400,8 +424,46 @@ function BoardEditor({ p, stored, narrow, onPick, onCreate }: { p: Project; stor
           </label>
           <textarea id="bd-notes" dir="auto" rows={3} className="lg-input text-[13.5px]" value={b.notes ?? ''} placeholder={t('What to say on this slide. Only you see it in presenter view.')} onChange={(e) => commit({ ...b, notes: e.target.value })} />
           <p className="text-[11.5px] leading-[1.45] text-white/60">{t('Click a layer to edit it. Drag to move, the corner to resize (Shift keeps proportions, Alt turns snapping off). Arrows nudge, Delete removes, ⌘D duplicates.')}</p>
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => setLayouts(true)} disabled={!b.layers.some((l) => l.kind === 'image' || l.kind === 'object')} className="lg-btn lg-btn-ghost h-auto min-h-[38px] whitespace-normal py-1.5 text-[12px] leading-tight disabled:opacity-40">
+              <LayoutDashboard size={14} className="shrink-0" /> {t('Four layouts')}
+            </button>
+            <button
+              type="button"
+              disabled={!p.moodboard.length}
+              onClick={() => {
+                const d = boardFromMoodboard(p);
+                if (!d) return;
+                onPick(ws.addBoard(p.id, d));
+                toast(t('Board made from the moodboard'));
+              }}
+              className="lg-btn lg-btn-ghost h-auto min-h-[38px] whitespace-normal py-1.5 text-[12px] leading-tight disabled:opacity-40"
+            >
+              <LayoutTemplate size={14} className="shrink-0" /> {t('From the moodboard')}
+            </button>
+          </div>
         </Section>
       )}
+      <Section title={t('Layers')} icon={<Layers size={16} />}>
+        <button type="button" onClick={toggleGrid} aria-pressed={grid} className={`lg-btn min-h-[34px] w-full text-[12px] ${grid ? 'lg-btn-primary' : 'lg-btn-ghost'}`}>
+          <Grid3x3 size={14} /> {grid ? t('Grid on · snapping') : t('Show the grid')}
+        </button>
+        <ol className="space-y-1">
+          {[...b.layers].reverse().map((l) => (
+            <li key={l.id} className={`flex items-center gap-1 rounded-[12px] ${l.id === sel ? 'bg-white/20' : 'hover:bg-white/10'}`}>
+              <button type="button" onClick={() => setSel(l.id)} className={`min-w-0 flex-1 truncate px-2.5 py-1.5 text-start text-[12.5px] ${l.hidden ? 'opacity-50' : ''}`}>
+                {l.kind === 'text' ? l.text?.split('\n')[0] || t('Text') : t(l.kind === 'rect' ? 'Shape' : l.kind === 'palette' ? 'Palette' : l.kind === 'object' ? '3D object' : (p.assets.find((a) => a.id === l.assetId)?.title ?? 'Image'))}
+              </button>
+              <button type="button" onClick={() => patchLayer(l.id, { hidden: !l.hidden }, true)} className="lg-btn lg-btn-plain lg-icon min-h-[28px]" aria-label={l.hidden ? t('Show') : t('Hide')} aria-pressed={!!l.hidden}>
+                {l.hidden ? <EyeOff size={13} /> : <Eye size={13} />}
+              </button>
+              <button type="button" onClick={() => patchLayer(l.id, { locked: !l.locked }, true)} className="lg-btn lg-btn-plain lg-icon min-h-[28px]" aria-label={l.locked ? t('Unlock') : t('Lock')} aria-pressed={!!l.locked}>
+                {l.locked ? <Lock size={13} /> : <Unlock size={13} className="opacity-40" />}
+              </button>
+            </li>
+          ))}
+        </ol>
+      </Section>
       <Section title={t('Export')} icon={<Download size={16} />}>
         <button
           type="button"
@@ -481,6 +543,12 @@ function BoardEditor({ p, stored, narrow, onPick, onCreate }: { p: Project; stor
             {sorted.map((l) => (
               <LayerView key={l.id} p={p} l={l} brandFont={brandFont} rtl={dir === 'rtl'} selected={l.id === sel} scale={fit} onDown={(e, h) => onDown(e, l, h)} />
             ))}
+            {grid && (
+              <div
+                className="pointer-events-none absolute inset-0"
+                style={{ backgroundImage: `linear-gradient(to right, rgba(79,139,255,.28) ${1 / fit}px, transparent ${1 / fit}px), linear-gradient(to bottom, rgba(79,139,255,.28) ${1 / fit}px, transparent ${1 / fit}px)`, backgroundSize: `${gridStep}px ${gridStep}px` }}
+              />
+            )}
             {guides.v.map((x) => (
               <div key={`v${x}`} className="pointer-events-none absolute inset-y-0 bg-[#ff4fa3]" style={{ left: x, width: 1 / fit }} />
             ))}
@@ -558,6 +626,7 @@ function BoardEditor({ p, stored, narrow, onPick, onCreate }: { p: Project; stor
           </AnimatePresence>
         </>
       )}
+      {layouts && <LayoutsDialog p={p} b={b} rtl={dir === 'rtl'} brandFont={brandFont} onClose={() => setLayouts(false)} onPick={(id) => (setLayouts(false), onPick(id))} />}
       {printing && <PrintDialog p={p} b={b} rtl={dir === 'rtl'} brandFont={brandFont} onClose={() => setPrinting(false)} />}
     </>
   );
@@ -567,7 +636,7 @@ export function LayerView({ p, l, rtl, selected, scale, onDown, brandFont }: { p
   const asset = l.kind === 'image' ? p.assets.find((a) => a.id === l.assetId) : undefined;
   const obj = l.kind === 'object' ? (p.objects ?? []).find((o) => o.id === l.objectId) : undefined;
   const k = 1 / scale;
-  const style: React.CSSProperties = { left: l.x, top: l.y, width: l.w, height: l.h, opacity: l.opacity ?? 1, borderRadius: l.kind === 'text' || l.kind === 'palette' ? undefined : l.radius };
+  const style: React.CSSProperties = { left: l.x, top: l.y, width: l.w, height: l.h, opacity: l.hidden ? 0.12 : (l.opacity ?? 1), borderRadius: l.kind === 'text' || l.kind === 'palette' ? undefined : l.radius };
   const content = useMemo(() => {
     if (l.kind === 'image') return <AssetThumb asset={asset} size="full" fit={l.fit ?? 'cover'} className="pointer-events-none h-full w-full" />;
     if (l.kind === 'object') return obj?.thumb ? <img src={obj.thumb} alt="" draggable={false} className={`pointer-events-none h-full w-full ${l.fit === 'cover' ? 'object-cover' : 'object-contain'}`} /> : null;
@@ -587,7 +656,7 @@ export function LayerView({ p, l, rtl, selected, scale, onDown, brandFont }: { p
     );
   }, [l, asset, obj?.thumb, rtl, brandFont]);
   return (
-    <div className={`absolute select-none ${onDown ? 'cursor-move touch-none' : ''} ${l.kind === 'image' || l.kind === 'object' ? 'overflow-hidden' : ''}`} style={style} onPointerDown={onDown ? (e) => onDown(e, 'move') : undefined}>
+    l.hidden && !onDown ? null : <div className={`absolute select-none ${onDown ? (l.locked ? 'cursor-default touch-none' : 'cursor-move touch-none') : ''} ${l.kind === 'image' || l.kind === 'object' ? 'overflow-hidden' : ''}`} style={style} onPointerDown={onDown ? (e) => onDown(e, 'move') : undefined}>
       {content}
       {selected && (
         <>
@@ -609,6 +678,64 @@ export function LayerView({ p, l, rtl, selected, scale, onDown, brandFont }: { p
           ))}
         </>
       )}
+    </div>
+  );
+}
+
+/** Four compositions of this board's pictures and words, rendered small; pick one and it becomes a new board. */
+function LayoutsDialog({ p, b, rtl, brandFont, onClose, onPick }: { p: Project; b: Board; rtl: boolean; brandFont?: BrandFont; onClose: () => void; onPick: (id: string) => void }) {
+  const { t } = useI18n();
+  const opts = useMemo(() => fourLayouts(b), [b]);
+  const [shots, setShots] = useState<(string | null)[]>(opts.map(() => null));
+  useEffect(() => {
+    let live = true;
+    const urls: string[] = [];
+    opts.forEach(async (o, i) => {
+      const blob = await renderBoard(p, { ...o.board, id: 'preview', createdAt: 0, updatedAt: 0 }, rtl, brandFont);
+      const small = await downscale(blob, 900, 'image/webp');
+      const u = URL.createObjectURL(small);
+      urls.push(u);
+      if (live) setShots((s) => s.map((x, k) => (k === i ? u : x)));
+    });
+    return () => {
+      live = false;
+      urls.forEach((u) => URL.revokeObjectURL(u));
+    };
+  }, [opts]); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/45 p-3" onClick={onClose}>
+      <Pane strong className="lg-pop lg-scroll max-h-[94vh] w-full max-w-[880px] overflow-y-auto rounded-[28px] p-5" role="dialog" aria-modal aria-labelledby="lo-title" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+        <div className="flex items-start gap-2">
+          <div className="flex-1">
+            <p id="lo-title" className="text-[19px] font-extrabold">
+              {t('Four layouts')}
+            </p>
+            <p className="mt-1 text-[13px] text-white/70">{t('The same pictures and words, composed four ways. Pick one — it becomes a new board, this one stays.')}</p>
+          </div>
+          <button type="button" onClick={onClose} className="lg-btn lg-btn-plain lg-icon" aria-label={t('Close')}>
+            <X size={17} />
+          </button>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {opts.map((o, i) => (
+            <button
+              key={o.name}
+              type="button"
+              onClick={() => {
+                const id = ws.addBoard(p.id, { ...o.board, title: `${b.title} · ${t(o.name)}` });
+                toast(t('New board: {name}', { name: t(o.name) }));
+                onPick(id);
+              }}
+              className="group overflow-hidden rounded-[18px] text-start ring-1 ring-white/15 hover:ring-2 hover:ring-white"
+            >
+              <span className="flex items-center justify-center bg-black/30 p-3" style={{ aspectRatio: '16 / 10' }}>
+                {shots[i] ? <img src={shots[i]!} alt="" className="max-h-full max-w-full rounded-[6px] shadow-[0_10px_30px_-10px_rgba(0,0,0,.6)]" /> : <span className="h-1/2 w-1/2 animate-pulse rounded-[8px] bg-white/10" />}
+              </span>
+              <span className="block px-3 py-2 text-[13.5px] font-bold">{t(o.name)}</span>
+            </button>
+          ))}
+        </div>
+      </Pane>
     </div>
   );
 }

@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { Compass, KanbanSquare, Keyboard } from 'lucide-react';
+import { openKeys, openTour } from '../kits/Help';
 import { AnimatePresence } from 'framer-motion';
 import { Box, FolderOpen, Images, LayoutTemplate, Menu, Search, Settings, Sparkles, UserRound, X } from 'lucide-react';
 import './glass.css';
@@ -17,6 +19,7 @@ export const SECTIONS = [
   { path: '/app', label: 'Projects', icon: FolderOpen },
   { path: '/library', label: 'Library', icon: Images },
   { path: '/objects', label: 'Objects', icon: Box },
+  { path: '/plan', label: 'Plan', icon: KanbanSquare },
   { path: '/templates', label: 'Templates', icon: LayoutTemplate },
   { path: '/portfolio', label: 'Portfolio', icon: UserRound },
   { path: '/settings', label: 'Settings', icon: Settings },
@@ -85,6 +88,12 @@ export function AppHeader({ action }: { action?: React.ReactNode }) {
             <button type="button" onClick={() => go('/new')} className="flex h-11 items-center gap-2 rounded-full px-3.5 text-[13.5px] font-bold hover:bg-white/10">
               <Sparkles size={16} /> {t("What's new")}
               {unseen && <span className="ms-auto h-2 w-2 rounded-full bg-[var(--lg-accent)]" />}
+            </button>
+            <button type="button" onClick={() => (setMenu(false), openTour())} className="flex h-11 items-center gap-2 rounded-full px-3.5 text-[13.5px] font-bold hover:bg-white/10">
+              <Compass size={16} /> {t('Take the tour')}
+            </button>
+            <button type="button" onClick={() => (setMenu(false), openKeys())} className="flex h-11 items-center gap-2 rounded-full px-3.5 text-[13.5px] font-bold hover:bg-white/10">
+              <Keyboard size={16} /> {t('Keyboard shortcuts')} <kbd className="ms-auto text-[11.5px] text-white/50">?</kbd>
             </button>
             <button type="button" onClick={openPalette} className="flex h-11 items-center gap-2 rounded-full px-3.5 text-[13.5px] font-bold hover:bg-white/10">
               <Search size={16} /> {t('Search or run a command')} <kbd className="ms-auto text-[11.5px] text-white/50">⌘K</kbd>

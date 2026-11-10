@@ -30,6 +30,8 @@ export type Route =
   | { name: 'flow'; id: string; proto: boolean; screen?: string }
   | { name: 'handoff'; id: string }
   | { name: 'animatic'; id: string }
+  | { name: 'decisions'; id: string }
+  | { name: 'plan' }
   | { name: 'library' }
   | { name: 'objects' }
   | { name: 'templates' }
@@ -55,6 +57,7 @@ export function parse(hash: string): Route {
   if (a === 'app') return { name: 'app' };
   if (a === 'login') return { name: 'login', next: safeNext(new URLSearchParams(query).get('next')) };
   if (a === 'library') return { name: 'library' };
+  if (a === 'plan') return { name: 'plan' };
   if (a === 'objects') return { name: 'objects' };
   if (a === 'templates') return { name: 'templates' };
   if (a === 'settings') return { name: 'settings' };
@@ -80,6 +83,7 @@ export function parse(hash: string): Route {
     if (c === 'proto') return { name: 'flow', id: b, proto: true, screen: d };
     if (c === 'handoff') return { name: 'handoff', id: b };
     if (c === 'animatic') return { name: 'animatic', id: b };
+    if (c === 'decisions') return { name: 'decisions', id: b };
     const tab = (TABS as string[]).includes(c ?? '') ? (c as ProjectTab) : 'overview';
     return { name: 'project', id: b, tab, sub: d, q: new URLSearchParams(query) };
   }

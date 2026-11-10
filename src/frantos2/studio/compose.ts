@@ -86,6 +86,7 @@ export async function renderBoard(p: Project, b: Board, rtl = false, brandFont?:
   x.fillStyle = b.bg;
   x.fillRect(0, 0, b.w, b.h);
   for (const l of b.layers) {
+    if (l.hidden) continue;
     x.save();
     x.globalAlpha = l.opacity ?? 1;
     if (l.radius && l.kind !== 'text' && l.kind !== 'palette') {
