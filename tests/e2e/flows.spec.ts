@@ -246,3 +246,30 @@ test('site motion: timeline scrubs the entrances, the inspector changes them, th
   await expect(anyScroll).toHaveClass(/is-in/);
   await expect.poll(() => anyScroll.evaluate((e) => getComputedStyle(e).animationName)).toBe('none');
 });
+
+test('site export: static site and React project as ZIP, PNG; an unknown public address explains itself', async ({ page }) => {
+  await page.goto('/#/s/saltwater?m=site');
+  await expect(page.locator('.fs-page h1')).toBeVisible();
+  await page.getByRole('button', { name: 'Export' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Export' });
+  await dialog.getByRole('radio', { name: /All pages/ }).click();
+  const read = async (name: RegExp) => {
+    const [d] = await Promise.all([page.waitForEvent('download'), dialog.getByRole('button', { name }).click()]);
+    const fs = await import('fs');
+    return { file: d.suggestedFilename(), body: fs.readFileSync((await d.path())!).toString('latin1') };
+  };
+  const site = await read(/Website · HTML/);
+  expect(site.file).toMatch(/-site\.zip$/);
+  for (const f of ['index.html', 'two-days-for-one-loaf.html', 'css/fonts.css', 'js/motion.js', '.woff2', 'assets/']) expect(site.body).toContain(f);
+  expect(site.body).toContain('class="fs-page');
+  const react = await read(/React \+ Vite/);
+  for (const f of ['package.json', 'src/main.jsx', 'src/useMotion.js', 'tailwind.tokens.js', 'className="fs-page']) expect(react.body).toContain(f);
+  const png = await read(/PNG · 390/);
+  expect(png.file).toMatch(/-390\.png$/);
+  expect(png.body.slice(1, 4)).toBe('PNG');
+  // publishing a demo is not possible: it lives in this browser only
+  await expect(dialog.getByText(/move the project to your studio|sign in/i).first()).toBeVisible();
+
+  await page.goto('/#/w/no-such-page-here');
+  await expect(page.getByText('This page is not published')).toBeVisible({ timeout: 20_000 });
+});

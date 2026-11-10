@@ -30,6 +30,7 @@ export type Route =
   | { name: 'flow'; id: string; proto: boolean; screen?: string }
   | { name: 'handoff'; id: string }
   | { name: 'site'; id: string; page: string; q: URLSearchParams }
+  | { name: 'web'; slug: string }
   | { name: 'animatic'; id: string }
   | { name: 'decisions'; id: string }
   | { name: 'plan' }
@@ -72,6 +73,7 @@ export function parse(hash: string): Route {
   if (a === 'join' && b) return { name: 'join', token: b };
   if (a === 'r' && b) return { name: 'guest', token: b, workId: c, q: new URLSearchParams(query) };
   if (a === 'c' && b) return { name: 'case', slug: b };
+  if (a === 'w' && b) return { name: 'web', slug: b };
   if (a === 'site' && b && c) return { name: 'site', id: b, page: c, q: new URLSearchParams(query) };
   if (a === 's' && b) return { name: 'editor', id: b, q: new URLSearchParams(query) };
   if (a === 'o' && b && c) return { name: 'showroom', id: b, oid: c };

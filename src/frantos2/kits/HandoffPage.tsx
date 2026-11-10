@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { Suspense, useMemo, useState } from 'react';
+import { AppWindow } from 'lucide-react';
 import { ArrowLeft, Check, Code2, Copy, Download, ExternalLink, GitBranch, Image as ImageIcon, Printer, Smartphone, Type } from 'lucide-react';
 import { useI18n } from '../i18n';
 import { go } from '../route';
@@ -70,6 +71,8 @@ export function HandoffPage({ id }: { id: string }) {
   return <Handoff p={p} />;
 }
 
+const ExportBody = React.lazy(() => import('../site/ExportPanel').then((m) => ({ default: m.ExportBody })));
+
 function Handoff({ p }: { p: Project }) {
   const { t } = useI18n();
   const { state } = useWs();
@@ -102,6 +105,34 @@ function Handoff({ p }: { p: Project }) {
           </div>
         }
       >
+        {(p.pages ?? []).length > 0 && (
+          <Pane className="no-print mb-5 grid gap-5 rounded-[28px] p-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+            <div className="space-y-3">
+              <h2 className="flex items-center gap-2 text-[18px] font-extrabold">
+                <AppWindow size={18} /> {t('Site pages')}
+              </h2>
+              <p className="text-[13.5px] leading-[1.5] text-white/75">{t('Built in the studio’s Site mode. The code comes from the same renderer as the pages: tokens as CSS variables, three widths, the motion.')}</p>
+              <ul className="space-y-1.5">
+                {(p.pages ?? []).map((pg) => (
+                  <li key={pg.id} className="flex items-center gap-2 rounded-[14px] px-3 py-2 lg-soft">
+                    <span dir="auto" className="min-w-0 flex-1 truncate text-[14px] font-bold">
+                      {p.kind === 'demo' ? t(pg.title) : pg.title}
+                    </span>
+                    <code dir="ltr" className="text-[11.5px] text-white/55 max-sm:hidden">
+                      /{pg.slug}
+                    </code>
+                    <button type="button" onClick={() => go(`/site/${p.id}/${pg.id}`)} className="lg-btn lg-btn-plain min-h-[32px] px-2.5 text-[12px]">
+                      <ExternalLink size={13} /> {t('Live')}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <Suspense fallback={null}>
+              <ExportBody p={p} />
+            </Suspense>
+          </Pane>
+        )}
         <div className="grid gap-5 lg:grid-cols-2">
           <Pane className="space-y-3 rounded-[28px] p-5">
             <h2 className="flex items-center gap-2 text-[18px] font-extrabold">

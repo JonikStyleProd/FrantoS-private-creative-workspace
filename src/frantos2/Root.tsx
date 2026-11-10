@@ -35,6 +35,7 @@ const GuidePage = lazy(() => import('./pages/GuidePage').then((m) => ({ default:
 const FlowPage = lazy(() => import('./kits/FlowPage').then((m) => ({ default: m.FlowPage })));
 const HandoffPage = lazy(() => import('./kits/HandoffPage').then((m) => ({ default: m.HandoffPage })));
 const AnimaticPage = lazy(() => import('./kits/AnimaticPage').then((m) => ({ default: m.AnimaticPage })));
+const PublicSite = lazy(() => import('./site/PublicSite'));
 const SitePreview = lazy(() => import('./site/SiteView').then((m) => ({ default: m.SitePreview })));
 const DecisionsPage = lazy(() => import('./kits/DecisionsPage').then((m) => ({ default: m.DecisionsPage })));
 const PlanPage = lazy(() => import('./kits/PlanPage').then((m) => ({ default: m.PlanPage })));
@@ -43,7 +44,7 @@ const AuthGate = lazy(() => import('./cloud/AuthGate'));
 const LoginPage = lazy(() => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })));
 
 /** pages anyone may open: the landing, demo story, guest review links, published cases and portfolios, sign-in */
-const PUBLIC = new Set(['landing', 'afterhours', 'story', 'guest', 'case', 'folio', 'join', 'login']);
+const PUBLIC = new Set(['landing', 'afterhours', 'story', 'guest', 'case', 'folio', 'join', 'login', 'web']);
 /** the sign-in wall is on whenever the build talks to the studio server (tests build with VITE_AUTH_GATE=off) */
 const GATE = AUTH_GATE;
 const AppChrome = lazy(() => import('./AppChrome'));
@@ -79,6 +80,7 @@ const TITLES: Record<string, string> = {
   flow: 'Flow & prototype — FrantoS',
   handoff: 'Handoff — FrantoS',
   site: 'Page — FrantoS',
+  web: 'FrantoS',
   animatic: 'Animatic — FrantoS',
   decisions: 'Decision wall — FrantoS',
   plan: 'Plan — FrantoS',
@@ -153,6 +155,10 @@ export function Root() {
     case 'pcase':
       baseKey = `case-${route.id}`;
       base = <CasePage projectId={route.id} />;
+      break;
+    case 'web':
+      baseKey = `web-${route.slug}`;
+      base = <PublicSite slug={route.slug} />;
       break;
     case 'case':
       baseKey = `case-${route.slug}`;

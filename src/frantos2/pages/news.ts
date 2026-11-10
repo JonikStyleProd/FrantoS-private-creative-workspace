@@ -11,6 +11,15 @@ export interface NewsItem {
 
 export const NEWS: NewsItem[] = [
   {
+    n: 11,
+    date: '2026-11-10',
+    title: 'Take the site with you',
+    body: 'Export pages as a website that opens in any browser — HTML, CSS with your tokens, fonts, pictures and the motion — or as a React + Vite project with Tailwind tokens. Pictures of every width and a PDF for the portfolio come from the same place, and the handoff page now gives developers the site too.',
+    path: '/p/saltwater/handoff',
+    cta: 'Open the Saltwater handoff',
+    image: '/projects/saltwater/shop-sm.webp',
+  },
+  {
     n: 10,
     date: '2026-11-10',
     title: 'Pages that move',

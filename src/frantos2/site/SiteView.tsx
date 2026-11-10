@@ -12,7 +12,8 @@ import { makeCtx, useSiteMediaState } from './media';
 import { BPS } from './model';
 
 /** A page as a visitor sees it, answering to its own width (container queries), so a phone frame on a desktop shows the phone layout. */
-export function SiteView({ p, page, width, vh, tr, className = '' }: { p: Project; page: Pick<SitePage, 'root' | 'theme' | 'dir'>; width?: number; vh?: string; tr?: (s: string) => string; className?: string }) {
+/** links to other pages of the site (`slug.html`) open that page with `onPage`, or stay put */
+export function SiteView({ p, page, width, vh, tr, className = '', onPage }: { p: Project; page: Pick<SitePage, 'root' | 'theme' | 'dir'>; width?: number; vh?: string; tr?: (s: string) => string; className?: string; onPage?: (pageId: string) => void }) {
   const { media, ready } = useSiteMediaState(p, page.root);
   const { css, html } = useMemo(() => renderPage(page, makeCtx(p, media, { mode: 'container', vh, tr })), [p, page, media, vh, tr]);
   const ref = useRef<HTMLDivElement>(null);
@@ -24,7 +25,18 @@ export function SiteView({ p, page, width, vh, tr, className = '' }: { p: Projec
     return () => (a(), b());
   }, [html, ready]);
   return (
-    <div className={className} style={{ width: width ?? '100%', containerType: 'inline-size', containerName: 'fs' }}>
+    <div
+      className={className}
+      style={{ width: width ?? '100%', containerType: 'inline-size', containerName: 'fs' }}
+      onClick={(e) => {
+        const a = (e.target as HTMLElement).closest('a');
+        const m = a?.getAttribute('href')?.match(/^([^#?/]+)\.html/);
+        if (!m) return;
+        e.preventDefault();
+        const target = (p.pages ?? []).find((x) => x.slug === m[1]);
+        if (target) onPage?.(target.id);
+      }}
+    >
       <style>{css}</style>
       <div ref={ref} dangerouslySetInnerHTML={{ __html: html }} />
     </div>
@@ -93,10 +105,10 @@ function PreviewFrame({ p, page: raw, snap, bp, w, setW, dir, tr, chrome, setChr
     <div className={`fixed inset-0 overflow-y-auto ${bp ? 'lg lg-studio' : ''}`} style={bp ? undefined : { background: page.theme.bg }} dir={dir}>
       {bp ? (
         <div className="flex justify-center px-3 pb-16 pt-[84px]" style={{ zoom }}>
-          <SiteView p={p} page={view} width={bp.w} vh={`${bp.h}px`} tr={tr} className="shrink-0 overflow-hidden rounded-[18px] shadow-[0_30px_90px_rgba(0,0,0,.45)]" />
+          <SiteView p={p} page={view} width={bp.w} vh={`${bp.h}px`} tr={tr} onPage={(id) => go(`/site/${p.id}/${id}?w=${w}`)} className="shrink-0 overflow-hidden rounded-[18px] shadow-[0_30px_90px_rgba(0,0,0,.45)]" />
         </div>
       ) : (
-        <SiteView p={p} page={view} tr={tr} vh="100vh" />
+        <SiteView p={p} page={view} tr={tr} vh="100vh" onPage={(id) => go(`/site/${p.id}/${id}?w=${w}`)} />
       )}
       <div className={`fixed inset-x-3 top-3 z-30 flex items-center gap-2 transition-opacity ${chrome ? '' : 'opacity-0 hover:opacity-100 focus-within:opacity-100'}`}>
         <Pane className="lg flex min-w-0 items-center gap-1 rounded-full py-1 pe-3 ps-1">

@@ -438,6 +438,8 @@ export interface SitePage {
   root: SiteNode[];
   /** the work its review versions go to */
   workId?: string;
+  /** published on purpose at #/w/<slug> (cloud projects only) */
+  published?: { slug: string; at: number };
   /** the page as it was at each review version */
   snapshots?: { versionId: string; root: SiteNode[]; theme: SiteTheme; createdAt: number }[];
   createdAt: number;

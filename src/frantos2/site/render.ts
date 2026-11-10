@@ -16,6 +16,8 @@ export interface MediaInfo {
   w: number;
   h: number;
   alt?: string;
+  /** exported sites: the Lottie data travels as a script under this key */
+  key?: string;
 }
 export interface RenderCtx {
   media: (assetId: string) => MediaInfo | undefined;
@@ -30,11 +32,14 @@ export interface RenderCtx {
   vh?: string;
   /** 'on' (default) waits for the runtime; 'play' ignores reduced motion (editor preview); 'off' draws the still page */
   motion?: MotionMode;
+  /** an extra class on the page root; every rule is scoped to it (several pages in one app) */
+  scope?: string;
 }
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 const txtPlain = (s: string, ctx: RenderCtx) => esc(ctx.tr ? ctx.tr(s) : s).replace(/\n/g, '<br>');
-export const safeHref = (h?: string) => (h && /^(https?:\/\/|mailto:|tel:|#|\/)/i.test(h.trim()) ? h.trim() : '#');
+/** links: web, mail, phone, anchors, site paths, and other pages of the site as `slug.html` */
+export const safeHref = (h?: string) => (h && /^(https?:\/\/|mailto:|tel:|#|\/|[\p{L}\p{N}_-]+\.html(#[\w-]*)?$)/iu.test(h.trim()) ? h.trim() : '#');
 export const cls = (id: string) => 'n-' + id.replace(/[^a-z0-9_-]/gi, '');
 
 /* ───────── style → CSS ───────── */
@@ -185,7 +190,7 @@ function nodeHtml(n: SiteNode, ctx: RenderCtx, extra?: { cls: string; i: number 
     case 'media': {
       const m = n.assetId ? ctx.media(n.assetId) : undefined;
       const alt = esc(ctx.tr && n.alt ? ctx.tr(n.alt) : n.alt ?? m?.alt ?? '');
-      const inner = !m ? '' : m.kind === 'video' ? `<video src="${esc(m.url)}" autoplay muted loop playsinline aria-label="${alt}"></video>` : m.kind === 'lottie' ? `<div class="lottie" data-lottie="${esc(m.url)}" role="img" aria-label="${alt}"></div>` : `<img src="${esc(m.url)}" alt="${alt}" loading="lazy" decoding="async" width="${m.w}" height="${m.h}">`;
+      const inner = !m ? '' : m.kind === 'video' ? `<video src="${esc(m.url)}" autoplay muted loop playsinline aria-label="${alt}"></video>` : m.kind === 'lottie' ? (m.key ? `<div class="lottie" data-lottie-key="${esc(m.key)}" role="img" aria-label="${alt}"></div>` : `<div class="lottie" data-lottie="${esc(m.url)}" role="img" aria-label="${alt}"></div>`) : `<img src="${esc(m.url)}" alt="${alt}" loading="lazy" decoding="async" width="${m.w}" height="${m.h}">`;
       return `<div class="t-media ${c}"${data}>${inner}</div>`;
     }
     case 'object': {
@@ -234,8 +239,9 @@ export function renderPage(page: Pick<SitePage, 'root' | 'theme' | 'dir'>, ctx: 
     `${q(1023)}{.fs-page{--k-space:.82;${TYPE.map((k) => `--fs-${k}:${TYPE_PX[k][1]}px`).join(';')}}\n${out.md.join('\n')}}`,
     `${q(599)}{.fs-page{--k-space:.64;--sec-px:20px;${TYPE.map((k) => `--fs-${k}:${TYPE_PX[k][2]}px`).join(';')}}.fs-page .t-grid{grid-template-columns:minmax(0,1fr)}\n${out.sm.join('\n')}}`,
   ].join('\n');
-  const html = `<div class="fs-page${ctx.edit ? ' fs-edit' : ''}" dir="${page.dir === 'rtl' ? 'rtl' : 'ltr'}">${page.root.map((n) => nodeHtml(n, ctx)).join('')}</div>`;
-  return { css, html };
+  const scoped = ctx.scope ? css.replace(/\.fs-page/g, '.fs-page.' + ctx.scope) : css;
+  const html = `<div class="fs-page${ctx.scope ? ' ' + ctx.scope : ''}${ctx.edit ? ' fs-edit' : ''}" dir="${page.dir === 'rtl' ? 'rtl' : 'ltr'}">${page.root.map((n) => nodeHtml(n, ctx)).join('')}</div>`;
+  return { css: scoped, html };
 }
 
 /** play the Lottie files in a rendered page; returns a cleanup */

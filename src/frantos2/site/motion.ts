@@ -129,41 +129,40 @@ export function motionCss(root: SiteNode[], rtl: boolean, mode: MotionMode, cls:
 
 /* ───────── runtime ───────── */
 
-const reduced = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-function countUp(el: HTMLElement, dur: number) {
-  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
-  const nodes: Text[] = [];
-  while (walker.nextNode()) nodes.push(walker.currentNode as Text);
-  const t = nodes.find((x) => /\d/.test(x.data));
-  if (!t) return;
-  const src = t.data;
-  const m = src.match(/\d[\d\s.,  ]*\d|\d/);
-  if (!m) return;
-  const raw = m[0];
-  const sep = raw.match(/[\s.,  ](?=\d{3}(\D|$))/)?.[0];
-  const target = parseInt(raw.replace(/\D/g, ''), 10);
-  const fmt = (v: number) => {
-    const s = String(Math.round(v));
-    return sep ? s.replace(/\B(?=(\d{3})+(?!\d))/g, sep) : s;
-  };
-  const t0 = performance.now();
-  const step = (now: number) => {
-    const k = Math.min(1, (now - t0) / dur);
-    const e = 1 - Math.pow(1 - k, 3);
-    t.data = src.replace(raw, fmt(target * e));
-    if (k < 1) requestAnimationFrame(step);
-  };
-  requestAnimationFrame(step);
-}
-
 /**
  * Start a rendered page's motion: load entrances at once, scroll ones as they come into view,
- * numbers count, depth moves with the scroll. `all` starts everything at once (the editor's Play).
+ * numbers count, depth moves with the scroll, Lottie plays. `all` starts everything at once (the editor's Play).
+ * Self-contained on purpose: exported sites ship this very function as js/motion.js.
  */
-export function runMotion(root: HTMLElement, opts: { all?: boolean; count?: boolean } = {}): () => void {
+export function motionRuntime(root: HTMLElement, opts: { all?: boolean; count?: boolean } = {}): () => void {
+  const reduced = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const still = reduced && !opts.all;
+  const countUp = (el: HTMLElement, dur: number) => {
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    const nodes: Text[] = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode as Text);
+    const t = nodes.find((x) => /\d/.test(x.data));
+    if (!t) return;
+    const src = t.data;
+    const m = src.match(/\d[\d\s.,\u00a0\u202f]*\d|\d/);
+    if (!m) return;
+    const raw = m[0];
+    const sepm = raw.match(/[\s.,\u00a0\u202f](?=\d{3}(\D|$))/);
+    const sep = sepm ? sepm[0] : '';
+    const target = parseInt(raw.replace(/\D/g, ''), 10);
+    const fmt = (v: number) => {
+      const s = String(Math.round(v));
+      return sep ? s.replace(/\B(?=(\d{3})+(?!\d))/g, sep) : s;
+    };
+    const t0 = performance.now();
+    const step = (now: number) => {
+      const k = Math.min(1, (now - t0) / dur);
+      t.data = src.replace(raw, fmt(target * (1 - Math.pow(1 - k, 3))));
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  };
   const els = Array.from(root.querySelectorAll<HTMLElement>('[data-a]'));
-  const still = reduced() && !opts.all;
   const start = (el: HTMLElement) => {
     if (el.classList.contains('is-in')) return;
     el.classList.add('is-in');
@@ -172,17 +171,18 @@ export function runMotion(root: HTMLElement, opts: { all?: boolean; count?: bool
   let io: IntersectionObserver | undefined;
   if (opts.all || still || typeof IntersectionObserver === 'undefined') els.forEach(start);
   else {
-    io = new IntersectionObserver(
+    const obs = new IntersectionObserver(
       (es) =>
         es.forEach((e) => {
           if (e.isIntersecting) {
             start(e.target as HTMLElement);
-            io!.unobserve(e.target);
+            obs.unobserve(e.target);
           }
         }),
       { threshold: 0.12, rootMargin: '0px 0px -6% 0px' }
     );
-    requestAnimationFrame(() => els.forEach((el) => (el.dataset.a === 'load' ? start(el) : io!.observe(el))));
+    io = obs;
+    requestAnimationFrame(() => els.forEach((el) => (el.dataset.a === 'load' ? start(el) : obs.observe(el))));
   }
   // parallax
   const deep = still ? [] : Array.from(root.querySelectorAll<HTMLElement>('[data-depth]'));
@@ -193,23 +193,37 @@ export function runMotion(root: HTMLElement, opts: { all?: boolean; count?: bool
     for (const el of deep) {
       const r = el.getBoundingClientRect();
       if (r.bottom < -200 || r.top > vh + 200) continue;
-      const mid = r.top + r.height / 2 - vh / 2;
-      el.style.translate = `0 ${(-mid * +el.dataset.depth!).toFixed(1)}px`;
+      el.style.translate = '0 ' + (-(r.top + r.height / 2 - vh / 2) * +(el.dataset.depth || 0)).toFixed(1) + 'px';
     }
   };
-  const onScroll = () => (raf ||= requestAnimationFrame(tick));
+  const onScroll = () => {
+    if (!raf) raf = requestAnimationFrame(tick);
+  };
   if (deep.length) {
     document.addEventListener('scroll', onScroll, { capture: true, passive: true });
     window.addEventListener('resize', onScroll);
     tick();
   }
+  // Lottie in an exported site: the player and the animation data come as scripts (works from file://)
+  const w = window as unknown as { lottie?: { loadAnimation: (o: object) => { destroy: () => void } }; __fsLottie?: Record<string, object> };
+  const players: { destroy: () => void }[] = [];
+  if (w.lottie && w.__fsLottie)
+    root.querySelectorAll<HTMLElement>('[data-lottie-key]').forEach((el) => {
+      const data = w.__fsLottie![el.dataset.lottieKey!];
+      if (data) players.push(w.lottie!.loadAnimation({ container: el, renderer: 'svg', loop: true, autoplay: !reduced, animationData: data }));
+    });
   return () => {
-    io?.disconnect();
+    if (io) io.disconnect();
     cancelAnimationFrame(raf);
     document.removeEventListener('scroll', onScroll, { capture: true });
     window.removeEventListener('resize', onScroll);
+    players.forEach((p) => p.destroy());
   };
 }
+export const runMotion = motionRuntime;
+
+/** the runtime as a script file for exported sites */
+export const motionScript = () => `/* FrantoS · page motion */\n(function(){var run=${motionRuntime.toString()};var go=function(){document.querySelectorAll('.fs-page').forEach(function(r){run(r,{})})};document.readyState==='loading'?document.addEventListener('DOMContentLoaded',go):go();})();\n`;
 
 /**
  * One click: tasteful motion for a whole page. The first screens play on load as a short sequence

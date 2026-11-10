@@ -73,7 +73,8 @@ export function zip(files: { name: string; data: Uint8Array }[]): Blob {
 }
 
 /* ───────── PDF from page images ───────── */
-export async function pdfFromPages(pages: HTMLCanvasElement[], title: string): Promise<Blob> {
+/** `fit`: each page takes its picture's size (a long web page stays one page) instead of A4 */
+export async function pdfFromPages(pages: HTMLCanvasElement[], title: string, fit = false): Promise<Blob> {
   const enc = new TextEncoder();
   const parts: BlobPart[] = [];
   const offsets: number[] = [];
@@ -89,8 +90,8 @@ export async function pdfFromPages(pages: HTMLCanvasElement[], title: string): P
     body();
     push('\nendobj\n');
   };
-  const W = 595.28;
-  const H = 841.89; // A4 in points
+  const A4W = 595.28;
+  const A4H = 841.89; // A4 in points
   const n = pages.length;
   // objects: 1 catalog, 2 pages, then per page: page, image, content
   push('%PDF-1.4\n');
@@ -98,6 +99,7 @@ export async function pdfFromPages(pages: HTMLCanvasElement[], title: string): P
   obj(2, () => push(`<< /Type /Pages /Kids [${pages.map((_, i) => `${3 + i * 3} 0 R`).join(' ')}] /Count ${n} >>`));
   for (let i = 0; i < n; i++) {
     const c = pages[i];
+    const [W, H] = fit ? [Math.min(14400, c.width * 0.75), Math.min(14400, c.height * 0.75)] : [A4W, A4H];
     const jpeg = new Uint8Array(await (await new Promise<Blob>((r) => c.toBlob((b) => r(b!), 'image/jpeg', 0.88))).arrayBuffer());
     const pid = 3 + i * 3;
     const ops = `q\n${W} 0 0 ${H} 0 0 cm\n/Im0 Do\nQ\n`;

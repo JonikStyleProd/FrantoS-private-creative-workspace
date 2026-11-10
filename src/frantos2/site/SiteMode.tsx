@@ -7,6 +7,7 @@ import {
   ChevronUp,
   Columns3,
   Copy,
+  Download,
   CornerLeftUp,
   Eye,
   EyeOff,
@@ -69,6 +70,7 @@ import { useSiteDir, useSiteTr } from './SiteView';
 import { pageToReview } from './snapshot';
 import { MotionMode, autoMotion, pageSpan, staggers } from './motion';
 import { MotionSection, Timeline, TimelineApi } from './MotionUI';
+import { ExportDialog } from './ExportPanel';
 
 /**
  * Studio · Site: build a page from ready sections and elements. Everything is a tree styled with
@@ -598,6 +600,7 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
 
   /* review */
   const [sending, setSending] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const toReview = async () => {
     flush();
     setSending(true);
@@ -843,6 +846,9 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
               <GanttChart size={15} /> <span className="max-2xl:hidden">{t('Timeline')}</span>
             </button>
           )}
+          <button type="button" onClick={() => (flush(), setExporting(true))} aria-label={t('Export')} className="lg-btn lg-btn-plain min-h-[38px] text-[12.5px]" title={t('HTML, React, PNG, PDF')}>
+            <Download size={15} /> <span className="max-2xl:hidden">{t('Export')}</span>
+          </button>
           <button type="button" disabled={sending} onClick={toReview} aria-label={t('To review')} className="lg-btn lg-btn-primary min-h-[38px] text-[12.5px] disabled:opacity-60" title={t('A picture of the page becomes a new version for review')}>
             <Send size={14} /> <span className="max-sm:hidden">{sending ? t('Capturing…') : t('To review')}</span>
           </button>
@@ -914,6 +920,7 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
           </AnimatePresence>
         </>
       )}
+      {exporting && <ExportDialog p={p} page={pgRef.current} onClose={() => setExporting(false)} />}
       {ghost && (
         <div className="pointer-events-none fixed z-[80] -translate-x-1/2 -translate-y-[130%] rounded-full bg-[#ff4fa3] px-3 py-1.5 text-[12.5px] font-bold text-white shadow-lg" style={{ left: ghost.x, top: ghost.y }}>
           {ghost.label}
@@ -1015,6 +1022,19 @@ function NodeInspector({ p, n, bp, theme, tr, path, parentNode, onNode, onSelect
                 {t('Link')}
                 <input dir="ltr" value={n.href ?? ''} placeholder="https://… · #contact · mailto:" onChange={(e) => set({ href: e.target.value })} className="lg-input mt-1.5 min-h-[38px] w-full px-2.5 text-[13px]" />
               </label>
+              {(p.pages ?? []).length > 1 && (
+                <label className="block text-[12px] text-white/75">
+                  {t('Or another page of the site')}
+                  <select value={(p.pages ?? []).find((x) => n.href === `${x.slug}.html`)?.id ?? ''} onChange={(e) => { const pg = (p.pages ?? []).find((x) => x.id === e.target.value); set({ href: pg ? `${pg.slug}.html` : '#' }, true); }} className="lg-input mt-1.5 min-h-[38px] w-full px-2 text-[13px]">
+                    <option value="">—</option>
+                    {(p.pages ?? []).map((x) => (
+                      <option key={x.id} value={x.id}>
+                        {tr ? tr(x.title) : x.title}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
               {C('variant', t('Look'), <Seg label={t('Look')} value={st.variant ?? 'solid'} options={[{ id: 'solid' as const, label: t('Solid') }, { id: 'outline' as const, label: t('Outline') }, { id: 'link' as const, label: t('Link') }]} onChange={(variant) => setS({ variant })} />)}
             </>
           )}
