@@ -5,6 +5,7 @@ import type { Project, SitePage, SiteTheme, SiteNode } from '../ws/types';
 import { walk } from './model';
 import type { MediaInfo } from './render';
 import { fileSlug } from './exportSite';
+import { viewRoot } from './collections';
 
 /**
  * Publishing a page, on purpose: only this page goes public (title, direction, theme, tree and the
@@ -56,8 +57,10 @@ export async function publishPage(p: Project, pg: SitePage, slug: string, onProg
 
   const folder = `${studioId}/${slug}`;
   await clearFolder(folder);
+  // published as drawn: copies of components and lists expanded (a collection page shows its first entry)
+  const root = viewRoot(p, pg);
   const ids = new Set<string>();
-  walk(pg.root, (n) => n.assetId && ids.add(n.assetId));
+  walk(root, (n) => n.assetId && ids.add(n.assetId));
   const media: Record<string, MediaInfo> = {};
   let done = 0;
   for (const id of ids) {
@@ -74,7 +77,7 @@ export async function publishPage(p: Project, pg: SitePage, slug: string, onProg
     media[id] = { url: sb!.storage.from('site-media').getPublicUrl(path).data.publicUrl, kind: a.kind === 'video' ? 'video' : lottie ? 'lottie' : 'image', w: a.w, h: a.h, alt: a.title };
     onProgress?.(++done, ids.size);
   }
-  const doc: PublishedDoc = { title: pg.title, dir: pg.dir, theme: pg.theme, root: pg.root, media };
+  const doc: PublishedDoc = { title: pg.title, dir: pg.dir, theme: pg.theme, root, media };
   const { error } = await sb!.from('published_pages').upsert({ slug, studio_id: studioId, project_id: p.id, page_id: pg.id, doc, published_by: getAuth().session!.user.id, updated_at: new Date().toISOString() }, { onConflict: 'slug' });
   if (error) throw error;
   ws.patchPage(p.id, pg.id, { published: { slug, at: Date.now() } }, 'Page published');

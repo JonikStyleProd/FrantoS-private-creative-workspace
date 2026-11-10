@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { workTypeFor } from '../kits/disciplines';
 import { get, set, del, keys } from 'idb-keyval';
-import { Asset, Board, SitePage, Brand, CanvasGroup, Profile, WorkStatus, CanvasNote, Comment, Decision, MaterialVariant, MoodItem, Project, StudioObject, WsState, Work, WorkType, Flow, Hotspot } from './types';
+import { Asset, Board, SavedBlock, SiteCollection, SiteComponent, SitePage, Brand, CanvasGroup, Profile, WorkStatus, CanvasNote, Comment, Decision, MaterialVariant, MoodItem, Project, StudioObject, WsState, Work, WorkType, Flow, Hotspot } from './types';
 import { AH_ID, DEMO_ID, DEMO_REV, afterHoursProject, demoProject } from './seed';
 import { KIT_IDS, KIT_REV, kitProject } from './seedKits';
 import { STUDIO_IDS, STUDIO_REV, studioProject } from './seedStudio';
@@ -563,6 +563,29 @@ export const ws = {
   },
   patchPage(pid: string, pgid: string, patch: Partial<SitePage>, undoLabel?: string) {
     updateProject(pid, (p) => ({ ...p, pages: (p.pages ?? []).map((x) => (x.id === pgid ? { ...x, ...patch, updatedAt: Date.now() } : x)) }), undoLabel);
+  },
+  /** a page and the project's components and collections, in one undo step */
+  patchSite(pid: string, pgid: string, patch: Partial<SitePage>, data: { components: SiteComponent[]; collections: SiteCollection[] } | undefined, undoLabel?: string) {
+    updateProject(
+      pid,
+      (p) => ({
+        ...p,
+        pages: (p.pages ?? []).map((x) => (x.id === pgid ? { ...x, ...patch, updatedAt: Date.now() } : x)),
+        ...(data ? { components: data.components, collections: data.collections } : {}),
+      }),
+      undoLabel
+    );
+  },
+  setCollections(pid: string, collections: SiteCollection[], undoLabel?: string) {
+    updateProject(pid, (p) => ({ ...p, collections }), undoLabel);
+  },
+  addSiteBlock(b: Omit<SavedBlock, 'id' | 'createdAt'>) {
+    const id = uid('blk-');
+    commit({ ...state, siteBlocks: [{ ...b, id, createdAt: Date.now() }, ...(state.siteBlocks ?? [])] });
+    return id;
+  },
+  removeSiteBlock(id: string) {
+    commit({ ...state, siteBlocks: (state.siteBlocks ?? []).filter((b) => b.id !== id) });
   },
   removePage(pid: string, pgid: string) {
     updateProject(pid, (p) => ({ ...p, pages: (p.pages ?? []).filter((x) => x.id !== pgid) }), 'Page removed');

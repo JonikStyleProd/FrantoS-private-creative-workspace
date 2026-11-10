@@ -312,7 +312,7 @@ export interface Flow {
 
 /* ───────── studio: site constructor ───────── */
 
-export type SiteNodeType = 'section' | 'stack' | 'grid' | 'heading' | 'text' | 'button' | 'media' | 'object' | 'divider' | 'spacer' | 'field';
+export type SiteNodeType = 'section' | 'stack' | 'grid' | 'heading' | 'text' | 'button' | 'media' | 'object' | 'divider' | 'spacer' | 'field' | 'instance' | 'list';
 /** spacing steps: n × 4 px */
 export type SiteSpace = '0' | '1' | '2' | '3' | '4' | '6' | '8' | '12' | '16' | '24' | '32';
 export type SiteType = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl';
@@ -395,6 +395,16 @@ export interface SiteNode {
   hover?: SiteHover;
   /** scroll depth (parallax): −0.3…0.3, how much faster or slower than the page it moves */
   depth?: number;
+  /** instance: which component and variant it shows, and this copy's own words, links and pictures (by the main's node id) */
+  comp?: string;
+  variant?: string;
+  over?: Record<string, SiteOverride>;
+  /** list: entries of a collection, each drawn with `template`; `limit` 0 = all */
+  coll?: string;
+  limit?: number;
+  template?: SiteNode;
+  /** inside a list template or on a collection page: which field of the entry this node shows */
+  bind?: SiteBind;
   /** layer name */
   name?: string;
   text?: string;
@@ -412,6 +422,49 @@ export interface SiteNode {
   md?: SiteStyle;
   sm?: SiteStyle;
   children?: SiteNode[];
+}
+
+export type SiteBind = 'title' | 'excerpt' | 'body' | 'date' | 'cover' | 'link';
+export interface SiteOverride {
+  text?: string;
+  href?: string;
+  assetId?: string;
+  alt?: string;
+}
+
+/** a component: one main tree per variant; variants share node ids, so a copy keeps its words when it switches */
+export interface SiteComponent {
+  id: string;
+  name: string;
+  variants: { id: string; name: string; node: SiteNode }[];
+  createdAt: number;
+}
+
+/** a collection of entries (a blog): fixed fields, written in the Content panel or right on the page */
+export interface SiteEntry {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  body: string;
+  date: string;
+  cover?: string;
+  draft?: boolean;
+}
+export interface SiteCollection {
+  id: string;
+  name: string;
+  entries: SiteEntry[];
+}
+
+/** a section or element kept for reuse in any project */
+export interface SavedBlock {
+  id: string;
+  name: string;
+  node: SiteNode;
+  /** the project its pictures come from */
+  projectId: string;
+  createdAt: number;
 }
 
 /** colours and type of one page; kept in the page so review links and exports render it the same */
@@ -438,6 +491,8 @@ export interface SitePage {
   root: SiteNode[];
   /** the work its review versions go to */
   workId?: string;
+  /** a collection page: drawn once per entry (fields come from the entry through `bind`) */
+  collection?: string;
   /** published on purpose at #/w/<slug> (cloud projects only) */
   published?: { slug: string; at: number };
   /** the page as it was at each review version */
@@ -473,6 +528,9 @@ export interface Project {
   boards?: Board[];
   /** pages built in the studio's Site mode */
   pages?: SitePage[];
+  /** components and collections shared by the project's pages */
+  components?: SiteComponent[];
+  collections?: SiteCollection[];
   /** the project palette, picked in the studio */
   palette?: string[];
   notes?: CanvasNote[];
@@ -536,4 +594,6 @@ export interface WsState {
   you: string;
   /** which studio new cloud projects go to */
   studioId?: string;
+  /** sections and elements saved for reuse in any project */
+  siteBlocks?: SavedBlock[];
 }

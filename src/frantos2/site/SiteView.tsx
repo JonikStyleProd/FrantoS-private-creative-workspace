@@ -10,10 +10,12 @@ import { hydrate, renderPage } from './render';
 import { runMotion } from './motion';
 import { makeCtx, useSiteMediaState } from './media';
 import { BPS } from './model';
+import { parseLink, viewRoot } from './collections';
 
 /** A page as a visitor sees it, answering to its own width (container queries), so a phone frame on a desktop shows the phone layout. */
 /** links to other pages of the site (`slug.html`) open that page with `onPage`, or stay put */
-export function SiteView({ p, page, width, vh, tr, className = '', onPage }: { p: Project; page: Pick<SitePage, 'root' | 'theme' | 'dir'>; width?: number; vh?: string; tr?: (s: string) => string; className?: string; onPage?: (pageId: string) => void }) {
+export function SiteView({ p, page: raw, entry, width, vh, tr, className = '', onPage }: { p: Project; page: Pick<SitePage, 'root' | 'theme' | 'dir'> & { collection?: string }; entry?: string; width?: number; vh?: string; tr?: (s: string) => string; className?: string; onPage?: (pageId: string, entry?: string) => void }) {
+  const page = useMemo(() => ({ ...raw, root: viewRoot(p, raw, entry) }), [p, raw, entry]);
   const { media, ready } = useSiteMediaState(p, page.root);
   const { css, html } = useMemo(() => renderPage(page, makeCtx(p, media, { mode: 'container', vh, tr })), [p, page, media, vh, tr]);
   const ref = useRef<HTMLDivElement>(null);
@@ -30,11 +32,11 @@ export function SiteView({ p, page, width, vh, tr, className = '', onPage }: { p
       style={{ width: width ?? '100%', containerType: 'inline-size', containerName: 'fs' }}
       onClick={(e) => {
         const a = (e.target as HTMLElement).closest('a');
-        const m = a?.getAttribute('href')?.match(/^([^#?/]+)\.html/);
+        const m = parseLink(a?.getAttribute('href') ?? '');
         if (!m) return;
         e.preventDefault();
-        const target = (p.pages ?? []).find((x) => x.slug === m[1]);
-        if (target) onPage?.(target.id);
+        const target = (p.pages ?? []).find((x) => x.slug === m.page);
+        if (target) onPage?.(target.id, m.entry);
       }}
     >
       <style>{css}</style>
@@ -87,10 +89,11 @@ function PreviewBody({ p, pageId, q, w, setW, dir }: { p: Project; pageId: strin
       </div>
     );
   const bp = BPS.find((b) => b.id === w);
-  return <PreviewFrame p={p} page={snap ? { ...page, root: snap.root, theme: snap.theme } : page} snap={!!snap} bp={bp} w={w} setW={setW} dir={dir} tr={tr} chrome={chrome} setChrome={setChrome} />;
+  return <PreviewFrame p={p} page={snap ? { ...page, root: snap.root, theme: snap.theme } : page} snap={!!snap} bp={bp} w={w} setW={setW} dir={dir} tr={tr} chrome={chrome} setChrome={setChrome} entry={q.get('entry') ?? undefined} />;
 }
 
-function PreviewFrame({ p, page: raw, snap, bp, w, setW, dir, tr, chrome, setChrome }: { p: Project; page: SitePage; snap: boolean; bp?: (typeof BPS)[number]; w: string; setW: (w: string) => void; dir: string; tr?: (s: string) => string; chrome: boolean; setChrome: (f: (c: boolean) => boolean) => void }) {
+function PreviewFrame({ p, page: raw, snap, bp, w, setW, dir, tr, chrome, setChrome, entry }: {
+  entry?: string; p: Project; page: SitePage; snap: boolean; bp?: (typeof BPS)[number]; w: string; setW: (w: string) => void; dir: string; tr?: (s: string) => string; chrome: boolean; setChrome: (f: (c: boolean) => boolean) => void }) {
   const { t } = useI18n();
   const page = useSiteDir(p, raw);
   const view = page;
@@ -105,10 +108,10 @@ function PreviewFrame({ p, page: raw, snap, bp, w, setW, dir, tr, chrome, setChr
     <div className={`fixed inset-0 overflow-y-auto ${bp ? 'lg lg-studio' : ''}`} style={bp ? undefined : { background: page.theme.bg }} dir={dir}>
       {bp ? (
         <div className="flex justify-center px-3 pb-16 pt-[84px]" style={{ zoom }}>
-          <SiteView p={p} page={view} width={bp.w} vh={`${bp.h}px`} tr={tr} onPage={(id) => go(`/site/${p.id}/${id}?w=${w}`)} className="shrink-0 overflow-hidden rounded-[18px] shadow-[0_30px_90px_rgba(0,0,0,.45)]" />
+          <SiteView p={p} page={view} entry={entry} width={bp.w} vh={`${bp.h}px`} tr={tr} onPage={(id, e) => go(`/site/${p.id}/${id}?w=${w}${e ? `&entry=${e}` : ''}`)} className="shrink-0 overflow-hidden rounded-[18px] shadow-[0_30px_90px_rgba(0,0,0,.45)]" />
         </div>
       ) : (
-        <SiteView p={p} page={view} tr={tr} vh="100vh" onPage={(id) => go(`/site/${p.id}/${id}?w=${w}`)} />
+        <SiteView p={p} page={view} entry={entry} tr={tr} vh="100vh" onPage={(id, e) => go(`/site/${p.id}/${id}?w=${w}${e ? `&entry=${e}` : ''}`)} />
       )}
       <div className={`fixed inset-x-3 top-3 z-30 flex items-center gap-2 transition-opacity ${chrome ? '' : 'opacity-0 hover:opacity-100 focus-within:opacity-100'}`}>
         <Pane className="lg flex min-w-0 items-center gap-1 rounded-full py-1 pe-3 ps-1">

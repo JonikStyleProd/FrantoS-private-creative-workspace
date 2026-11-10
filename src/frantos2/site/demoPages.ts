@@ -1,4 +1,4 @@
-import type { SitePage } from '../ws/types';
+import type { SiteCollection, SiteComponent, SiteNode, SitePage } from '../ws/types';
 import { dsl } from './blocks';
 import { autoMotion } from './motion';
 
@@ -8,6 +8,23 @@ import { autoMotion } from './motion';
  */
 const { N, S, G, H, T, B, M, SEC } = dsl;
 type Page = Omit<SitePage, 'createdAt' | 'updatedAt'>;
+
+/** Halden's product card is a component: four copies with their own names, prices and pictures; the sofa uses the "Sale" variant */
+export function haldenComponents(aid: (key: string) => string): SiteComponent[] {
+  const card = (sale: boolean): SiteNode => ({
+    id: 'pc-root',
+    type: 'stack',
+    name: 'Product card',
+    s: { gap: '3' },
+    hover: { lift: 4, dur: 300, ease: 'frantos' },
+    children: [
+      { id: 'pc-img', type: 'media', assetId: aid('chair'), alt: 'Ask chair', s: { ratio: '4/5', radius: 'md' }, hover: { scale: 1.02, bright: true, dur: 500, ease: 'expo-out' } },
+      { id: 'pc-row', type: 'stack', name: 'Name and price', s: { dir: 'row', justify: 'between', gap: '2' }, children: [{ id: 'pc-name', type: 'text', text: 'Ask chair', s: { weight: 700 } }, { id: 'pc-price', type: 'text', text: '€640', s: { color: sale ? 'accent' : 'muted', weight: sale ? 700 : undefined } }] },
+      ...(sale ? [{ id: 'pc-tag', type: 'text' as const, text: '−20% this week', s: { size: 'xs' as const, weight: 700 as const, color: 'accent' } }] : []),
+    ],
+  });
+  return [{ id: 'cmp-halden-card', name: 'Product card', createdAt: 0, variants: [{ id: 'var-card', name: 'Default', node: card(false) }, { id: 'var-sale', name: 'Sale', node: card(true) }] }];
+}
 
 export function haldenPages(aid: (key: string) => string): Page[] {
   return [
@@ -42,7 +59,7 @@ export function haldenPages(aid: (key: string) => string): Page[] {
               ['sofa', 'Dune sofa', '€2 900'],
               ['shelf', 'Ledge shelf', '€219'],
             ] as const
-          ).map(([k, name, price]) => S({ gap: '3' }, [M(aid(k), '4/5', { radius: 'md' }, { alt: name }), S({ dir: 'row', justify: 'between', gap: '2' }, [T(name, { weight: 700 }), T(price, { color: 'muted' })], { name: 'Name and price' })], { name })), { md: { cols: 2 } }),
+          ).map(([k, name, price]): SiteNode => ({ id: `halden-card-${k}`, type: 'instance', comp: 'cmp-halden-card', variant: k === 'sofa' ? 'var-sale' : 'var-card', name, over: { 'pc-img': { assetId: aid(k), alt: name }, 'pc-name': { text: name }, 'pc-price': { text: k === 'sofa' ? '€2 320' : price } } })), { md: { cols: 2 } }),
         ]),
         SEC('Workshop', { bg: 'surface', py: '16' }, [
           G(2, { align: 'center', gap: '12' }, [
@@ -69,6 +86,28 @@ export function haldenPages(aid: (key: string) => string): Page[] {
           N('divider'),
           T('© 2026 Halden · Built in FrantoS', { size: 'xs', color: 'muted' }, { name: 'Small print' }),
         ], { tag: 'footer' }),
+      ],
+    },
+  ];
+}
+
+export const SALT_JOURNAL = 'col-saltwater-journal';
+const LOAF_BODY = ['Lea starts the dough at four in the afternoon. Flour, water, the starter we have kept alive since 2019, and nothing else. Then it waits.', 'Overnight the cold slows everything down. The dough gets its sour, the crumb opens, and by morning it is ready for the oven at six.', 'Sam brings the salt in a bucket from the works on the pier. A pinch goes on top just before baking: that is the crunch you hear when you break the loaf.'].join('\n\n');
+export const SALT_BODIES = {
+  loaf: LOAF_BODY,
+  bag: 'We tried printed boxes first. Then plain kraft bags with one round sticker: it costs less than a cent, and a Saltwater bag under an arm is easy to spot on the street.',
+  shop: 'Mira painted the sign over three days in September. The wordmark was traced from the logo file onto the board, then filled in by hand, letter by letter.',
+};
+/** the Saltwater journal as a collection: the Journal page lists it, the entry page shows one entry at a time */
+export function saltwaterCollections(aid: (key: string) => string): SiteCollection[] {
+  return [
+    {
+      id: SALT_JOURNAL,
+      name: 'Journal',
+      entries: [
+        { id: 'e-loaf', slug: 'two-days-for-one-loaf', title: 'Two days for one loaf', date: '14 October · 5 min read', excerpt: 'Why the dough rests overnight, and what the sea salt does to the crust.', body: SALT_BODIES.loaf, cover: aid('loaf') },
+        { id: 'e-bag', slug: 'one-sticker-on-a-kraft-bag', title: 'One sticker on a kraft bag', date: '2 October · 3 min read', excerpt: 'The cheapest packaging we could find, and the easiest to spot on the street.', body: SALT_BODIES.bag, cover: aid('bag') },
+        { id: 'e-shop', slug: 'painting-the-sign-by-hand', title: 'Painting the sign by hand', date: '21 September · 4 min read', excerpt: 'Three days on a ladder with a brush, a level and the wordmark.', body: SALT_BODIES.shop, cover: aid('shop') },
       ],
     },
   ];
@@ -107,12 +146,20 @@ export function saltwaterPages(aid: (key: string) => string): Page[] {
         SEC('Featured', { py: '4' }, [
           G(2, { gap: '12', align: 'center', bg: 'surface', radius: 'xl', px: '8', py: '8' }, [
             M(aid(posts[0][0]), '4/5', { radius: 'lg' }, { alt: 'Sourdough with sea salt' }),
-            S({ gap: '4', align: 'start' }, [T(posts[0][2], { size: 'sm', color: 'muted', weight: 600 }, { name: 'Date' }), H(posts[0][1], 2, { size: '4xl' }), T(posts[0][3], { size: 'lg', color: 'muted' }), B('Read the story', 'solid', { radius: 'pill' })]),
+            S({ gap: '4', align: 'start' }, [T(posts[0][2], { size: 'sm', color: 'muted', weight: 600 }, { name: 'Date' }), H(posts[0][1], 2, { size: '4xl' }), T(posts[0][3], { size: 'lg', color: 'muted' }), B('Read the story', 'solid', { radius: 'pill' }, { href: 'story--two-days-for-one-loaf.html' })]),
           ], { md: { cols: 1 }, name: 'Featured post' }),
         ]),
         SEC('Posts', { gap: '8' }, [
           H('More from the journal', 2),
-          G(3, { gap: '8' }, posts.map(([k, title, date, text]) => S({ gap: '3' }, [M(aid(k), '3/2', { radius: 'md' }, { alt: title }), T(date, { size: 'xs', color: 'muted', weight: 700 }, { name: 'Date' }), H(title, 3), T(text, { color: 'muted' })], { name: title })), { md: { cols: 2 } }),
+          N('list', {
+            name: 'Journal entries',
+            coll: SALT_JOURNAL,
+            limit: 0,
+            s: { cols: 3, gap: '8' },
+            md: { cols: 2 },
+            anim: { enter: 'rise', trigger: 'scroll', dur: 800, delay: 0, ease: 'frantos', dist: 40, stagger: 110 },
+            template: S({ gap: '3' }, [M(undefined, '3/2', { radius: 'md' }, { bind: 'cover', hover: { scale: 1.02, bright: true, dur: 500, ease: 'expo-out' } }), T('', { size: 'xs', color: 'muted', weight: 700 }, { bind: 'date', name: 'Date' }), H('', 3, {}, { bind: 'title' }), T('', { color: 'muted' }, { bind: 'excerpt' }), B('Read the story', 'link', {}, { bind: 'link' })], { name: 'Card' }),
+          }),
         ]),
         SEC('Newsletter', { bg: 'accent', color: 'onAccent', align: 'center', text: 'center', maxW: 'text', py: '16' }, [H('Fresh at 7, gone by 2', 2, { size: '3xl' }), T('One email on Friday: what we bake on Saturday.'), B('Get the Friday email', 'solid', { bg: 'bg', color: 'text', radius: 'pill' })]),
         footer(),
@@ -120,23 +167,21 @@ export function saltwaterPages(aid: (key: string) => string): Page[] {
     },
     {
       id: 'saltwater-pg-loaf',
-      title: 'Saltwater · Two days for one loaf',
-      slug: 'two-days-for-one-loaf',
+      title: 'Saltwater · Journal entry',
+      slug: 'story',
       dir: 'ltr',
       theme,
+      collection: SALT_JOURNAL,
       root: [
         header(),
         SEC('Article', { maxW: 'text', gap: '6', py: '16' }, [
-          T('Journal · 14 October · 5 min read', { size: 'sm', color: 'muted', weight: 600 }, { name: 'Meta' }),
-          H('Two days for one loaf', 1, { size: '5xl' }),
-          T('Why the dough rests overnight, and what the sea salt does to the crust.', { size: 'xl', color: 'muted' }, { name: 'Lede' }),
-          M(aid('loaf'), '4/5', { radius: 'lg' }, { name: 'Cover', alt: 'Sourdough with sea salt' }),
-          T('Lea starts the dough at four in the afternoon. Flour, water, the starter we have kept alive since 2019, and nothing else. Then it waits.'),
-          T('Overnight the cold slows everything down. The dough gets its sour, the crumb opens, and by morning it is ready for the oven at six.'),
-          H('Salt from the harbour', 2),
-          T('Sam brings the salt in a bucket from the works on the pier. A pinch goes on top just before baking: that is the crunch you hear when you break the loaf.'),
+          T('', { size: 'sm', color: 'muted', weight: 600 }, { name: 'Date', bind: 'date' }),
+          H('', 1, { size: '5xl' }, { bind: 'title' }),
+          T('', { size: 'xl', color: 'muted' }, { name: 'Lede', bind: 'excerpt' }),
+          M(undefined, '4/5', { radius: 'lg' }, { name: 'Cover', bind: 'cover' }),
+          T('', {}, { name: 'Text', bind: 'body' }),
           N('divider'),
-          S({ dir: 'row', gap: '3', wrap: true }, [B('Order for Saturday', 'solid', { radius: 'pill' }), B('Back to the journal', 'outline', { radius: 'pill' })], { name: 'Buttons' }),
+          S({ dir: 'row', gap: '3', wrap: true }, [B('Order for Saturday', 'solid', { radius: 'pill' }), B('Back to the journal', 'outline', { radius: 'pill' }, { href: 'journal.html' })], { name: 'Buttons' }),
         ], { tag: 'article' }),
         footer(),
       ],

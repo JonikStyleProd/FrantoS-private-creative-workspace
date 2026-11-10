@@ -273,3 +273,46 @@ test('site export: static site and React project as ZIP, PNG; an unknown public 
   await page.goto('/#/w/no-such-page-here');
   await expect(page.getByText('This page is not published')).toBeVisible({ timeout: 20_000 });
 });
+
+test('site parts: component copies follow the main, entries feed the cards and the entry page, saved blocks, the check', async ({ page }) => {
+  test.skip(isPhone(page), 'the inspector and the side panels are checked on desktop; the phone check is in the export and motion tests');
+  await page.goto('/#/s/halden?m=site');
+  const cards = page.locator('.fs-page .t-grid').nth(1).locator(':scope > .t-stack');
+  await expect(cards).toHaveCount(4);
+  // the sofa copy uses the Sale variant; switching it to Default drops the tag
+  await cards.nth(2).locator('.t-media').click();
+  await page.keyboard.press('Escape');
+  await expect(page.getByText(/copies on the pages/)).toBeVisible();
+  await expect(cards.nth(2)).toContainText('−20% this week');
+  await page.getByRole('radiogroup', { name: 'Variant' }).getByRole('radio', { name: 'Default' }).click();
+  await expect(cards.nth(2)).not.toContainText('−20% this week');
+  await expect(cards.nth(2)).toContainText('Dune sofa');
+  // a style change inside one copy reaches every copy; words stay each copy's own
+  await cards.nth(0).locator('.t-media').click();
+  await page.getByRole('radiogroup', { name: 'Corners' }).getByRole('radio', { name: 'Pill' }).click();
+  for (let i = 0; i < 4; i++) await expect(cards.nth(i).locator('.t-media')).toHaveCSS('border-radius', '999px');
+  await expect(cards.nth(1)).toContainText('Fold lamp');
+  // keep the card as a block for any project
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Save as block' }).click();
+  await page.getByRole('tab', { name: 'Add' }).click();
+  await expect(page.getByText('My blocks')).toBeVisible();
+
+  // the check finds the button that goes nowhere and takes you to it
+  await page.getByRole('button', { name: 'Check' }).click();
+  const remark = page.getByRole('button', { name: /The button goes nowhere yet/ });
+  await expect(remark).toBeVisible({ timeout: 20_000 });
+  await remark.click();
+  await expect(page.locator('.fs-page [data-n]').filter({ has: page.locator(':scope') }).first()).toBeVisible();
+
+  // Saltwater: an entry written in Entries shows on its card and on the entry page
+  await page.goto('/#/s/saltwater?m=site');
+  await page.getByRole('tab', { name: 'Entries' }).click();
+  await page.getByRole('button', { name: /One sticker on a kraft bag/ }).click();
+  const title = page.getByRole('complementary', { name: 'Sections and layers' }).getByRole('textbox', { name: 'Title' });
+  await title.fill('Bags that walk around town');
+  await expect(page.locator('.fs-page h3', { hasText: 'Bags that walk around town' })).toBeVisible();
+  await page.goto('/#/site/saltwater/saltwater-pg-journal');
+  await page.locator('.fs-page a', { hasText: 'Read the story' }).nth(2).click();
+  await expect(page.locator('.fs-page h1')).toHaveText('Bags that walk around town');
+});

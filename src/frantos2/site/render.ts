@@ -201,6 +201,10 @@ function nodeHtml(n: SiteNode, ctx: RenderCtx, extra?: { cls: string; i: number 
       return `<hr class="t-divider ${c}"${data}>`;
     case 'spacer':
       return `<div class="t-spacer ${c}"${data} aria-hidden="true"></div>`;
+    case 'instance':
+    case 'list':
+      // resolved before rendering (site/data.ts); nothing to draw on its own
+      return '';
     case 'field': {
       const ph = esc(ctx.tr && n.placeholder ? ctx.tr(n.placeholder) : n.placeholder ?? '');
       const name = esc((n.text ?? 'field').toLowerCase().replace(/[^a-z0-9]+/gi, '-'));

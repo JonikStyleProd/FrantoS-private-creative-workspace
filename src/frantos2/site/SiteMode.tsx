@@ -6,7 +6,12 @@ import {
   ChevronDown,
   ChevronUp,
   Columns3,
+  Component,
   Copy,
+  Bookmark,
+  BookmarkPlus,
+  Database,
+  ShieldCheck,
   Download,
   CornerLeftUp,
   Eye,
@@ -53,7 +58,7 @@ import {
 import { useI18n } from '../i18n';
 import { go } from '../route';
 import { useWs, ws } from '../ws/store';
-import type { Project, SiteNode, SitePage, SiteStyle, SiteTheme } from '../ws/types';
+import type { Project, SiteCollection, SiteComponent, SiteNode, SitePage, SiteStyle, SiteTheme } from '../ws/types';
 import { AssetThumb, toast, useMedia } from '../ws/kit';
 import { previewOnly } from '../ws/media';
 import { FilePick, upload } from '../ws/uploads';
@@ -68,6 +73,11 @@ import { makeCtx, useSiteMedia } from './media';
 import { COLOR_ROLES, ColorRole, ROLE_LABEL, SPACE, TYPE, TYPE_PX, contrast, spacePx, themeColor, themeFrom } from './theme';
 import { useSiteDir, useSiteTr } from './SiteView';
 import { pageToReview } from './snapshot';
+import { Doc, OpCtx, Refused, detach, makeComponent, addVariant, countCopies, instanceOf, opDuplicate, opInsert, opMove, opRemove, opUpdate, opWrap, resolveTree } from './data';
+import { cardTemplate, entrySection, linkFor, listNode, newCollection } from './collections';
+import { BindField, ComponentSection, ComponentsList, ContentPanel, ListSection, MyBlocks, PartNote, QualityPanel } from './SitePanels';
+import { dsl } from './blocks';
+import { Issue, checkPage } from './quality';
 import { MotionMode, autoMotion, pageSpan, staggers } from './motion';
 import { MotionSection, Timeline, TimelineApi } from './MotionUI';
 import { ExportDialog } from './ExportPanel';
@@ -90,8 +100,10 @@ const TYPE_ICON: Record<SiteNode['type'], React.ComponentType<{ size?: number; c
   divider: Minus,
   spacer: MoveVertical,
   field: TextCursorInput,
+  instance: Component,
+  list: Newspaper,
 };
-const TYPE_LABEL: Record<SiteNode['type'], string> = { section: 'Section', stack: 'Column', grid: 'Grid', heading: 'Heading', text: 'Text', button: 'Button', media: 'Picture', object: '3D object', divider: 'Line', spacer: 'Space', field: 'Form field' };
+const TYPE_LABEL: Record<SiteNode['type'], string> = { section: 'Section', stack: 'Column', grid: 'Grid', heading: 'Heading', text: 'Text', button: 'Button', media: 'Picture', object: '3D object', divider: 'Line', spacer: 'Space', field: 'Form field', instance: 'Component', list: 'List of entries' };
 const BLOCK_ICON: Record<string, React.ComponentType<{ size?: number }>> = { header: PanelTop, hero: Sparkles, split: Columns3, cards: Grid2x2, posts: Newspaper, article: FileText, quote: Quote, gallery: Images, prices: Tag, faq: HelpCircle, contact: Mail, cta: Megaphone, footer: PanelBottom };
 const BP_ICON: Record<Bp, React.ComponentType<{ size?: number }>> = { sm: Smartphone, md: Tablet, lg: Monitor };
 
@@ -171,22 +183,37 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
   const pending = useRef(false);
   const timer = useRef<number | undefined>(undefined);
   const firstLabel = useRef<string | undefined>(undefined);
+  // components and collections are the project's, shared by its pages
+  const [data, setData] = useState<{ comps: SiteComponent[]; colls: SiteCollection[] }>({ comps: p.components ?? [], colls: p.collections ?? [] });
+  const dataRef = useRef(data);
+  dataRef.current = data;
+  const dataDirty = useRef(false);
   useEffect(() => {
     if (!pending.current) setPg(stored);
   }, [stored]);
+  useEffect(() => {
+    if (!pending.current) setData({ comps: p.components ?? [], colls: p.collections ?? [] });
+  }, [p.components, p.collections]);
   const flush = useCallback(() => {
     window.clearTimeout(timer.current);
     if (!pending.current) return;
     pending.current = false;
     const x = pgRef.current;
-    ws.patchPage(p.id, x.id, { root: x.root, theme: x.theme, title: x.title, slug: x.slug, dir: x.dir }, firstLabel.current);
+    const d = dataDirty.current ? { components: dataRef.current.comps, collections: dataRef.current.colls } : undefined;
+    dataDirty.current = false;
+    ws.patchSite(p.id, x.id, { root: x.root, theme: x.theme, title: x.title, slug: x.slug, dir: x.dir, collection: x.collection }, d, firstLabel.current);
     firstLabel.current = undefined;
   }, [p.id]);
   const commit = useCallback(
-    (patch: Partial<SitePage>, label = 'Page edited', now = true) => {
+    (patch: Partial<SitePage>, label = 'Page edited', now = true, nextData?: { comps: SiteComponent[]; colls: SiteCollection[] }) => {
       const next = { ...pgRef.current, ...patch };
       pgRef.current = next;
       setPg(next);
+      if (nextData && (nextData.comps !== dataRef.current.comps || nextData.colls !== dataRef.current.colls)) {
+        dataRef.current = nextData;
+        setData(nextData);
+        dataDirty.current = true;
+      }
       pending.current = true;
       firstLabel.current ??= label;
       window.clearTimeout(timer.current);
@@ -197,6 +224,28 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
   );
   useEffect(() => () => flush(), [flush]);
   const setRoot = (root: SiteNode[], label: string, now = true) => commit({ root }, label, now);
+  /** an edit made on the expanded tree, sent where it belongs (page, component main, card template, entry) */
+  const apply = (fn: (d: Doc, c: OpCtx) => Doc | { doc: Doc; id: string }, label: string, now = true): string | undefined => {
+    try {
+      const r = fn({ root: pgRef.current.root, comps: dataRef.current.comps, colls: dataRef.current.colls }, opCtx());
+      const d = 'doc' in r ? r.doc : r;
+      commit({ root: d.root }, label, now, { comps: d.comps, colls: d.colls });
+      return 'doc' in r ? r.id : '';
+    } catch (err) {
+      if (err instanceof Refused) toast(t(err.message));
+      else throw err;
+      return undefined;
+    }
+  };
+
+  /* the expanded tree: copies of components and cards of lists drawn as ordinary nodes */
+  const coll = pg.collection ? data.colls.find((c) => c.id === pg.collection) : undefined;
+  const [entryId, setEntryId] = useState<string | undefined>(undefined);
+  const entry = coll ? coll.entries.find((e) => e.id === entryId) ?? coll.entries[0] : undefined;
+  const R = useMemo(() => resolveTree(pg.root, { comps: data.comps, colls: data.colls, entry, linkFor: linkFor(p.pages ?? []) }), [pg.root, data, entry, p.pages]);
+  const RRef = useRef(R);
+  RRef.current = R;
+  const opCtx = (): OpCtx => ({ R: RRef.current, entry: coll && entry ? { coll: coll.id, id: entry.id } : undefined });
 
   /* selection, width */
   const [sel, setSel] = useState<string | null>(null);
@@ -205,20 +254,21 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
   const [bp, setBpState] = useState<Bp>(() => (localStorage.getItem('frantos-site-bp') as Bp) || (window.innerWidth < 700 ? 'sm' : 'lg'));
   const setBp = (b: Bp) => (localStorage.setItem('frantos-site-bp', b), setBpState(b));
   const bpDef = BPS.find((b) => b.id === bp)!;
-  const node = sel ? find(pg.root, sel) : undefined;
+  const node = sel ? find(R.root, sel) : undefined;
+  const virt = sel ? R.reg.get(sel) : undefined;
   useEffect(() => {
     if (sel && !node) setSel(null);
   }, [sel, node]);
 
   /* render */
-  const media = useSiteMedia(p, pg.root);
-  const view = useSiteDir(p, pg);
+  const media = useSiteMedia(p, R.root);
+  const view = useSiteDir(p, useMemo(() => ({ ...pg, root: R.root }), [pg, R.root]));
   /* motion: the editor shows the still page; Play and the timeline run the entrances */
   const [timeline, setTimeline] = useState(false);
   const [playing, setPlaying] = useState(false);
   const scrubRef = useRef(0);
   const tlApi = useRef<TimelineApi | null>(null);
-  const total = useMemo(() => pageSpan(pg.root), [pg.root]);
+  const total = useMemo(() => pageSpan(R.root), [R.root]);
   const mmode: MotionMode = timeline || playing ? 'play' : 'off';
   const { css, html } = useMemo(() => renderPage(view, makeCtx(p, media, { mode: 'container', edit: true, vh: `${bpDef.h}px`, tr, motion: mmode })), [view, p, media, bpDef.h, tr, mmode]);
   const scroller = useRef<HTMLDivElement>(null);
@@ -326,7 +376,7 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
 
   /* inline text editing */
   const startEdit = (id: string) => {
-    const n = find(pgRef.current.root, id);
+    const n = find(RRef.current.root, id);
     const el = elOf(id);
     if (!n || !el || !hasText(n)) return;
     const target = n.type === 'field' ? el.querySelector('span') ?? el : el;
@@ -353,7 +403,7 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
       const text = target.innerText.replace(/\n+$/, '');
       target.removeAttribute('contenteditable');
       setEditing(null);
-      if (save && text !== shown) setRoot(update(pgRef.current.root, id, (x) => ({ ...x, text })), 'Text changed');
+      if (save && text !== shown) apply((d, c) => opUpdate(d, c, id, (x) => ({ ...x, text })), 'Text changed');
       else if (!save) target.innerText = shown;
     };
     const onKey = (e: KeyboardEvent) => {
@@ -375,53 +425,56 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
   };
   const removeSel = () => {
     if (!sel) return;
-    const at = locate(pg.root, sel);
-    setRoot(remove(pg.root, sel), 'Element removed');
+    const at = locate(R.root, sel);
+    if (apply((d, c) => opRemove(d, c, sel), 'Element removed') === undefined) return;
     toast(t('Removed'), { undo: true });
-    const parent = at?.parent || null;
-    setSel(parent);
+    setSel(at?.parent || null);
   };
   const dupSel = () => {
     if (!sel) return;
-    const r = duplicate(pg.root, sel);
-    setRoot(r.nodes, 'Element duplicated');
-    select(r.id);
+    const id = apply((d, c) => opDuplicate(d, c, sel), 'Element duplicated');
+    if (id) select(id);
   };
   const nudge = (d: -1 | 1) => {
     if (!sel) return;
-    const at = locate(pg.root, sel);
+    const at = locate(R.root, sel);
     if (!at) return;
-    const siblings = at.parent ? find(pg.root, at.parent)?.children ?? [] : pg.root;
+    const siblings = at.parent ? find(R.root, at.parent)?.children ?? [] : R.root;
     const j = at.index + d;
     if (j < 0 || j >= siblings.length) return;
-    setRoot(move(pg.root, sel, at.parent, d > 0 ? j + 1 : j), 'Order changed');
+    apply((dd, c) => opMove(dd, c, sel, at.parent, d > 0 ? j + 1 : j), 'Order changed');
     reveal(sel);
   };
-  const parentOf = (id: string) => locate(pg.root, id)?.parent || null;
+  const parentOf = (id: string) => locate(R.root, id)?.parent || null;
+  /** the id a node inserted into `parent` gets in the expanded tree */
+  const idIn = (parent: string, newId: string) => {
+    const v = parent ? RRef.current.reg.get(parent) : undefined;
+    return !v ? newId : v.kind === 'inst' ? `${v.owner}~${newId}` : `${v.owner}~${v.item ?? 'sample'}~${newId}`;
+  };
+  const insertAt = (parent: string, index: number, n: SiteNode, label: string) => {
+    if (apply((d, c) => opInsert(d, c, parent, index, n), label) !== undefined) select(idIn(parent, n.id));
+  };
 
   /** where a new element goes on a click: into the picked container, after the picked element, or at the end */
   const placeNew = (n: SiteNode) => {
-    const root = pgRef.current.root;
+    const root = RRef.current.root;
     if (n.type === 'section') {
       const top = sel ? pathTo(root, sel)[0] : undefined;
       const i = top ? root.findIndex((x) => x.id === top.id) + 1 : root.length;
-      setRoot(insert(root, '', i, n), 'Section added');
-      return select(n.id);
+      return insertAt('', i, n, 'Section added');
     }
     const cur = sel ? find(root, sel) : undefined;
-    if (cur && isContainer(cur)) {
-      setRoot(insert(root, cur.id, (cur.children ?? []).length, n), 'Element added');
-    } else if (cur) {
+    if (cur && isContainer(cur) && !cur.coll) return insertAt(cur.id, (cur.children ?? []).length, n, 'Element added');
+    if (cur) {
       const at = locate(root, cur.id)!;
-      setRoot(insert(root, at.parent, at.index + 1, n), 'Element added');
-    } else if (root.length) {
-      const last = root[root.length - 1];
-      setRoot(insert(root, last.id, (last.children ?? []).length, n), 'Element added');
-    } else {
-      const sec: SiteNode = { id: n.id + 's', type: 'section', name: 'Section', children: [n] };
-      setRoot([sec], 'Element added');
+      return insertAt(at.parent, at.index + 1, n, 'Element added');
     }
-    select(n.id);
+    if (root.length) {
+      const last = root[root.length - 1];
+      return insertAt(last.id, (last.children ?? []).length, n, 'Element added');
+    }
+    const sec: SiteNode = { id: n.id + 's', type: 'section', name: 'Section', children: [n] };
+    if (apply((d, c) => opInsert(d, c, '', 0, sec), 'Element added') !== undefined) select(n.id);
   };
   const paste = () => {
     if (!clipboard) return;
@@ -445,9 +498,8 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
       if (mod && k === 'd') return void (e.preventDefault(), dupSel());
       if (mod && k === 'g') {
         e.preventDefault();
-        const r = wrap(pg.root, sel);
-        setRoot(r.nodes, 'Wrapped in a column');
-        return select(r.id);
+        const id = apply((d, c) => opWrap(d, c, sel), 'Wrapped in a column');
+        return id ? select(id) : undefined;
       }
       if (mod) return;
       if (e.key === 'Delete' || e.key === 'Backspace') return void (e.preventDefault(), removeSel());
@@ -460,8 +512,8 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
       if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) return void (e.preventDefault(), nudge(e.key === 'ArrowUp' ? -1 : 1));
       if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
         e.preventDefault();
-        const at = locate(pg.root, sel)!;
-        const sib = at.parent ? find(pg.root, at.parent)?.children ?? [] : pg.root;
+        const at = locate(R.root, sel)!;
+        const sib = at.parent ? find(R.root, at.parent)?.children ?? [] : R.root;
         const nx = sib[at.index + (e.key === 'ArrowUp' ? -1 : 1)];
         if (nx) select(nx.id);
       }
@@ -479,7 +531,7 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
     const hostEl = host.current;
     const st = stage.current;
     if (!hostEl || !st) return null;
-    const root = pgRef.current.root;
+    const root = RRef.current.root;
     const dragged = src.kind === 'move' ? elOf(src.id) : null;
     const rtl = view.dir === 'rtl';
     const line = (r: Rect) => r;
@@ -562,13 +614,9 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
       setDrop(null);
       if (!active) return onClick?.();
       if (!d) return;
-      const root = pgRef.current.root;
-      if (src.kind === 'new') {
-        const nn = src.make();
-        setRoot(insert(root, d.parent, d.index, nn), src.section ? 'Section added' : 'Element added');
-        select(nn.id);
-      } else {
-        setRoot(move(root, src.id, d.parent, d.index), 'Moved');
+      if (src.kind === 'new') insertAt(d.parent, d.index, src.make(), src.section ? 'Section added' : 'Element added');
+      else {
+        apply((dd, c) => opMove(dd, c, src.id, d.parent, d.index), 'Moved');
         select(src.id);
       }
     };
@@ -594,7 +642,7 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
   };
   const onFrameDouble = (e: React.MouseEvent) => {
     const id = (e.target as HTMLElement).closest<HTMLElement>('[data-n]')?.dataset.n;
-    const n = id ? find(pg.root, id) : undefined;
+    const n = id ? find(R.root, id) : undefined;
     if (id && n && hasText(n) && editing !== id) startEdit(id);
   };
 
@@ -617,16 +665,47 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
   };
 
   /* panels */
-  const [tab, setTab] = useState<'add' | 'layers'>('add');
+  const [tab, setTab] = useState<'add' | 'layers' | 'content'>('add');
   const [sheet, setSheet] = useState<null | 'add' | 'layers' | 'props'>(null);
   const [pagesOpen, setPagesOpen] = useState(false);
   const objects = p.objects ?? [];
 
+  const blockItem = (label: string, make: () => SiteNode, section: boolean, extra?: React.ReactNode, Icon: React.ComponentType<{ size?: number }> = section ? PanelTop : Box, hint?: string) => (
+    <div
+      key={label + (hint ?? '')}
+      role="button"
+      tabIndex={0}
+      onPointerDown={(e) => startDrag(e, { kind: 'new', make, label, section }, () => (placeNew(make()), setSheet(null)))}
+      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), placeNew(make()))}
+      className="flex cursor-pointer touch-none items-center gap-2.5 rounded-[14px] bg-white/[.07] p-2 text-start hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
+      title={t('Click to add after the picked section, or drag onto the page')}
+    >
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-white/15">
+        <Icon size={15} />
+      </span>
+      <span className="min-w-0">
+        <span dir="auto" className="block truncate text-[13px] font-bold">
+          {label}
+        </span>
+        {hint && <span className="block truncate text-[11.5px] text-white/60">{hint}</span>}
+      </span>
+      {extra}
+    </div>
+  );
+  /** a list needs a collection: the first time, one is made from the project's pictures */
+  const listMake = (withSection: boolean) => () => {
+    const cid = dataRef.current.colls[0]?.id ?? newColl();
+    const list = listNode(t, cid);
+    return withSection ? ({ ...dsl.SEC('Entries', {}, [dsl.H(t('From the journal'), 2), list]) } as SiteNode) : list;
+  };
   const addList = (
     <div className="space-y-4">
+      <MyBlocks p={p} item={(label, make, section, extra) => blockItem(label, make, section, extra, Bookmark)} />
+      <ComponentsList data={data} item={(label, make, section) => blockItem(label, make, section, undefined, Component)} />
       <div>
         <p className="lg-label mb-2 px-1">{t('Sections')}</p>
         <div className="grid grid-cols-1 gap-1.5">
+          {blockItem(t('Entries from a collection'), listMake(true), true, undefined, Database, t('Blog posts as cards, written in Entries'))}
           {BLOCKS.map((b) => {
             const Ic = BLOCK_ICON[b.id] ?? PanelTop;
             return (
@@ -670,16 +749,19 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
             );
           })}
         </div>
+        <div className="mt-1.5">{blockItem(t('List of entries'), listMake(false), false, undefined, Database)}</div>
       </div>
     </div>
   );
 
+  const contentPanel = <ContentPanel p={p} data={data} apply={apply} img={env.img} page={pg} tr={tr} onBindPage={(c) => bindPage(c)} />;
+
   const layerRows: { n: SiteNode; depth: number }[] = [];
-  walk(pg.root, (n, _p, depth) => layerRows.push({ n, depth }));
+  walk(R.root, (n, _p, depth) => layerRows.push({ n, depth }));
   const layersList = (
     <ol className="space-y-0.5" aria-label={t('Layers')}>
       {layerRows.map(({ n, depth }) => {
-        const Ic = TYPE_ICON[n.type];
+        const Ic = n.comp ? Component : n.coll ? Database : TYPE_ICON[n.type];
         const hidden = !!styleAt(n, bp).hide;
         return (
           <li key={n.id} className={`group flex items-center rounded-[10px] ${n.id === sel ? 'bg-white/20' : 'hover:bg-white/10'}`} onPointerEnter={() => setHover(n.id)} onPointerLeave={() => setHover(null)}>
@@ -690,7 +772,7 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
               </span>
               {(n.anim || n.hover) && <Sparkle size={10} className="shrink-0 text-[#ffb84f]" aria-label={t('Moves')} />}
             </button>
-            <button type="button" onClick={() => setRoot(update(pg.root, n.id, (x) => setStyle(x, bp, { hide: hidden ? (bp === 'lg' ? undefined : false) : true })), hidden ? 'Shown' : 'Hidden')} className={`lg-btn lg-btn-plain h-7 min-h-0 w-7 lg-icon !p-0 ${hidden ? '' : 'opacity-0 group-hover:opacity-100 focus:opacity-100'}`} aria-label={hidden ? t('Show at this width') : t('Hide at this width')} aria-pressed={hidden}>
+            <button type="button" onClick={() => apply((d, c) => opUpdate(d, c, n.id, (x) => setStyle(x, bp, { hide: hidden ? (bp === 'lg' ? undefined : false) : true })), hidden ? 'Shown' : 'Hidden')} className={`lg-btn lg-btn-plain h-7 min-h-0 w-7 lg-icon !p-0 ${hidden ? '' : 'opacity-0 group-hover:opacity-100 focus:opacity-100'}`} aria-label={hidden ? t('Show at this width') : t('Hide at this width')} aria-pressed={hidden}>
               {hidden ? <EyeOff size={12} /> : <Eye size={12} />}
             </button>
           </li>
@@ -731,24 +813,103 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
   const leftPanel = (
     <>
       {pagesMenu}
-      <div role="tablist" className="grid grid-cols-2 gap-1 rounded-[14px] bg-white/10 p-1">
+      <div role="tablist" className="grid grid-cols-3 gap-1 rounded-[14px] bg-white/10 p-1">
         {(
           [
             ['add', t('Add'), Plus],
             ['layers', t('Layers'), Layers],
+            ['content', t('Entries'), Database],
           ] as const
         ).map(([k, l, Ic]) => (
-          <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`flex min-h-[34px] items-center justify-center gap-1.5 rounded-[10px] text-[12.5px] font-bold ${tab === k ? 'bg-white text-[#11151a]' : 'text-white/85 hover:bg-white/10'}`}>
-            <Ic size={14} /> {l}
+          <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`flex min-h-[34px] min-w-0 items-center justify-center gap-1 rounded-[10px] px-1 text-[12px] font-bold ${tab === k ? 'bg-white text-[#11151a]' : 'text-white/85 hover:bg-white/10'}`}>
+            <Ic size={13} className="shrink-0 max-[1600px]:hidden" /> <span className="truncate">{l}</span>
           </button>
         ))}
       </div>
-      <div className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1 lg-scroll">{tab === 'add' ? addList : layersList}</div>
+      <div className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1 lg-scroll">{tab === 'add' ? addList : tab === 'layers' ? layersList : contentPanel}</div>
     </>
   );
 
-  const inspector = node ? (
-    <NodeInspector key={node.id} p={p} n={node} bp={bp} theme={pg.theme} tr={tr} path={pathTo(pg.root, node.id)} onSelect={select} onPlay={play} onNode={(nn, label, now) => setRoot(update(pgRef.current.root, nn.id, () => nn), label, now)} parentNode={(() => { const pid = parentOf(node.id); return pid ? find(pg.root, pid) : undefined; })()} />
+  /* quality check: runs on the page as drawn, again a moment after each change while open */
+  const [checking, setChecking] = useState(false);
+  const [issues, setIssues] = useState<Issue[] | null>(null);
+  const [checkBusy, setCheckBusy] = useState(false);
+  useEffect(() => {
+    if (!checking) return;
+    let live = true;
+    const id = window.setTimeout(async () => {
+      setCheckBusy(true);
+      try {
+        const r = await checkPage(p, { ...view, root: R.root }, media, tr);
+        if (live) setIssues(r);
+      } finally {
+        if (live) setCheckBusy(false);
+      }
+    }, 500);
+    return () => {
+      live = false;
+      window.clearTimeout(id);
+    };
+  }, [checking, R.root, view, media, tr, p]);
+
+  /* components, cards, entries, saved blocks */
+  const makeComp = () => {
+    if (!node) return;
+    const name = nodeLabel(node, t, tr);
+    const id = apply((d, c) => makeComponent(d, c, node.id, name), 'Component made');
+    if (id !== undefined) toast(t('“{n}” is a component now: duplicate it or add it from the panel; style changes reach every copy', { n: name }));
+  };
+  const saveBlock = () => {
+    if (!node) return;
+    ws.addSiteBlock({ name: nodeLabel(node, t, tr), node: structuredClone(node), projectId: p.id });
+    toast(t('Saved to your blocks: find it under Add in any project'));
+  };
+  const newColl = () => {
+    const c = newCollection(t, env.img);
+    apply((d) => ({ ...d, colls: [...d.colls, c] }), 'Collection added');
+    return c.id;
+  };
+  const bindPage = (cid?: string) => {
+    if (!cid) return commit({ collection: undefined }, 'Entry page off');
+    let bound = false;
+    walk(pgRef.current.root, (n) => n.bind && (bound = true));
+    commit({ collection: cid, root: bound ? pgRef.current.root : [...pgRef.current.root.slice(0, 1), entrySection(t), ...pgRef.current.root.slice(1)] }, 'Entry page on');
+    toast(t('This page now shows one entry at a time: fields marked with the database sign come from the entry'));
+  };
+  const partUi = node ? (
+    <>
+      {virt && <PartNote v={virt} data={data} root={pg.root} />}
+      {node.comp && <ComponentSection n={node} data={data} pages={(p.pages ?? []).map((x) => (x.id === pg.id ? pg : x))} apply={apply} />}
+      {node.coll && <ListSection n={node} data={data} apply={apply} onContent={() => (setTab('content'), narrow && setSheet('add'))} onNewCollection={newColl} />}
+      {(virt?.kind === 'list' || (pg.collection && !virt)) && <BindField n={node} apply={apply} />}
+      {!node.coll && (
+        <div className="grid grid-cols-2 gap-1.5">
+          {!virt && !node.comp && (
+            <button type="button" onClick={makeComp} className="lg-btn lg-btn-ghost min-h-[34px] text-[12px]" title={t('Copies follow this main: change one, all change')}>
+              <Component size={13} /> {t('Make a component')}
+            </button>
+          )}
+          <button type="button" onClick={saveBlock} className="lg-btn lg-btn-ghost min-h-[34px] text-[12px]" title={t('Keep it for any project')}>
+            <BookmarkPlus size={13} /> {t('Save as block')}
+          </button>
+        </div>
+      )}
+    </>
+  ) : null;
+
+  const inspector = checking ? (
+    <QualityPanel
+      issues={issues}
+      busy={checkBusy}
+      onClose={() => setChecking(false)}
+      onPick={(i) => {
+        if (i.bp !== bp) setBp(i.bp);
+        if (i.node) select(i.node);
+        if (narrow) setSheet(null);
+      }}
+    />
+  ) : node ? (
+    <NodeInspector key={node.id} p={p} n={node} bp={bp} theme={pg.theme} tr={tr} path={pathTo(R.root, node.id)} onSelect={select} onPlay={play} part={partUi} onNode={(nn, label, now) => apply((d, c) => opUpdate(d, c, nn.id, () => nn), label, now)} parentNode={(() => { const pid = parentOf(node.id); return pid ? find(pg.root, pid) : undefined; })()} />
   ) : (
     <PageInspector p={p} pg={pg} commit={commit} sending={sending} onReview={toReview} />
   );
@@ -846,6 +1007,19 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
               <GanttChart size={15} /> <span className="max-2xl:hidden">{t('Timeline')}</span>
             </button>
           )}
+          {coll && (
+            <select value={entry?.id ?? ''} onChange={(e) => setEntryId(e.target.value)} aria-label={t('Entry on this page')} title={t('Entry on this page')} className="lg-input h-[38px] max-w-[160px] truncate rounded-full px-3 text-[12.5px] font-bold">
+              {coll.entries.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {tr ? tr(e.title) : e.title}
+                </option>
+              ))}
+            </select>
+          )}
+          <button type="button" onClick={() => (setChecking((v) => !v), narrow && setSheet('props'))} aria-pressed={checking} aria-label={t('Check')} className={`lg-btn relative min-h-[38px] text-[12.5px] ${checking ? 'lg-btn-primary' : 'lg-btn-plain'}`} title={t('Contrast, finger size, overflow, descriptions, links, headings')}>
+            <ShieldCheck size={15} /> <span className="max-2xl:hidden">{t('Check')}</span>
+            {issues && issues.length > 0 && <span className="lg-dark absolute -end-0.5 -top-0.5 min-w-[18px] rounded-full bg-[#ff6b6b] px-1 text-center text-[10.5px] font-bold leading-[18px] text-white">{issues.length}</span>}
+          </button>
           <button type="button" onClick={() => (flush(), setExporting(true))} aria-label={t('Export')} className="lg-btn lg-btn-plain min-h-[38px] text-[12.5px]" title={t('HTML, React, PNG, PDF')}>
             <Download size={15} /> <span className="max-2xl:hidden">{t('Export')}</span>
           </button>
@@ -857,13 +1031,13 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
       {timeline && !narrow && (
         <Pane as="section" aria-label={t('Timeline')} className="absolute bottom-4 end-[336px] start-[288px] z-20 mx-3 h-[236px] overflow-hidden rounded-[22px]">
           <Timeline
-            root={pg.root}
+            root={R.root}
             sel={sel}
             tr={tr}
             playing={playing}
             api={tlApi}
             onSelect={select}
-            onAnim={(id, patch, now) => setRoot(update(pgRef.current.root, id, (x) => (x.anim ? { ...x, anim: { ...x.anim, ...patch } } : x)), 'Motion changed', now)}
+            onAnim={(id, patch, now) => apply((d, c) => opUpdate(d, c, id, (x) => (x.anim ? { ...x, anim: { ...x.anim, ...patch } } : x)), 'Motion changed', now)}
             onScrub={scrubTo}
             onPlay={play}
             onPause={() => setPlaying(false)}
@@ -906,10 +1080,7 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
                   </button>
                 </div>
                 {sheet === 'add' ? (
-                  <>
-                    {pagesMenu}
-                    {addList}
-                  </>
+                  leftPanel
                 ) : sheet === 'layers' ? (
                   layersList
                 ) : (
@@ -966,7 +1137,7 @@ function Roles({ value, theme, onChange, allowNone }: { value?: string; theme: S
 
 const spaceOpts = SPACE.map((s) => ({ id: s, label: String(spacePx(s)) }));
 
-function NodeInspector({ p, n, bp, theme, tr, path, parentNode, onNode, onSelect, onPlay }: { p: Project; n: SiteNode; bp: Bp; theme: SiteTheme; tr?: (s: string) => string; path: SiteNode[]; parentNode?: SiteNode; onNode: (n: SiteNode, label: string, now?: boolean) => void; onSelect: (id: string | null) => void; onPlay: () => void }) {
+function NodeInspector({ p, n, bp, theme, tr, path, parentNode, onNode, onSelect, onPlay, part }: { p: Project; n: SiteNode; bp: Bp; theme: SiteTheme; tr?: (s: string) => string; path: SiteNode[]; parentNode?: SiteNode; onNode: (n: SiteNode, label: string, now?: boolean) => void; onSelect: (id: string | null) => void; onPlay: () => void; part: React.ReactNode }) {
   const { t } = useI18n();
   const st = styleAt(n, bp);
   const setS = (patch: Partial<SiteStyle>, now = true) => onNode(setStyle(n, bp, patch), 'Style changed', now);
@@ -1005,6 +1176,7 @@ function NodeInspector({ p, n, bp, theme, tr, path, parentNode, onNode, onSelect
           <input aria-label={t('Layer name')} value={n.name ? t(n.name) : ''} placeholder={t(TYPE_LABEL[n.type])} onChange={(e) => set({ name: e.target.value || undefined })} className="lg-input min-h-[36px] min-w-0 flex-1 px-2.5 text-[14px] font-bold" />
         </div>
       </div>
+      {part}
 
       {/* content */}
       {(hasText(n) || n.type === 'media' || n.type === 'object' || n.type === 'section') && (

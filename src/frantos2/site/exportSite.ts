@@ -8,6 +8,33 @@ import type { MediaInfo } from './render';
 import { renderPage } from './render';
 import { capturePage } from './snapshot';
 import { BPS } from './model';
+import { viewRoot } from './collections';
+
+/** every file the site has: a page, or a collection page once per entry (`page--entry`) */
+interface Out {
+  page: SitePage;
+  file: string;
+  route: string;
+  title: string;
+  root: SitePage['root'];
+}
+function expand(p: Project, pages: SitePage[], tr?: (s: string) => string): Out[] {
+  const out: Out[] = [];
+  pages.forEach((pg, i) => {
+    const base = i === 0 ? 'index' : pg.slug;
+    const title = tr ? tr(pg.title) : pg.title;
+    const coll = pg.collection ? (p.collections ?? []).find((c) => c.id === pg.collection) : undefined;
+    if (!coll) return out.push({ page: pg, file: base, route: i === 0 ? '' : pg.slug, title, root: viewRoot(p, pg) });
+    coll.entries
+      .filter((e) => !e.draft)
+      .forEach((e, j) => {
+        const et = tr ? tr(e.title) : e.title;
+        out.push({ page: pg, file: `${pg.slug}--${e.slug}`, route: `${pg.slug}/${e.slug}`, title: `${et} · ${title}`, root: viewRoot(p, pg, e.id) });
+        if (j === 0 && i === 0) out.push({ page: pg, file: 'index', route: '', title, root: viewRoot(p, pg, e.id) });
+      });
+  });
+  return out;
+}
 
 /**
  * Pages out of FrantoS: a static site (open index.html, no build), a React + Vite project, pictures and a PDF.
@@ -91,7 +118,7 @@ function familiesFor(pages: SitePage[], lang: string) {
 
 /* ───────── pictures, videos and Lottie as files ───────── */
 
-async function mediaFiles(p: Project, pages: SitePage[], base: string): Promise<{ map: Record<string, MediaInfo>; files: File[]; lottie: Record<string, string> }> {
+async function mediaFiles(p: Project, pages: { root: SitePage['root'] }[], base: string): Promise<{ map: Record<string, MediaInfo>; files: File[]; lottie: Record<string, string> }> {
   const ids = new Set<string>();
   pages.forEach((pg) => walk(pg.root, (n) => n.assetId && ids.add(n.assetId)));
   const map: Record<string, MediaInfo> = {};
@@ -124,20 +151,21 @@ async function lottiePlayer(): Promise<string> {
 }
 
 /** links to other pages: `slug.html` in the static site, `#/slug` in the React app */
-const pageLinks = (html: string, pages: SitePage[], kind: ExportKind) =>
-  html.replace(/href="([^"#?]+)\.html(#[^"]*)?"/g, (all, slug: string, hash = '') => {
-    const i = pages.findIndex((x) => x.slug === slug);
-    if (i < 0) return all;
-    return kind === 'html' ? `href="${i === 0 ? 'index' : slug}.html${hash}"` : `href="#/${i === 0 ? '' : slug}"`;
+const pageLinks = (html: string, outs: Out[], kind: ExportKind) =>
+  html.replace(/href="([^"#?]+)\.html(#[^"]*)?"/g, (all, name: string, hash = '') => {
+    const [slug, entry] = name.split('--');
+    const o = outs.find((x) => (entry ? x.file === name : x.page.slug === slug && x.file === (outs[0].page.slug === slug ? 'index' : slug))) ?? outs.find((x) => x.page.slug === slug);
+    if (!o) return all;
+    return kind === 'html' ? `href="${o.file}.html${hash}"` : `href="#/${o.route}"`;
   });
 
-const README_HTML = (title: string, pages: SitePage[]) => `${title}
+const README_HTML = (title: string, outs: Out[]) => `${title}
 ${'='.repeat(title.length)}
 
 Built in FrantoS. Open index.html in a browser: no build, no server needed.
 
 Pages
-${pages.map((p, i) => `  ${i === 0 ? 'index' : p.slug}.html — ${p.title}`).join('\n')}
+${outs.map((o) => `  ${o.file}.html — ${o.title}`).join('\n')}
 
 Files
   css/fonts.css     the typefaces (woff2 in fonts/)
@@ -152,33 +180,33 @@ Change a colour: edit the --c-* variables at the top of the page's CSS.
 
 export async function exportHtml(p: Project, pages: SitePage[], tr?: (s: string) => string): Promise<Blob> {
   const lang = langOf(pages, tr);
-  const [{ map, files: media, lottie }, fonts] = await Promise.all([mediaFiles(p, pages, ''), fontFiles(familiesFor(pages, lang), '../fonts/')]);
+  const outs = expand(p, pages, tr);
+  const [{ map, files: media, lottie }, fonts] = await Promise.all([mediaFiles(p, outs, ''), fontFiles(familiesFor(pages, lang), '../fonts/')]);
   const files: File[] = [...media, ...fonts.files, text('css/fonts.css', fonts.css), text('js/motion.js', motionScript())];
   const lottieKeys = Object.keys(lottie);
   if (lottieKeys.length) {
     files.push(text('js/lottie.min.js', await lottiePlayer()));
     files.push(text('js/lottie-data.js', `window.__fsLottie=${JSON.stringify(Object.fromEntries(lottieKeys.map((k) => [k, JSON.parse(lottie[k])])))};\n`));
   }
-  pages.forEach((pg, i) => {
-    const name = i === 0 ? 'index' : pg.slug;
-    const { css, html } = renderPage(pg, { media: (id) => map[id], objectThumb: (oid) => (p.objects ?? []).find((o) => o.id === oid)?.thumb, mode: 'media', tr, motion: 'on' });
-    files.push(text(`css/${name}.css`, `/* ${pg.title} · FrantoS */\nhtml,body{margin:0;padding:0}\nbody{background:${pg.theme.bg}}\n${css}\n`));
-    const title = tr ? tr(pg.title) : pg.title;
+  outs.forEach((o) => {
+    const pg = o.page;
+    const { css, html } = renderPage({ ...pg, root: o.root }, { media: (id) => map[id], objectThumb: (oid) => (p.objects ?? []).find((x) => x.id === oid)?.thumb, mode: 'media', tr, motion: 'on' });
+    files.push(text(`css/${o.file}.css`, `/* ${o.title} · FrantoS */\nhtml,body{margin:0;padding:0}\nbody{background:${pg.theme.bg}}\n${css}\n`));
     files.push(
       text(
-        `${name}.html`,
+        `${o.file}.html`,
         `<!doctype html>
 <html lang="${lang}" dir="${pg.dir}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(title)}</title>
+<title>${esc(o.title)}</title>
 <meta name="generator" content="FrantoS">
 <link rel="stylesheet" href="css/fonts.css">
-<link rel="stylesheet" href="css/${name}.css">
+<link rel="stylesheet" href="css/${o.file}.css">
 </head>
 <body>
-${pageLinks(html, pages, 'html')}
+${pageLinks(html, outs, 'html')}
 ${lottieKeys.length ? '<script src="js/lottie.min.js"></script>\n<script src="js/lottie-data.js"></script>\n' : ''}<script src="js/motion.js" defer></script>
 </body>
 </html>
@@ -186,7 +214,7 @@ ${lottieKeys.length ? '<script src="js/lottie.min.js"></script>\n<script src="js
       )
     );
   });
-  files.push(text('README.txt', README_HTML(tr ? tr(pages[0].title) : pages[0].title, pages)));
+  files.push(text('README.txt', README_HTML(tr ? tr(pages[0].title) : pages[0].title, outs)));
   return zip(files.map((f) => ({ ...f, name: `${fileSlug(p.title)}-site/${f.name}` })));
 }
 
@@ -231,21 +259,28 @@ export default {
 
 export async function exportReact(p: Project, pages: SitePage[], tr?: (s: string) => string): Promise<Blob> {
   const lang = langOf(pages, tr);
-  const [{ map, files: media, lottie }, fonts] = await Promise.all([mediaFiles(p, pages, '/'), fontFiles(familiesFor(pages, lang), '/fonts/')]);
+  const outs = expand(p, pages, tr).filter((o, i, a) => a.findIndex((x) => x.route === o.route) === i);
+  const [{ map, files: media, lottie }, fonts] = await Promise.all([mediaFiles(p, outs, '/'), fontFiles(familiesFor(pages, lang), '/fonts/')]);
   const files: File[] = [...media.map((f) => ({ ...f, name: `public/${f.name}` })), ...fonts.files.map((f) => ({ ...f, name: `public/${f.name}` })), text('src/fonts.css', fonts.css)];
-  const names = pages.map((pg, i) => compName(tr ? tr(pg.title) : pg.title, i));
-  pages.forEach((pg, i) => {
-    const scope = `pg-${fileSlug(pg.slug)}`;
+  const names: string[] = [];
+  outs.forEach((o, i) => {
+    let n = compName(o.title.split(' · ')[0], i);
+    while (names.includes(n)) n += i;
+    names.push(n);
+  });
+  outs.forEach((o, i) => {
+    const pg = { ...o.page, root: o.root };
+    const scope = `pg-${fileSlug(o.file)}`;
     const { css, html } = renderPage(pg, { media: (id) => map[id], objectThumb: (oid) => (p.objects ?? []).find((o) => o.id === oid)?.thumb, mode: 'media', tr, motion: 'on', scope });
     files.push(text(`src/pages/${names[i]}.css`, css + '\n'));
-    const jsx = htmlToJsx(pageLinks(html, pages, 'react')).replace(/^<div /, '<div ref={ref} ');
+    const jsx = htmlToJsx(pageLinks(html, outs, 'react')).replace(/^<div /, '<div ref={ref} ');
     files.push(
       text(
         `src/pages/${names[i]}.jsx`,
         `import { useMotion } from '../useMotion';
 import './${names[i]}.css';
 
-/** ${pg.title} — built in FrantoS */
+/** ${o.title} — built in FrantoS */
 export default function ${names[i]}() {
   const ref = useMotion();
   return (
@@ -268,7 +303,7 @@ import { createRoot } from 'react-dom/client';
 import './fonts.css';
 ${names.map((n) => `import ${n} from './pages/${n}';`).join('\n')}
 ${lottieKeys.length ? `import lottie from 'lottie-web/build/player/lottie_light';\n${lottieKeys.map((k, i) => `import l${i} from './lottie/${k}.json';`).join('\n')}\nwindow.lottie = lottie;\nwindow.__fsLottie = { ${lottieKeys.map((k, i) => `'${k}': l${i}`).join(', ')} };\n` : ''}
-const PAGES = { ${pages.map((pg, i) => `'${i === 0 ? '' : pg.slug}': ${names[i]}`).join(', ')} };
+const PAGES = { ${outs.map((o, i) => `'${o.route}': ${names[i]}`).join(', ')} };
 
 function App() {
   const [path, setPath] = useState(() => location.hash.replace(/^#\\/?/, ''));
@@ -309,7 +344,7 @@ createRoot(document.getElementById('root')).render(
     text('tailwind.tokens.js', tailwindTokens(pages[0])),
     text(
       'README.md',
-      `# ${tr ? tr(pages[0].title) : pages[0].title}\n\nBuilt in FrantoS as a React + Vite project.\n\n\`\`\`\nnpm install\nnpm run dev\n\`\`\`\n\n- \`src/pages/\` — one component per page, with its CSS (tokens as CSS variables, widths: ≤1023 tablet, ≤599 phone).\n- \`src/useMotion.js\` — starts the page's motion; respects reduced motion.\n- \`tailwind.tokens.js\` — the same tokens for Tailwind (\`theme.extend\`).\n- Pages: ${pages.map((pg, i) => `\`#/${i === 0 ? '' : pg.slug}\` ${pg.title}`).join(', ')}.\n`
+      `# ${tr ? tr(pages[0].title) : pages[0].title}\n\nBuilt in FrantoS as a React + Vite project.\n\n\`\`\`\nnpm install\nnpm run dev\n\`\`\`\n\n- \`src/pages/\` — one component per page, with its CSS (tokens as CSS variables, widths: ≤1023 tablet, ≤599 phone).\n- \`src/useMotion.js\` — starts the page's motion; respects reduced motion.\n- \`tailwind.tokens.js\` — the same tokens for Tailwind (\`theme.extend\`).\n- Pages: ${outs.map((o) => `\`#/${o.route}\` ${o.title}`).join(', ')}.\n`
     )
   );
   return zip(files.map((f) => ({ ...f, name: `${fileSlug(p.title)}-react/${f.name}` })));

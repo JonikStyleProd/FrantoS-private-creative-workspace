@@ -11,6 +11,15 @@ export interface NewsItem {
 
 export const NEWS: NewsItem[] = [
   {
+    n: 12,
+    date: '2026-11-10',
+    title: 'Components, a blog and a check',
+    body: 'Make any part a component: copies keep their own words and pictures, and a change of style reaches every copy; variants such as Sale switch in one click. Collections hold blog posts: a list shows them as cards, an entry page shows one at a time, and you can edit an entry right on its card. Save blocks for any project, and let the check find hard-to-read text, small buttons and things past the phone edge.',
+    path: '/s/saltwater?m=site',
+    cta: 'Open the Saltwater journal',
+    image: '/projects/saltwater/bag-sm.webp',
+  },
+  {
     n: 11,
     date: '2026-11-10',
     title: 'Take the site with you',

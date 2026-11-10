@@ -4,6 +4,7 @@ import type { Project, SitePage } from '../ws/types';
 import type { MediaInfo } from './render';
 import { renderPage } from './render';
 import { makeCtx } from './media';
+import { viewRoot } from './collections';
 
 /**
  * A page → a picture of the whole page at desktop width. The picture becomes a version of the page's
@@ -12,7 +13,7 @@ import { makeCtx } from './media';
  */
 export async function capturePage(p: Project, page: SitePage, media: Record<string, MediaInfo>, width = 1440, tr?: (s: string) => string): Promise<{ blob: Blob; w: number; h: number }> {
   const { toBlob } = await import('html-to-image');
-  const { css, html } = renderPage(page, makeCtx(p, media, { mode: 'container', vh: '900px', tr, motion: 'off' }));
+  const { css, html } = renderPage({ ...page, root: viewRoot(p, page) }, makeCtx(p, media, { mode: 'container', vh: '900px', tr, motion: 'off' }));
   const host = document.createElement('div');
   host.setAttribute('aria-hidden', 'true');
   host.style.cssText = `position:fixed;left:-30000px;top:0;width:${width}px;container:fs / inline-size;pointer-events:none`;
@@ -53,7 +54,8 @@ export async function pageToReview(p: Project, page: SitePage, media: Record<str
     ws.linkPageWork(p.id, workId, page.id);
     versionId = ws.project(p.id)!.works.find((x) => x.id === workId)!.versions[0].id;
   }
-  const snaps = [...(page.snapshots ?? []), { versionId, root: page.root, theme: page.theme, createdAt: Date.now() }].slice(-12);
+  // the version keeps the page as drawn, so later changes to components or entries do not alter it
+  const snaps = [...(page.snapshots ?? []), { versionId, root: viewRoot(p, page), theme: page.theme, createdAt: Date.now() }].slice(-12);
   ws.patchPage(p.id, page.id, { workId, snapshots: snaps });
   return { workId, versionId };
 }
