@@ -19,6 +19,12 @@ alter table public.profiles
   add column if not exists disabled boolean not null default false;
 
 -- users may change their name only; role, flags and email are set by the server
+-- if the admin's account was made before this migration, the oldest account is the admin
+update public.profiles p set platform_role = 'admin', email = lower(u.email)
+  from auth.users u
+ where p.id = u.id and u.id = (select id from auth.users order by created_at limit 1);
+update public.profiles p set email = lower(u.email) from auth.users u where p.id = u.id and p.email is null;
+
 revoke update on public.profiles from authenticated, anon;
 grant update (name) on public.profiles to authenticated;
 
