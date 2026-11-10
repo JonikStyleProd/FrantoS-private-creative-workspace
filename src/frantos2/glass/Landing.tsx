@@ -1,6 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { ArrowRight, Cloud, Languages, Lock, MessageSquare, Play, Sparkles } from 'lucide-react';
+import { ArrowRight, Cloud, Languages, Lock, LogIn, MessageSquare, Play, Sparkles } from 'lucide-react';
+
+const CLOUD = !!import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_AUTH_GATE !== 'off';
+/** a stored studio session (read without loading the cloud client on the landing) */
+const signedIn = () => {
+  try {
+    return Object.keys(localStorage).some((k) => /^sb-.+-auth-token$/.test(k));
+  } catch {
+    return false;
+  }
+};
 import './glass.css';
 import { useI18n } from '../i18n';
 import { go } from '../route';
@@ -71,6 +81,11 @@ export function GlassLanding() {
               </span>
               <ThemeSwitch />
               <InstallButton />
+              {CLOUD && !signedIn() && (
+                <button type="button" onClick={() => go('/login?next=%2Fapp')} className="lg-btn lg-btn-ghost">
+                  <LogIn size={15} /> <span className="max-sm:hidden">{t('Sign in')}</span>
+                </button>
+              )}
               <button type="button" onClick={() => go('/app')} className="lg-btn lg-btn-primary">
                 {t('Open workspace')}
               </button>

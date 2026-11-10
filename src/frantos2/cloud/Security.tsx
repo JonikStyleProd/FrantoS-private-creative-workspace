@@ -41,7 +41,7 @@ function Overlay({ children, onClose, label }: { children: React.ReactNode; onCl
   );
 }
 
-function PasswordInput({ id, value, onChange, auto, label }: { id: string; value: string; onChange: (v: string) => void; auto: 'current-password' | 'new-password'; label: string }) {
+export function PasswordInput({ id, value, onChange, auto, label }: { id: string; value: string; onChange: (v: string) => void; auto: 'current-password' | 'new-password'; label: string }) {
   const { t } = useI18n();
   const [show, setShow] = useState(false);
   return (
@@ -59,7 +59,7 @@ function PasswordInput({ id, value, onChange, auto, label }: { id: string; value
   );
 }
 
-function CodeInput({ value, onChange, autoFocus }: { value: string; onChange: (v: string) => void; autoFocus?: boolean }) {
+export function CodeInput({ value, onChange, autoFocus }: { value: string; onChange: (v: string) => void; autoFocus?: boolean }) {
   const { t } = useI18n();
   return (
     <input
@@ -77,12 +77,13 @@ function CodeInput({ value, onChange, autoFocus }: { value: string; onChange: (v
   );
 }
 
-const authError = (t: (s: string) => string, e: any) => {
+export const authError = (t: (s: string) => string, e: any) => {
   const m = String(e?.message ?? '');
   if (/invalid login credentials/i.test(m)) return t('Wrong email or password.');
   if (/invitation only/i.test(m)) return t('This email has no account. Accounts are created by the studio admin.');
   if (/banned/i.test(m)) return t('This account is locked. Ask the studio admin.');
   if (/rate|too many/i.test(m)) return t('Too many attempts. Wait a minute and try again.');
+  if (/failed to fetch|network|load failed/i.test(m)) return t('No connection to the studio. Check the internet and try again.');
   if (/invalid.*code|totp|mfa/i.test(m)) return t('That code did not match. Use the newest one from the app.');
   return t('Something went wrong. Try again.');
 };

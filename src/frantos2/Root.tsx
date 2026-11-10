@@ -1,7 +1,7 @@
 import React, { Suspense, lazy, useEffect } from 'react';
 import { AnimatePresence, LayoutGroup, MotionConfig, motion } from 'framer-motion';
 import './f2.css';
-import { parse, useHash } from './route';
+import { go, parse, useHash } from './route';
 import { useI18n } from './i18n';
 import { useTheme } from './glass/theme';
 
@@ -32,6 +32,13 @@ const SharePage = lazy(() => import('./pages/SharePage').then((m) => ({ default:
 const DeckPage = lazy(() => import('./pages/DeckPage').then((m) => ({ default: m.DeckPage })));
 const GuidePage = lazy(() => import('./pages/GuidePage').then((m) => ({ default: m.GuidePage })));
 const CloudLayer = lazy(() => import('./cloud/CloudLayer'));
+const AuthGate = lazy(() => import('./cloud/AuthGate'));
+const LoginPage = lazy(() => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })));
+
+/** pages anyone may open: the landing, demo story, guest review links, published cases and portfolios, sign-in */
+const PUBLIC = new Set(['landing', 'afterhours', 'story', 'guest', 'case', 'folio', 'join', 'login']);
+/** the sign-in wall is on whenever the build talks to the studio server (tests build with VITE_AUTH_GATE=off) */
+const GATE = !!import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_AUTH_GATE !== 'off';
 const AppChrome = lazy(() => import('./AppChrome'));
 const Palette = lazy(() => import('./daily/Palette').then((m) => ({ default: m.Palette })));
 
@@ -54,6 +61,7 @@ const TITLES: Record<string, string> = {
   objects: 'Objects — FrantoS',
   templates: 'Templates — FrantoS',
   settings: 'Settings — FrantoS',
+  login: 'Sign in — FrantoS',
   admin: 'Accounts & access — FrantoS',
   news: "What's new — FrantoS",
   portfolio: 'Portfolio — FrantoS',
@@ -63,9 +71,14 @@ const TITLES: Record<string, string> = {
   guide: 'Brand guide — FrantoS',
 };
 
+function Redirect({ to }: { to: string }) {
+  useEffect(() => go(to, { replace: true }), [to]);
+  return null;
+}
+
 const Blank = ({ dark }: { dark?: boolean }) => <div className={`fixed inset-0 ${dark ? (document.documentElement.dataset.theme === 'light' ? 'bg-[#f3f1ec]' : 'bg-[#0e0e10]') : 'bg-[#eee8dd]'}`} />;
 const APP_ROUTES = new Set(['app', 'project', 'pshow', 'team', 'join', 'editor', 'showroom', 'library', 'objects', 'templates', 'settings', 'admin', 'news', 'portfolio', 'share', 'deck', 'guide']);
-const GLASS = new Set(['landing', 'app', 'project', 'editor', 'showroom', 'library', 'objects', 'templates', 'settings', 'admin', 'news', 'portfolio', 'folio', 'share', 'deck']);
+const GLASS = new Set(['login', 'landing', 'app', 'project', 'editor', 'showroom', 'library', 'objects', 'templates', 'settings', 'admin', 'news', 'portfolio', 'folio', 'share', 'deck']);
 
 export function Root() {
   const hash = useHash();
@@ -173,11 +186,17 @@ export function Root() {
       baseKey = `guide-${route.id}`;
       base = <GuidePage id={route.id} />;
       break;
+    case 'login':
+      baseKey = 'login';
+      base = GATE ? <LoginPage next={route.next} /> : <Redirect to={route.next} />;
+      break;
     default:
       baseKey = 'landing';
       base = <GlassLanding />;
   }
   const inApp = APP_ROUTES.has(route.name);
+  const gated = GATE && !PUBLIC.has(route.name);
+  if (gated) base = <AuthGate hash={hash}>{base}</AuthGate>;
 
   return (
     <MotionConfig reducedMotion="user">
@@ -196,7 +215,7 @@ export function Root() {
           </motion.div>
           <AnimatePresence>{overlay && <Suspense fallback={<Blank dark />}>{overlay}</Suspense>}</AnimatePresence>
         </LayoutGroup>
-        {route.name !== 'landing' && route.name !== 'afterhours' && route.name !== 'story' && (
+        {route.name !== 'landing' && route.name !== 'afterhours' && route.name !== 'story' && route.name !== 'login' && (
           <Suspense fallback={null}>
             <AppChrome />
           </Suspense>

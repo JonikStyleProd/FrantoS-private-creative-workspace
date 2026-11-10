@@ -35,7 +35,8 @@ export type Route =
   | { name: 'news' }
   | { name: 'portfolio' }
   | { name: 'folio'; handle: string }
-  | { name: 'share'; q: URLSearchParams };
+  | { name: 'share'; q: URLSearchParams }
+  | { name: 'login'; next: string };
 
 export type ProjectTab = 'overview' | 'materials' | 'moodboard' | 'review' | 'stories';
 const TABS: ProjectTab[] = ['overview', 'materials', 'moodboard', 'review', 'stories'];
@@ -49,6 +50,7 @@ export function parse(hash: string): Route {
   const [a, b, c, d] = parts;
   if (!a) return { name: 'landing' };
   if (a === 'app') return { name: 'app' };
+  if (a === 'login') return { name: 'login', next: safeNext(new URLSearchParams(query).get('next')) };
   if (a === 'library') return { name: 'library' };
   if (a === 'objects') return { name: 'objects' };
   if (a === 'templates') return { name: 'templates' };
@@ -82,6 +84,12 @@ export function parse(hash: string): Route {
   }
   if (LEGACY.has(a)) return { name: 'legacy' };
   return { name: 'landing' };
+}
+
+/** only in-app paths: an open redirect would let a crafted link send people elsewhere after signing in */
+export function safeNext(n: string | null): string {
+  if (!n || !n.startsWith('/') || n.startsWith('//') || n.startsWith('/login')) return '/app';
+  return n.replace(/[^\w\-/?=&%.~]/g, '');
 }
 
 const num = (s?: string) => {

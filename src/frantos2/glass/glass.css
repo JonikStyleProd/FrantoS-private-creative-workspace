@@ -404,3 +404,20 @@ html[data-theme='light'] .lg-section-bg { background: linear-gradient(180deg, #e
 @keyframes lg-route-in { from { opacity: 0; } to { opacity: 1; } }
 .lg-route-in { animation: lg-route-in 0.28s ease-out both; }
 @media (prefers-reduced-motion: reduce) { .lg-route-in { animation: none; } }
+
+/* ───────── sign-in page ───────── */
+.login-stage { background: radial-gradient(120% 90% at 50% 40%, #1b2129 0%, #0d1014 60%, #07090c 100%); }
+.login-stage.login-light { background: radial-gradient(120% 90% at 50% 40%, #fbfaf7 0%, #efebe4 60%, #e4dfd6 100%); }
+.login-vignette { background: radial-gradient(70% 60% at 50% 50%, transparent 0%, rgba(7, 9, 12, 0.55) 70%, rgba(7, 9, 12, 0.9) 100%), linear-gradient(90deg, rgba(7, 9, 12, 0.75) 0%, rgba(7, 9, 12, 0.15) 45%, rgba(7, 9, 12, 0.35) 100%); }
+.login-light .login-vignette { background: radial-gradient(70% 60% at 50% 50%, transparent 0%, rgba(243, 241, 236, 0.6) 70%, rgba(243, 241, 236, 0.92) 100%), linear-gradient(90deg, rgba(243, 241, 236, 0.85) 0%, rgba(243, 241, 236, 0.2) 45%, rgba(243, 241, 236, 0.4) 100%); }
+@keyframes login-orbit { from { transform: rotateY(0deg); } to { transform: rotateY(-360deg); } }
+.login-orbit { animation: login-orbit 90s linear infinite; }
+@keyframes login-sheen { 0%, 62% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
+.login-sheen { background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.55) 50%, transparent 65%); mix-blend-mode: overlay; animation: login-sheen 5.5s var(--lg-ease) 1.6s infinite; }
+.login-light .login-sheen { background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.9) 50%, transparent 65%); mix-blend-mode: soft-light; }
+@keyframes login-dot { 0%, 80%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
+.login-dots { display: inline-flex; gap: 5px; }
+.login-dots::before, .login-dots::after, .login-dots { }
+.login-dots { width: 34px; height: 8px; background: radial-gradient(circle 4px, currentColor 98%, transparent) 0 50% / 12px 8px repeat-x; animation: login-dot 1s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .login-orbit, .login-sheen, .login-dots { animation: none; } }
+html[data-gfx='lite'] .login-orbit { animation-duration: 160s; }
