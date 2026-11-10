@@ -24,11 +24,11 @@ create policy "published pages: anyone reads" on public.published_pages
   for select using (true);
 -- only editors of the studio publish, update and unpublish
 create policy "published pages: editors insert" on public.published_pages
-  for insert to authenticated with check (public.can_edit(studio_id));
+  for insert to authenticated with check (private.can_edit(studio_id));
 create policy "published pages: editors update" on public.published_pages
-  for update to authenticated using (public.can_edit(studio_id)) with check (public.can_edit(studio_id));
+  for update to authenticated using (private.can_edit(studio_id)) with check (private.can_edit(studio_id));
 create policy "published pages: editors delete" on public.published_pages
-  for delete to authenticated using (public.can_edit(studio_id));
+  for delete to authenticated using (private.can_edit(studio_id));
 
 -- pictures of published pages: a separate, public bucket; path = <studio_id>/<slug>/<file>
 insert into storage.buckets (id, name, public, file_size_limit)
@@ -36,11 +36,11 @@ values ('site-media', 'site-media', true, 52428800)
 on conflict (id) do nothing;
 
 create policy "site-media: editors write" on storage.objects for insert to authenticated
-  with check (bucket_id = 'site-media' and public.can_edit(((storage.foldername(name))[1])::uuid));
+  with check (bucket_id = 'site-media' and private.can_edit(((storage.foldername(name))[1])::uuid));
 create policy "site-media: editors update" on storage.objects for update to authenticated
-  using (bucket_id = 'site-media' and public.can_edit(((storage.foldername(name))[1])::uuid));
+  using (bucket_id = 'site-media' and private.can_edit(((storage.foldername(name))[1])::uuid));
 create policy "site-media: editors delete" on storage.objects for delete to authenticated
-  using (bucket_id = 'site-media' and public.can_edit(((storage.foldername(name))[1])::uuid));
+  using (bucket_id = 'site-media' and private.can_edit(((storage.foldername(name))[1])::uuid));
 -- editors see the files they published (to replace and remove them); the public reads by URL only
 create policy "site-media: editors read" on storage.objects for select to authenticated
-  using (bucket_id = 'site-media' and public.can_edit(((storage.foldername(name))[1])::uuid));
+  using (bucket_id = 'site-media' and private.can_edit(((storage.foldername(name))[1])::uuid));
