@@ -6,12 +6,17 @@ import type { MediaInfo, RenderCtx } from './render';
 
 /** Resolve every picture, video and Lottie a page uses to a URL the renderer can write. */
 export function useSiteMedia(p: Project, root: SiteNode[]) {
+  return useSiteMediaState(p, root).media;
+}
+/** the same, plus whether the first lookup is done (motion waits for it, so it does not start twice) */
+export function useSiteMediaState(p: Project, root: SiteNode[]) {
   const ids = useMemo(() => {
     const s = new Set<string>();
     walk(root, (n) => n.assetId && s.add(n.assetId));
     return [...s].sort().join(',');
   }, [root]);
   const [map, setMap] = useState<Record<string, MediaInfo>>({});
+  const [ready, setReady] = useState(false);
   useEffect(() => {
     let live = true;
     (async () => {
@@ -28,11 +33,14 @@ export function useSiteMedia(p: Project, root: SiteNode[]) {
             if (url) next[id] = { url, kind: a.kind === 'video' ? 'video' : lottie ? 'lottie' : 'image', w: a.w, h: a.h, alt: a.title };
           })
       );
-      if (live) setMap(next);
+      if (live) {
+        setMap(next);
+        setReady(true);
+      }
     })();
     return () => void (live = false);
   }, [ids, p.assets]);
-  return map;
+  return { media: map, ready };
 }
 
 export function makeCtx(p: Project, media: Record<string, MediaInfo>, extra: Partial<RenderCtx> & Pick<RenderCtx, 'mode'>): RenderCtx {

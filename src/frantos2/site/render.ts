@@ -2,6 +2,7 @@ import { fontCss } from '../studio/brand';
 import type { SiteNode, SitePage, SiteStyle, SiteTheme } from '../ws/types';
 import { styleAt } from './model';
 import { MAXW, RADIUS, TYPE, TYPE_PX, colorCss, lineHeight, spacePx } from './theme';
+import { MotionMode, motionCss, staggers } from './motion';
 
 /**
  * One renderer for every place a page appears: the editor, the preview, review links and (later) the
@@ -27,12 +28,14 @@ export interface RenderCtx {
   tr?: (s: string) => string;
   /** the height a "full screen" section takes */
   vh?: string;
+  /** 'on' (default) waits for the runtime; 'play' ignores reduced motion (editor preview); 'off' draws the still page */
+  motion?: MotionMode;
 }
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-const txt = (s: string, ctx: RenderCtx) => esc(ctx.tr ? ctx.tr(s) : s).replace(/\n/g, '<br>');
+const txtPlain = (s: string, ctx: RenderCtx) => esc(ctx.tr ? ctx.tr(s) : s).replace(/\n/g, '<br>');
 export const safeHref = (h?: string) => (h && /^(https?:\/\/|mailto:|tel:|#|\/)/i.test(h.trim()) ? h.trim() : '#');
-const cls = (id: string) => 'n-' + id.replace(/[^a-z0-9_-]/gi, '');
+export const cls = (id: string) => 'n-' + id.replace(/[^a-z0-9_-]/gi, '');
 
 /* ───────── style → CSS ───────── */
 
@@ -142,10 +145,27 @@ const EDIT = `
 
 /* ───────── nodes → HTML ───────── */
 
-function nodeHtml(n: SiteNode, ctx: RenderCtx): string {
-  const c = cls(n.id);
-  const data = ctx.edit ? ` data-n="${esc(n.id)}"` : '';
-  const kids = () => (n.children ?? []).map((k) => nodeHtml(k, ctx)).join('');
+/** text split into words for the word-by-word entrance; spaces and line breaks stay */
+const words = (s: string, ctx: RenderCtx) => {
+  let i = 0;
+  return (ctx.tr ? ctx.tr(s) : s)
+    .split('\n')
+    .map((line) => line.split(/(\s+)/).map((w) => (/^\s*$/.test(w) ? w : `<span class="w" style="--i:${i++}">${esc(w)}</span>`)).join(''))
+    .join('<br>');
+};
+
+function nodeHtml(n: SiteNode, ctx: RenderCtx, extra?: { cls: string; i: number }): string {
+  const c = cls(n.id) + (extra ? ' ' + extra.cls : '');
+  const a = n.anim;
+  const data =
+    (ctx.edit ? ` data-n="${esc(n.id)}"` : '') +
+    (a ? ` data-a="${a.trigger === 'load' ? 'load' : 'scroll'}"` : '') +
+    (a?.enter === 'count' ? ` data-count="${Math.round(a.dur)}"` : '') +
+    (n.depth ? ` data-depth="${Math.max(-0.4, Math.min(0.4, n.depth))}"` : '') +
+    (extra ? ` style="--i:${extra.i}"` : '');
+  const st = staggers(n) ? 'sa-' + cls(n.id) : '';
+  const kids = () => (n.children ?? []).map((k, i) => nodeHtml(k, ctx, st ? { cls: st, i } : undefined)).join('');
+  const txt = (s: string, cx: RenderCtx) => (a?.enter === 'words' ? words(s, cx) : txtPlain(s, cx));
   switch (n.type) {
     case 'section': {
       const tag = n.tag ?? 'section';
@@ -180,7 +200,7 @@ function nodeHtml(n: SiteNode, ctx: RenderCtx): string {
       const ph = esc(ctx.tr && n.placeholder ? ctx.tr(n.placeholder) : n.placeholder ?? '');
       const name = esc((n.text ?? 'field').toLowerCase().replace(/[^a-z0-9]+/gi, '-'));
       const input = n.multiline ? `<textarea name="${name}" placeholder="${ph}"></textarea>` : `<input name="${name}" placeholder="${ph}"${/mail|почт|דוא/i.test(n.text ?? '') ? ' type="email"' : ''}>`;
-      return `<label class="t-field ${c}"${data}><span>${txt(n.text ?? '', ctx)}</span>${input}</label>`;
+      return `<label class="t-field ${c}"${data}><span>${txtPlain(n.text ?? '', ctx)}</span>${input}</label>`;
     }
   }
 }
@@ -210,6 +230,7 @@ export function renderPage(page: Pick<SitePage, 'root' | 'theme' | 'dir'>, ctx: 
     `.fs-page{--vh:${ctx.vh ?? '100vh'}}`,
     ctx.edit ? EDIT : '',
     out.lg.join('\n'),
+    motionCss(page.root, page.dir === 'rtl', ctx.motion ?? 'on', cls),
     `${q(1023)}{.fs-page{--k-space:.82;${TYPE.map((k) => `--fs-${k}:${TYPE_PX[k][1]}px`).join(';')}}\n${out.md.join('\n')}}`,
     `${q(599)}{.fs-page{--k-space:.64;--sec-px:20px;${TYPE.map((k) => `--fs-${k}:${TYPE_PX[k][2]}px`).join(';')}}.fs-page .t-grid{grid-template-columns:minmax(0,1fr)}\n${out.sm.join('\n')}}`,
   ].join('\n');

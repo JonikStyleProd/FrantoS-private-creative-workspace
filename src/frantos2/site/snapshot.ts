@@ -12,7 +12,7 @@ import { makeCtx } from './media';
  */
 export async function capturePage(p: Project, page: SitePage, media: Record<string, MediaInfo>, width = 1440, tr?: (s: string) => string): Promise<{ blob: Blob; w: number; h: number }> {
   const { toBlob } = await import('html-to-image');
-  const { css, html } = renderPage(page, makeCtx(p, media, { mode: 'container', vh: '900px', tr }));
+  const { css, html } = renderPage(page, makeCtx(p, media, { mode: 'container', vh: '900px', tr, motion: 'off' }));
   const host = document.createElement('div');
   host.setAttribute('aria-hidden', 'true');
   host.style.cssText = `position:fixed;left:-30000px;top:0;width:${width}px;container:fs / inline-size;pointer-events:none`;

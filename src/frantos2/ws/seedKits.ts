@@ -1,4 +1,5 @@
 import { haldenPages, saltwaterPages } from '../site/demoPages';
+import { autoMotion } from '../site/motion';
 import type { Asset, AssetFormat, BoardLayer, Comment, Flow, MoodItem, Project, StoryFrame, Work, WorkType } from './types';
 
 /**
@@ -11,8 +12,8 @@ import type { Asset, AssetFormat, BoardLayer, Comment, Flow, MoodItem, Project, 
  * code, sound, Lottie and links were drawn by the app's own preview code. Files: public/projects/<id>/.
  */
 
-/** 2: pages built in the constructor for Halden and Saltwater */
-export const KIT_REV = 2;
+/** 2: pages built in the constructor for Halden and Saltwater · 3: those pages move */
+export const KIT_REV = 3;
 const day = 86400000;
 const H = 3600000;
 
@@ -493,6 +494,6 @@ export function kitProject(id: string): Project {
     palette: k.palette,
     tags: k.tags,
     ...(k.id === 'velo' ? { animatic: VELO.extra!.animatic } : {}),
-    ...(k.id === 'halden' || k.id === 'saltwater' ? { pages: (k.id === 'halden' ? haldenPages(aid) : saltwaterPages(aid)).map((pg) => ({ ...pg, createdAt: k.t0 + 5 * day, updatedAt: now - 2 * H })) } : {}),
+    ...(k.id === 'halden' || k.id === 'saltwater' ? { pages: (k.id === 'halden' ? haldenPages(aid) : saltwaterPages(aid)).map((pg) => ({ ...pg, root: autoMotion(pg.root), createdAt: k.t0 + 5 * day, updatedAt: now - 2 * H })) } : {}),
   };
 }

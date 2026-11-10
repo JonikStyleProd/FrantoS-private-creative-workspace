@@ -348,9 +348,53 @@ export interface SiteStyle {
   variant?: 'solid' | 'outline' | 'link';
 }
 
+/** how an element enters */
+export type SiteEnter = 'fade' | 'rise' | 'slide' | 'zoom' | 'mask' | 'blur' | 'words' | 'count' | 'custom';
+/** one keyframe of a custom entrance: `at` 0…1 of the duration */
+export interface SiteKey {
+  at: number;
+  x?: number;
+  y?: number;
+  scale?: number;
+  rotate?: number;
+  opacity?: number;
+}
+export interface SiteAnim {
+  enter: SiteEnter;
+  trigger: 'load' | 'scroll';
+  /** ms */
+  dur: number;
+  delay: number;
+  /** a curve id from the easing library */
+  ease: string;
+  /** px, for rise and slide */
+  dist?: number;
+  /** ms between children (containers) or words */
+  stagger?: number;
+  /** custom: play again and again */
+  loop?: boolean;
+  keys?: SiteKey[];
+}
+export interface SiteHover {
+  lift?: number;
+  scale?: number;
+  bright?: boolean;
+  shadow?: boolean;
+  bg?: SiteColor;
+  color?: SiteColor;
+  dur?: number;
+  ease?: string;
+}
+
 export interface SiteNode {
   id: string;
   type: SiteNodeType;
+  /** entrance animation */
+  anim?: SiteAnim;
+  /** hover state */
+  hover?: SiteHover;
+  /** scroll depth (parallax): −0.3…0.3, how much faster or slower than the page it moves */
+  depth?: number;
   /** layer name */
   name?: string;
   text?: string;

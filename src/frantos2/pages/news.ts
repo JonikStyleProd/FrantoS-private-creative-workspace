@@ -11,6 +11,15 @@ export interface NewsItem {
 
 export const NEWS: NewsItem[] = [
   {
+    n: 10,
+    date: '2026-11-10',
+    title: 'Pages that move',
+    body: 'Give any element an entrance — fade, rise, reveal, word by word, counting numbers or your own keyframes — on load or when it is scrolled to. Containers bring their children in one by one; hover lifts, grows and brightens; pictures can sit deeper than the page. A timeline shows it all and scrubs through it, and one click brings a whole page to life.',
+    path: '/site/saltwater/saltwater-pg-journal',
+    cta: 'Watch the Saltwater journal',
+    image: '/projects/saltwater/loaf-sm.webp',
+  },
+  {
     n: 9,
     date: '2026-11-10',
     title: 'Build a site in the studio',

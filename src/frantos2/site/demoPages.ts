@@ -1,5 +1,6 @@
 import type { SitePage } from '../ws/types';
 import { dsl } from './blocks';
+import { autoMotion } from './motion';
 
 /**
  * Pages built in the constructor for two demos: the Halden shop and the Saltwater journal.
@@ -29,7 +30,7 @@ export function haldenPages(aid: (key: string) => string): Page[] {
               T('Chairs, lamps and shelves built by six people in one workshop, and repaired by them for as long as you own them.', { size: 'lg', color: 'muted', maxW: 'text' }),
               S({ dir: 'row', gap: '3', wrap: true }, [B('See the furniture', 'solid', { radius: 'pill' }), B('Book a Saturday tour', 'outline', { radius: 'pill' })], { name: 'Buttons' }),
             ]),
-            M(aid('room'), '4/3', { radius: 'lg' }, { alt: 'A living room with the Ask chair and the Fold lamp' }),
+            M(aid('room'), '4/3', { radius: 'lg' }, { alt: 'A living room with the Ask chair and the Fold lamp', depth: 0.06 }),
           ], { md: { cols: 1 } }),
         ]),
         SEC('Products', { gap: '8' }, [
@@ -45,7 +46,7 @@ export function haldenPages(aid: (key: string) => string): Page[] {
         ]),
         SEC('Workshop', { bg: 'surface', py: '16' }, [
           G(2, { align: 'center', gap: '12' }, [
-            M(aid('workshop'), '4/5', { radius: 'lg' }, { alt: 'Oak shavings on the workshop bench' }),
+            M(aid('workshop'), '4/5', { radius: 'lg' }, { alt: 'Oak shavings on the workshop bench', depth: 0.1 }),
             S({ gap: '6', align: 'start' }, [
               T('The workshop', { size: 'sm', weight: 700, color: 'accent' }, { name: 'Eyebrow' }),
               H('Every piece is repaired for life', 2, { size: '3xl' }),

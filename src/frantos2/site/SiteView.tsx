@@ -7,15 +7,22 @@ import { ensureLoaded, useProject } from '../ws/store';
 import type { Project, SitePage } from '../ws/types';
 import { Pane } from '../glass/kit';
 import { hydrate, renderPage } from './render';
-import { makeCtx, useSiteMedia } from './media';
+import { runMotion } from './motion';
+import { makeCtx, useSiteMediaState } from './media';
 import { BPS } from './model';
 
 /** A page as a visitor sees it, answering to its own width (container queries), so a phone frame on a desktop shows the phone layout. */
 export function SiteView({ p, page, width, vh, tr, className = '' }: { p: Project; page: Pick<SitePage, 'root' | 'theme' | 'dir'>; width?: number; vh?: string; tr?: (s: string) => string; className?: string }) {
-  const media = useSiteMedia(p, page.root);
+  const { media, ready } = useSiteMediaState(p, page.root);
   const { css, html } = useMemo(() => renderPage(page, makeCtx(p, media, { mode: 'container', vh, tr })), [p, page, media, vh, tr]);
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => (ref.current ? hydrate(ref.current) : undefined), [html]);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const a = hydrate(el);
+    const b = ready ? runMotion(el) : () => undefined;
+    return () => (a(), b());
+  }, [html, ready]);
   return (
     <div className={className} style={{ width: width ?? '100%', containerType: 'inline-size', containerName: 'fs' }}>
       <style>{css}</style>

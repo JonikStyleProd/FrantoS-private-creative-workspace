@@ -209,3 +209,40 @@ test('site constructor: page from a template, edit in place, phone override, rev
   await page.getByRole('button', { name: 'Live page' }).click();
   await expect(page.getByRole('dialog', { name: 'Live page' }).locator('.fs-page h1')).toHaveText('Bread from the harbour');
 });
+
+test('site motion: timeline scrubs the entrances, the inspector changes them, the preview plays them and respects reduced motion', async ({ page }) => {
+  // the Halden demo page comes with motion
+  await page.goto('/#/s/halden?m=site');
+  const h1 = page.locator('.fs-page h1');
+  await expect(h1).toBeVisible();
+  if (!isPhone(page)) {
+    await page.getByRole('button', { name: 'Timeline' }).click();
+    const word = h1.locator('.w').first();
+    await expect(word).toBeAttached();
+    // at the very start the headline is not in yet; at the end it is
+    const ruler = page.locator('.sticky.cursor-ew-resize');
+    const r = (await ruler.boundingBox())!;
+    await page.mouse.click(r.x + 2, r.y + r.height / 2);
+    await expect.poll(async () => +(await word.evaluate((e) => getComputedStyle(e).opacity))).toBeLessThan(0.3);
+    await page.mouse.click(r.x + r.width - 2, r.y + r.height / 2);
+    await expect.poll(async () => +(await word.evaluate((e) => getComputedStyle(e).opacity))).toBeGreaterThan(0.95);
+
+    // the inspector switches the headline to a plain fade
+    await h1.click();
+    await page.getByRole('radiogroup', { name: 'Entrance' }).getByRole('radio', { name: 'Fade in' }).click();
+    await expect(h1.locator('.w')).toHaveCount(0);
+    await expect(h1).toHaveAttribute('data-a', /load|scroll/);
+    await page.getByRole('button', { name: 'Close the timeline' }).click();
+  }
+
+  // the live page plays: load entrances get going
+  await page.goto('/#/site/halden/halden-pg-home');
+  await expect(page.locator('.fs-page [data-a="load"]').first()).toHaveClass(/is-in/);
+
+  // visitors who ask for less motion get the still page at once
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.reload();
+  const anyScroll = page.locator('.fs-page [data-a="scroll"]').last();
+  await expect(anyScroll).toHaveClass(/is-in/);
+  await expect.poll(() => anyScroll.evaluate((e) => getComputedStyle(e).animationName)).toBe('none');
+});

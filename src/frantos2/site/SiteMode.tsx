@@ -11,6 +11,7 @@ import {
   Eye,
   EyeOff,
   FileText,
+  GanttChart,
   Grid2x2,
   GripVertical,
   Heading,
@@ -27,6 +28,8 @@ import {
   MousePointerClick,
   MoveVertical,
   Newspaper,
+  Pause,
+  Play,
   PanelBottom,
   PanelTop,
   Pilcrow,
@@ -36,12 +39,14 @@ import {
   Rows3,
   Send,
   Smartphone,
+  Sparkle,
   Sparkles,
   Tablet,
   Tag,
   TextCursorInput,
   Trash2,
   Upload,
+  WandSparkles,
   X,
 } from 'lucide-react';
 import { useI18n } from '../i18n';
@@ -62,6 +67,8 @@ import { makeCtx, useSiteMedia } from './media';
 import { COLOR_ROLES, ColorRole, ROLE_LABEL, SPACE, TYPE, TYPE_PX, contrast, spacePx, themeColor, themeFrom } from './theme';
 import { useSiteDir, useSiteTr } from './SiteView';
 import { pageToReview } from './snapshot';
+import { MotionMode, autoMotion, pageSpan, staggers } from './motion';
+import { MotionSection, Timeline, TimelineApi } from './MotionUI';
 
 /**
  * Studio · Site: build a page from ready sections and elements. Everything is a tree styled with
@@ -204,12 +211,67 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
   /* render */
   const media = useSiteMedia(p, pg.root);
   const view = useSiteDir(p, pg);
-  const { css, html } = useMemo(() => renderPage(view, makeCtx(p, media, { mode: 'container', edit: true, vh: `${bpDef.h}px`, tr })), [view, p, media, bpDef.h, tr]);
+  /* motion: the editor shows the still page; Play and the timeline run the entrances */
+  const [timeline, setTimeline] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const scrubRef = useRef(0);
+  const tlApi = useRef<TimelineApi | null>(null);
+  const total = useMemo(() => pageSpan(pg.root), [pg.root]);
+  const mmode: MotionMode = timeline || playing ? 'play' : 'off';
+  const { css, html } = useMemo(() => renderPage(view, makeCtx(p, media, { mode: 'container', edit: true, vh: `${bpDef.h}px`, tr, motion: mmode })), [view, p, media, bpDef.h, tr, mmode]);
   const scroller = useRef<HTMLDivElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const frame = useRef<HTMLDivElement>(null);
   const host = useRef<HTMLDivElement>(null);
   useEffect(() => (host.current ? hydrate(host.current) : undefined), [html]);
+  // finished animations drop out of getAnimations(), so the timeline keeps its own list
+  const animList = useRef<Animation[]>([]);
+  const anims = () => animList.current;
+  useLayoutEffect(() => {
+    const h = host.current;
+    if (!h || mmode === 'off') return void (animList.current = []);
+    h.querySelectorAll('[data-a]').forEach((e) => e.classList.add('is-in'));
+    animList.current = h.getAnimations({ subtree: true }).filter((a) => typeof CSSAnimation !== 'undefined' && a instanceof CSSAnimation);
+    anims().forEach((a) => {
+      a.pause();
+      a.currentTime = scrubRef.current;
+      if (playing) a.play();
+    });
+    tlApi.current?.head(scrubRef.current);
+  }, [html, css, mmode, playing]);
+  const scrubTo = (ms: number) => {
+    if (playing) setPlaying(false);
+    scrubRef.current = ms;
+    anims().forEach((a) => {
+      a.pause();
+      a.currentTime = ms;
+    });
+    tlApi.current?.head(ms);
+  };
+  useEffect(() => {
+    if (!playing) return;
+    let raf = 0;
+    const t0 = performance.now() - scrubRef.current;
+    const f = (now: number) => {
+      const ms = now - t0;
+      scrubRef.current = ms;
+      tlApi.current?.head(ms);
+      if (ms >= total + 300) {
+        scrubRef.current = timeline ? total : 0;
+        setPlaying(false);
+        return;
+      }
+      raf = requestAnimationFrame(f);
+    };
+    raf = requestAnimationFrame(f);
+    return () => cancelAnimationFrame(raf);
+  }, [playing, total, timeline]);
+  const play = () => {
+    if (!total) return toast(t('Nothing moves on this page yet: pick an element and choose an entrance, or open the timeline.'));
+    if (!timeline || scrubRef.current >= total) scrubRef.current = 0;
+    setSel((x) => x);
+    setPlaying(true);
+  };
 
   // fit the width into the free area; follow the page height
   const [scale, setScale] = useState(1);
@@ -376,6 +438,7 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
       if (mod && k === 'c' && node) return void (clipboard = node);
       if (mod && k === 'x' && node) return void ((clipboard = node), removeSel());
       if (mod && k === 'v' && clipboard) return void (e.preventDefault(), paste());
+      if (e.key === ' ' && (timeline || playing)) return void (e.preventDefault(), playing ? setPlaying(false) : play());
       if (!sel) return;
       if (mod && k === 'd') return void (e.preventDefault(), dupSel());
       if (mod && k === 'g') {
@@ -521,6 +584,7 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
   const onFrameClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (playing) return setPlaying(false);
     if (editing) return;
     const id = (e.target as HTMLElement).closest<HTMLElement>('[data-n]')?.dataset.n ?? null;
     if (id && id === sel && node && hasText(node)) return startEdit(id);
@@ -621,8 +685,9 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
               <span dir="auto" className="truncate">
                 {nodeLabel(n, t, tr)}
               </span>
+              {(n.anim || n.hover) && <Sparkle size={10} className="shrink-0 text-[#ffb84f]" aria-label={t('Moves')} />}
             </button>
-            <button type="button" onClick={() => setRoot(update(pg.root, n.id, (x) => setStyle(x, bp, { hide: hidden ? (bp === 'lg' ? undefined : false) : true })), hidden ? 'Shown' : 'Hidden')} className={`lg-btn lg-btn-plain h-7 min-h-0 w-7 p-0 ${hidden ? '' : 'opacity-0 group-hover:opacity-100 focus:opacity-100'}`} aria-label={hidden ? t('Show at this width') : t('Hide at this width')} aria-pressed={hidden}>
+            <button type="button" onClick={() => setRoot(update(pg.root, n.id, (x) => setStyle(x, bp, { hide: hidden ? (bp === 'lg' ? undefined : false) : true })), hidden ? 'Shown' : 'Hidden')} className={`lg-btn lg-btn-plain h-7 min-h-0 w-7 lg-icon !p-0 ${hidden ? '' : 'opacity-0 group-hover:opacity-100 focus:opacity-100'}`} aria-label={hidden ? t('Show at this width') : t('Hide at this width')} aria-pressed={hidden}>
               {hidden ? <EyeOff size={12} /> : <Eye size={12} />}
             </button>
           </li>
@@ -680,7 +745,7 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
   );
 
   const inspector = node ? (
-    <NodeInspector key={node.id} p={p} n={node} bp={bp} theme={pg.theme} tr={tr} path={pathTo(pg.root, node.id)} onSelect={select} onNode={(nn, label, now) => setRoot(update(pgRef.current.root, nn.id, () => nn), label, now)} parentNode={(() => { const pid = parentOf(node.id); return pid ? find(pg.root, pid) : undefined; })()} />
+    <NodeInspector key={node.id} p={p} n={node} bp={bp} theme={pg.theme} tr={tr} path={pathTo(pg.root, node.id)} onSelect={select} onPlay={play} onNode={(nn, label, now) => setRoot(update(pgRef.current.root, nn.id, () => nn), label, now)} parentNode={(() => { const pid = parentOf(node.id); return pid ? find(pg.root, pid) : undefined; })()} />
   ) : (
     <PageInspector p={p} pg={pg} commit={commit} sending={sending} onReview={toReview} />
   );
@@ -690,7 +755,7 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
   return (
     <>
       {/* canvas */}
-      <div ref={scroller} className={`absolute overflow-auto lg-scroll ${narrow ? 'inset-x-0 bottom-[74px] top-[128px]' : 'bottom-0 end-[336px] start-[288px] top-[136px]'}`} onPointerDown={(e) => e.target === e.currentTarget && setSel(null)}>
+      <div ref={scroller} className={`absolute overflow-auto lg-scroll ${narrow ? 'inset-x-0 bottom-[74px] top-[128px]' : `end-[336px] start-[288px] top-[136px] ${timeline ? 'bottom-[262px]' : 'bottom-0'}`}`} onPointerDown={(e) => e.target === e.currentTarget && setSel(null)}>
         <div className="flex min-h-full justify-center pb-24 pt-2" onPointerDown={(e) => e.target === e.currentTarget && setSel(null)} dir="ltr">
           <div ref={stage} className="relative shrink-0" style={{ width: bpDef.w * scale, height: frameH * scale }}>
             <div
@@ -706,8 +771,8 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
               <div ref={host} dangerouslySetInnerHTML={{ __html: html }} />
             </div>
             {/* overlays */}
-            {boxes.hover && !ghost && <div className="pointer-events-none absolute rounded-[2px] outline outline-1 outline-[#4f8bff]/80" style={{ left: boxes.hover.x, top: boxes.hover.y, width: boxes.hover.w, height: boxes.hover.h }} />}
-            {boxes.sel && !editing && (
+            {boxes.hover && !ghost && !playing && <div className="pointer-events-none absolute rounded-[2px] outline outline-1 outline-[#4f8bff]/80" style={{ left: boxes.hover.x, top: boxes.hover.y, width: boxes.hover.w, height: boxes.hover.h }} />}
+            {boxes.sel && !editing && !playing && (
               <>
                 <div className="pointer-events-none absolute rounded-[2px] outline outline-2 outline-[#4f8bff]" style={{ left: boxes.sel.x, top: boxes.sel.y, width: boxes.sel.w, height: boxes.sel.h }} />
                 {boxes.pad && (
@@ -720,7 +785,7 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
                 )}
               </>
             )}
-            {node && toolbarPos && !editing && !ghost && (
+            {node && toolbarPos && !editing && !ghost && !playing && (
               <div className="absolute z-10 flex items-center gap-0.5 rounded-full bg-[#4f8bff] p-0.5 text-white shadow-lg" style={toolbarPos}>
                 <button type="button" onPointerDown={(e) => startDrag(e, { kind: 'move', id: node.id, label: nodeLabel(node, t, tr), section: node.type === 'section' })} className="flex h-7 w-7 cursor-grab touch-none items-center justify-center rounded-full hover:bg-white/20" aria-label={t('Drag to move')} title={t('Drag to move')}>
                   <GripVertical size={14} />
@@ -759,8 +824,8 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
             {BPS.map((b) => {
               const Ic = BP_ICON[b.id];
               return (
-                <button key={b.id} type="button" role="radio" aria-checked={bp === b.id} onClick={() => setBp(b.id)} title={b.id === 'lg' ? `${t(b.label)} · ${b.w}` : `${t(b.label)} · ${b.w} — ${t('changes here apply to this width and narrower')}`} className={`flex min-h-[38px] items-center gap-1.5 rounded-full px-2.5 text-[12.5px] font-bold ${bp === b.id ? (b.id === 'lg' ? 'bg-white text-[#11151a]' : 'lg-dark bg-[#4f8bff] text-white') : 'text-white/80 hover:bg-white/10'}`}>
-                  <Ic size={15} /> <span className={narrow ? 'sr-only' : 'hidden xl:inline'}>{t(b.label)}</span>
+                <button key={b.id} type="button" role="radio" aria-checked={bp === b.id} aria-label={`${t(b.label)} ${b.w}`} onClick={() => setBp(b.id)} title={b.id === 'lg' ? `${t(b.label)} · ${b.w}` : `${t(b.label)} · ${b.w} — ${t('changes here apply to this width and narrower')}`} className={`flex min-h-[38px] items-center gap-1.5 rounded-full px-2.5 text-[12.5px] font-bold ${bp === b.id ? (b.id === 'lg' ? 'bg-white text-[#11151a]' : 'lg-dark bg-[#4f8bff] text-white') : 'text-white/80 hover:bg-white/10'}`}>
+                  <Ic size={15} /> <span className={narrow ? 'sr-only' : 'hidden 2xl:inline'}>{t(b.label)}</span>
                   <span className="tabular-nums opacity-60 max-sm:hidden">{b.w}</span>
                 </button>
               );
@@ -768,13 +833,39 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
           </div>
           <span className="mx-0.5 h-5 w-px bg-white/20" />
           <button type="button" onClick={() => (flush(), go(`/site/${p.id}/${pg.id}?w=${bp}`))} className="lg-btn lg-btn-plain min-h-[38px] text-[12.5px]" aria-label={t('Preview')} title={t('Open the live page')}>
-            <Eye size={15} /> <span className="max-lg:hidden">{t('Preview')}</span>
+            <Eye size={15} /> <span className="max-2xl:hidden">{t('Preview')}</span>
           </button>
+          <button type="button" onClick={() => (playing ? setPlaying(false) : play())} aria-pressed={playing} aria-label={playing ? t('Pause') : t('Play motion')} className="lg-btn lg-btn-plain min-h-[38px] text-[12.5px]" title={t('Play the page’s motion')}>
+            {playing ? <Pause size={15} /> : <Play size={15} />} <span className="max-2xl:hidden">{playing ? t('Pause') : t('Play motion')}</span>
+          </button>
+          {!narrow && (
+            <button type="button" onClick={() => (setTimeline((v) => !v), setPlaying(false), (scrubRef.current = timeline ? 0 : total))} aria-pressed={timeline} aria-label={t('Timeline')} className={`lg-btn min-h-[38px] text-[12.5px] ${timeline ? 'lg-btn-primary' : 'lg-btn-plain'}`} title={t('Timeline')}>
+              <GanttChart size={15} /> <span className="max-2xl:hidden">{t('Timeline')}</span>
+            </button>
+          )}
           <button type="button" disabled={sending} onClick={toReview} aria-label={t('To review')} className="lg-btn lg-btn-primary min-h-[38px] text-[12.5px] disabled:opacity-60" title={t('A picture of the page becomes a new version for review')}>
             <Send size={14} /> <span className="max-sm:hidden">{sending ? t('Capturing…') : t('To review')}</span>
           </button>
         </Pane>
       </div>
+      {timeline && !narrow && (
+        <Pane as="section" aria-label={t('Timeline')} className="absolute bottom-4 end-[336px] start-[288px] z-20 mx-3 h-[236px] overflow-hidden rounded-[22px]">
+          <Timeline
+            root={pg.root}
+            sel={sel}
+            tr={tr}
+            playing={playing}
+            api={tlApi}
+            onSelect={select}
+            onAnim={(id, patch, now) => setRoot(update(pgRef.current.root, id, (x) => (x.anim ? { ...x, anim: { ...x.anim, ...patch } } : x)), 'Motion changed', now)}
+            onScrub={scrubTo}
+            onPlay={play}
+            onPause={() => setPlaying(false)}
+            onClose={() => (setTimeline(false), setPlaying(false))}
+            onAuto={() => (setRoot(autoMotion(pgRef.current.root), 'Page brought to life'), toast(t('Motion added: press Play to see it'), { undo: true }))}
+          />
+        </Pane>
+      )}
       {!narrow ? (
         <>
           <Pane as="aside" aria-label={t('Sections and layers')} className="absolute bottom-4 start-4 top-[84px] z-20 flex w-[264px] flex-col gap-3 overflow-hidden rounded-[24px] p-3">
@@ -868,7 +959,7 @@ function Roles({ value, theme, onChange, allowNone }: { value?: string; theme: S
 
 const spaceOpts = SPACE.map((s) => ({ id: s, label: String(spacePx(s)) }));
 
-function NodeInspector({ p, n, bp, theme, tr, path, parentNode, onNode, onSelect }: { p: Project; n: SiteNode; bp: Bp; theme: SiteTheme; tr?: (s: string) => string; path: SiteNode[]; parentNode?: SiteNode; onNode: (n: SiteNode, label: string, now?: boolean) => void; onSelect: (id: string | null) => void }) {
+function NodeInspector({ p, n, bp, theme, tr, path, parentNode, onNode, onSelect, onPlay }: { p: Project; n: SiteNode; bp: Bp; theme: SiteTheme; tr?: (s: string) => string; path: SiteNode[]; parentNode?: SiteNode; onNode: (n: SiteNode, label: string, now?: boolean) => void; onSelect: (id: string | null) => void; onPlay: () => void }) {
   const { t } = useI18n();
   const st = styleAt(n, bp);
   const setS = (patch: Partial<SiteStyle>, now = true) => onNode(setStyle(n, bp, patch), 'Style changed', now);
@@ -1008,6 +1099,8 @@ function NodeInspector({ p, n, bp, theme, tr, path, parentNode, onNode, onSelect
         {parentNode && parentNode.type !== 'grid' && styleAt(parentNode, bp).dir === 'row' && C('grow', t('Width in the row'), <Seg label={t('Width in the row')} value={st.grow ? 'y' : 'n'} options={[{ id: 'n', label: t('By content') }, { id: 'y', label: t('Share the rest') }]} onChange={(v) => setS({ grow: v === 'y' })} />)}
       </Section>
 
+      <MotionSection n={n} parent={parentNode} theme={theme} onNode={onNode} onPlay={onPlay} />
+
       <Section title={t('At this width')} icon={bp === 'sm' ? <Smartphone size={15} /> : bp === 'md' ? <Tablet size={15} /> : <Monitor size={15} />}>
         <button type="button" onClick={() => setS({ hide: st.hide ? (bp === 'lg' ? undefined : false) : true })} aria-pressed={!!st.hide} className={`lg-btn min-h-[38px] w-full text-[12.5px] ${st.hide ? 'lg-btn-primary' : 'lg-btn-ghost'}`}>
           {st.hide ? <EyeOff size={14} /> : <Eye size={14} />} {st.hide ? t('Hidden here · show') : t('Hide at this width')}
@@ -1082,6 +1175,23 @@ function PageInspector({ p, pg, commit, sending, onReview }: { p: Project; pg: S
         </div>
         <Seg label={t('Corners')} value={pg.theme.round} options={[{ id: 'sharp' as const, label: t('Sharp') }, { id: 'soft' as const, label: t('Soft') }, { id: 'round' as const, label: t('Round') }]} onChange={(round) => setTheme({ round }, true)} />
       </Section>
+      <Section title={t('Animation')} icon={<Sparkle size={15} />}>
+        <button type="button" onClick={() => (commit({ root: autoMotion(pg.root) }, 'Page brought to life'), toast(t('Motion added: press Play to see it'), { undo: true }))} className="lg-btn lg-btn-primary min-h-[38px] w-full text-[12.5px]">
+          <WandSparkles size={14} /> {t('Bring the page to life')}
+        </button>
+        <p className="text-[11.5px] leading-[1.4] text-white/60">{t('Headline word by word, grids one by one, pictures zoom, buttons lift. Everything stays editable; visitors who ask for less motion see the page still.')}</p>
+        <button
+          type="button"
+          onClick={() => {
+            const strip = (ns: SiteNode[]): SiteNode[] => ns.map(({ anim: _a, hover: _h, depth: _d, ...x }) => ({ ...x, children: x.children ? strip(x.children) : undefined }));
+            commit({ root: strip(pg.root) }, 'Motion removed');
+            toast(t('All motion removed'), { undo: true });
+          }}
+          className="lg-btn lg-btn-ghost min-h-[34px] w-full text-[12px]"
+        >
+          {t('Remove all motion')}
+        </button>
+      </Section>
       <Section title={t('Review and versions')} icon={<History size={15} />}>
         <p className="text-[12px] leading-[1.45] text-white/70">{t('Each time you send the page, a picture of it becomes a new version: the client pins notes on it, and the live page of that version stays one click away.')}</p>
         <button type="button" disabled={sending} onClick={onReview} className="lg-btn lg-btn-primary min-h-[40px] w-full text-[13px] disabled:opacity-60">
@@ -1103,7 +1213,7 @@ function PageInspector({ p, pg, commit, sending, onReview }: { p: Project; pg: S
                       <button type="button" onClick={() => go(`/site/${p.id}/${pg.id}?v=${v.id}`)} className="lg-btn lg-btn-plain min-h-[30px] px-2 text-[11.5px]">
                         {t('Live')}
                       </button>
-                      <button type="button" onClick={() => (commit({ root: snap.root, theme: snap.theme }, 'Version restored'), toast(t('Version {n} is back in the editor', { n: v.n }), { undo: true }))} className="lg-btn lg-btn-plain h-[30px] min-h-0 w-[30px] p-0" aria-label={t('Restore version {n}', { n: v.n })} title={t('Restore version {n}', { n: v.n })}>
+                      <button type="button" onClick={() => (commit({ root: snap.root, theme: snap.theme }, 'Version restored'), toast(t('Version {n} is back in the editor', { n: v.n }), { undo: true }))} className="lg-btn lg-btn-plain h-[30px] min-h-0 w-[30px] lg-icon !p-0" aria-label={t('Restore version {n}', { n: v.n })} title={t('Restore version {n}', { n: v.n })}>
                         <RotateCcw size={12} />
                       </button>
                     </>
