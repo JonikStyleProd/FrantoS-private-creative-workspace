@@ -8,7 +8,6 @@
       ],
       "numberOfRuns": 2,
       "settings": {
-        "preset": "mobile",
         "onlyCategories": [
           "performance",
           "accessibility",
