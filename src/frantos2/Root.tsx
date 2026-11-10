@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useEffect } from 'react';
 import { AnimatePresence, LayoutGroup, MotionConfig, motion } from 'framer-motion';
 import './f2.css';
 import { go, parse, useHash } from './route';
+import { AUTH_GATE } from './cloud/config';
 import { useI18n } from './i18n';
 import { useTheme } from './glass/theme';
 
@@ -38,7 +39,7 @@ const LoginPage = lazy(() => import('./pages/LoginPage').then((m) => ({ default:
 /** pages anyone may open: the landing, demo story, guest review links, published cases and portfolios, sign-in */
 const PUBLIC = new Set(['landing', 'afterhours', 'story', 'guest', 'case', 'folio', 'join', 'login']);
 /** the sign-in wall is on whenever the build talks to the studio server (tests build with VITE_AUTH_GATE=off) */
-const GATE = !!import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_AUTH_GATE !== 'off';
+const GATE = AUTH_GATE;
 const AppChrome = lazy(() => import('./AppChrome'));
 const Palette = lazy(() => import('./daily/Palette').then((m) => ({ default: m.Palette })));
 

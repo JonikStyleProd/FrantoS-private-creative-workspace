@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ArrowRight, Cloud, Languages, Lock, LogIn, MessageSquare, Play, Sparkles } from 'lucide-react';
 
-const CLOUD = !!import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_AUTH_GATE !== 'off';
+const CLOUD = AUTH_GATE;
 /** a stored studio session (read without loading the cloud client on the landing) */
 const signedIn = () => {
   try {
@@ -13,6 +13,7 @@ const signedIn = () => {
 };
 import './glass.css';
 import { useI18n } from '../i18n';
+import { AUTH_GATE } from '../cloud/config';
 import { go } from '../route';
 import { Backdrop, Credits, GlassLang, Mark, Pane, ThemeSwitch, lgEase } from './kit';
 import { STAGES, STAGE_LABEL, Stage } from './stages';
