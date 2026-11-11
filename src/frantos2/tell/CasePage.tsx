@@ -111,9 +111,9 @@ function Case({ p, owner }: { p: Project; owner: boolean }) {
       <div className="relative z-10 mx-auto max-w-[1360px] px-3 pb-16 pt-3 sm:px-6 sm:pt-5">
         <Pane as="header" className="sticky top-3 z-30 flex items-center gap-2 rounded-full p-1.5 sm:top-5 print:hidden">
           {owner ? (
-            <button type="button" onClick={() => go(`/p/${p.id}`)} className="lg-btn lg-btn-plain min-h-[40px] gap-2 px-3" aria-label={t('Back to project')}>
+            <button type="button" onClick={() => go(`/p/${p.id}`)} className="lg-btn lg-btn-plain min-h-[40px] min-w-0 shrink justify-start gap-2 px-3 max-sm:px-2.5" aria-label={t('Back to project')}>
               <ArrowLeft size={17} className="rtl:-scale-x-100" />
-              <span className="max-w-[40vw] truncate text-[14px] font-bold sm:max-w-[320px]" dir="auto">
+              <span className="min-w-0 truncate text-[14px] font-bold sm:max-w-[320px]" dir="auto">
                 {p.title}
               </span>
             </button>
@@ -128,7 +128,7 @@ function Case({ p, owner }: { p: Project; owner: boolean }) {
               {p.visibility === 'public' ? t('Published') : t('Private draft — only you see this')}
             </span>
           )}
-          <div className="ms-auto flex items-center gap-1.5">
+          <div className="ms-auto flex shrink-0 items-center gap-1">
             <GlassLang />
             <button type="button" onClick={() => window.print()} className="lg-btn lg-btn-plain lg-icon" title={t('Print or save as PDF')} aria-label={t('Print or save as PDF')}>
               <Printer size={17} />

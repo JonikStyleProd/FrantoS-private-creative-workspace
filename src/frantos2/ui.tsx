@@ -51,15 +51,9 @@ export function FrameNo({ n, className = '' }: { n: number; className?: string }
   return <span className={`f2-mono tabular-nums ${className}`}>FR {String(n).padStart(2, '0')}</span>;
 }
 
-export function Wordmark({ dark = false, small = false }: { dark?: boolean; small?: boolean }) {
-  return (
-    <span className="inline-flex items-baseline gap-[2px]" style={{ color: dark ? '#f3efe7' : 'var(--ink)' }}>
-      <span className="f2-display" style={{ fontSize: small ? 26 : 30, lineHeight: 1, fontFamily: "'Instrument Serif', Georgia, serif" }}>
-        FrantoS
-      </span>
-      <span aria-hidden className="inline-block h-[7px] w-[7px] rounded-full" style={{ background: 'var(--signal)' }} />
-    </span>
-  );
+export function Wordmark({ small = false }: { dark?: boolean; small?: boolean }) {
+  // the blue FrantoS wordmark, the same logo as the rest of the app
+  return <img src="/brand/wordmark-gradient.webp" alt="FrantoS" draggable={false} className="inline-block w-auto select-none" style={{ height: small ? 24 : 28 }} />;
 }
 
 /**

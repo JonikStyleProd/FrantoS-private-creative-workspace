@@ -399,3 +399,24 @@ test('case page: opens from the project in the new design, flips to the work beh
   await page.goto('/#/c/no-such-case');
   await expect(page.getByText(/not public|Opening/).first()).toBeVisible();
 });
+
+test('brand intro: every visit opens with the mark, a tap skips it, the step into a case plays the short one', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('frantos-intro-force', '1'));
+  await page.goto('/#/');
+  const curtain = page.locator('div.fixed.inset-0.z-\\[300\\]');
+  await expect(curtain).toBeVisible();
+  await expect(curtain.locator('img[src="/brand/mark-gradient.webp"]')).toBeVisible();
+  await expect(curtain.getByText('Private Creative Workspace')).toBeVisible();
+  await curtain.click();
+  await expect(curtain).toHaveCount(0);
+  await page.goto('/#/p/form-01');
+  await expect(curtain).toHaveCount(0, { timeout: 5000 });
+  await page.waitForTimeout(4200);
+  await page.evaluate(() => (location.hash = '#/p/form-01/case'));
+  await expect(curtain).toBeVisible();
+  await expect(curtain).toHaveCount(0, { timeout: 3000 });
+  await expect(page.getByRole('heading', { level: 1, name: 'FORM / 01' })).toBeVisible();
+  // the blue logo everywhere, and the installed app icon
+  const icon = await page.request.get('/icons/icon-512.png');
+  expect(icon.ok()).toBe(true);
+});

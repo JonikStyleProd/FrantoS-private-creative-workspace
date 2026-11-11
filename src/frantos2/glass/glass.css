@@ -430,13 +430,13 @@ html[data-gfx='lite'] .login-orbit { animation-duration: 160s; }
 .lg h1, .lg h2 { overflow-wrap: anywhere; }
 
 /* login wordmark painted with the brand gradient (the mark's blue → violet, warmed at the end) */
-.login-word,
 .login-word-mask {
-  -webkit-mask: url('/brand/wordmark-white.webp') center / contain no-repeat;
-  mask: url('/brand/wordmark-white.webp') center / contain no-repeat;
+  -webkit-mask: url('/brand/wordmark-gradient.webp') center / contain no-repeat;
+  mask: url('/brand/wordmark-gradient.webp') center / contain no-repeat;
 }
+/* the real blue wordmark from the logo kit */
 .login-word {
-  background: linear-gradient(100deg, #1f5bff 0%, #4a6dff 30%, #8a78ef 58%, #c98bd6 80%, #ffb08a 100%);
+  background: url('/brand/wordmark-gradient.webp') center / contain no-repeat;
 }
 
 /* menus that open over content: nearly opaque, so the page behind never reads through the items */
@@ -480,3 +480,4 @@ html[data-theme='light'] .lg .lg-dark .lg-glass-strong { background: rgba(255, 2
   .guide-print { background: #fff !important; }
   .guide-print .guide-sheet { background: #fff !important; }
 }
+

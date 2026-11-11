@@ -19,9 +19,11 @@
     <meta name="apple-mobile-web-app-title" content="FrantoS" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <script>try{var t=localStorage.getItem('frantos-theme');if(!t)t=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';document.documentElement.dataset.theme=t;}catch(e){}</script>
+    <style>#boot{position:fixed;inset:0;z-index:299;background:#0b0d12}html[data-theme=light] #boot{background:#f3f1ec}</style>
     <meta property="og:image" content="/projects/form-01/form-poster.webp" />
   </head>
   <body class="text-[#F3F1EC] antialiased selection:bg-rose-500/20 selection:text-rose-200 min-h-screen overflow-x-hidden">
+    <div id="boot"></div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

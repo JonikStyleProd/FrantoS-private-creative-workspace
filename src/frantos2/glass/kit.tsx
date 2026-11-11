@@ -9,9 +9,9 @@ export const lgEase = [0.22, 1, 0.36, 1] as const;
 
 /** The FrantoS logo from the brand kit: white on dark glass, black on light glass. */
 export function Mark({ onClick, size = 18, compact = false }: { onClick?: () => void; size?: number; compact?: boolean }) {
-  const { theme } = useTheme();
   const h = Math.round(size * 1.35);
-  const src = compact ? (theme === 'light' ? '/brand/mark-black.webp' : '/brand/mark-white.webp') : theme === 'light' ? '/brand/wordmark-black.webp' : '/brand/wordmark-white.webp';
+  // the blue FrantoS mark reads on both themes, so there is one logo everywhere
+  const src = compact ? '/brand/mark-gradient.webp' : '/brand/wordmark-gradient.webp';
   const inner = <img src={src} alt="FrantoS" style={{ height: h, width: 'auto' }} className="block select-none" draggable={false} />;
   return onClick ? (
     <button type="button" onClick={onClick} className="rounded-full px-1" aria-label="FrantoS">

@@ -193,12 +193,12 @@ export function LoginPage({ next }: { next: string }) {
                   {step === 'password' ? (
                     <h2 className="flex items-center gap-[0.4em] whitespace-nowrap text-[clamp(17px,5vw,24px)] font-extrabold leading-tight">
                       {t('Welcome back to')}
-                      <img src={theme === 'light' ? '/brand/wordmark-black.webp' : '/brand/wordmark-white.webp'} alt={t('FrantoS')} draggable={false} className="relative top-[0.04em] h-[1.12em] w-auto" />
+                      <img src="/brand/wordmark-gradient.webp" alt={t('FrantoS')} draggable={false} className="relative top-[0.04em] h-[1.12em] w-auto" />
                     </h2>
                   ) : (
                   <>
                   <span className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-[var(--lg-fill-soft)]">
-                    {step === 'code' ? <ShieldCheck size={20} /> : step === 'newpw' ? <KeyRound size={20} /> : <img src={theme === 'light' ? '/brand/mark-black.webp' : '/brand/mark-white.webp'} alt="" className="h-6 w-6" />}
+                    {step === 'code' ? <ShieldCheck size={20} /> : step === 'newpw' ? <KeyRound size={20} /> : <img src="/brand/mark-gradient.webp" alt="" className="h-6 w-auto" />}
                   </span>
                   <h2 className="text-[24px] font-extrabold leading-tight">{title[step]}</h2>
                   </>
@@ -323,7 +323,7 @@ export function LoginPage({ next }: { next: string }) {
       <AnimatePresence>
         {step === 'welcome' && (
           <motion.div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
-            <motion.img src="/brand/mark-gradient.webp" alt="" className="h-[96px] w-[96px] rounded-[26px]" initial={{ scale: 0.4, rotate: -40 }} animate={{ scale: [0.4, 1.1, 1], rotate: 0 }} transition={{ duration: 0.8, ease }} />
+            <motion.img src="/brand/mark-gradient.webp" alt="" className="h-[96px] w-auto" initial={{ scale: 0.4, rotate: -40 }} animate={{ scale: [0.4, 1.1, 1], rotate: 0 }} transition={{ duration: 0.8, ease }} />
           </motion.div>
         )}
       </AnimatePresence>

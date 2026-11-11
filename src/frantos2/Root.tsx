@@ -1,4 +1,5 @@
-import React, { Suspense, lazy, useEffect } from 'react';
+import { BrandIntro } from './glass/BrandIntro';
+import React, { Suspense, lazy, useEffect, useLayoutEffect } from 'react';
 import { AnimatePresence, LayoutGroup, MotionConfig, motion } from 'framer-motion';
 import './f2.css';
 import { go, parse, useHash } from './route';
@@ -100,6 +101,11 @@ export function Root() {
   const route = parse(hash);
   const { lang, dir } = useI18n();
   const { theme } = useTheme();
+
+  // index.html paints the night colour before the app loads (no white flash); the app takes over here
+  useLayoutEffect(() => {
+    document.getElementById('boot')?.remove();
+  }, []);
 
   useEffect(() => {
     document.title = TITLES[route.name] ?? 'FrantoS';
@@ -263,6 +269,7 @@ export function Root() {
             <AppChrome />
           </Suspense>
         )}
+        <BrandIntro name={route.name} />
         {inApp && (
           <Suspense fallback={null}>
             <CloudLayer />

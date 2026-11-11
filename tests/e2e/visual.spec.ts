@@ -25,18 +25,29 @@ async function open(page: Page, lang: string, path: string) {
   await page.waitForTimeout(900);
 }
 
-for (const lang of LANGS) {
-  test(`nothing spills or gets cut · ${lang}`, async ({ page }) => {
+for (const lang of [...LANGS, 'ru-360'] as const) {
+  test(`nothing spills or gets cut · ${lang}`, async ({ page }, info) => {
+    // ru-360: the longest language on a small phone (360 px), where pills overflow first
+    if (lang === 'ru-360') {
+      test.skip(info.project.name !== 'phone', 'small phone only');
+      await page.setViewportSize({ width: 360, height: 760 });
+    }
     const width = page.viewportSize()!.width;
     const problems: string[] = [];
     for (const path of AUDIT) {
-      await open(page, lang, path);
+      await open(page, lang.slice(0, 2), path);
       const found = await page.evaluate((W) => {
         const out: string[] = [];
         const scrolls = (e: Element) => !!e.closest('.lg-scroll, [class*="overflow-x-auto"], [class*="overflow-auto"], .columns-2');
         for (const e of document.querySelectorAll('button, a, h1, h2, h3, p, label, input, select')) {
           const r = e.getBoundingClientRect();
           if (!r.width || !r.height || getComputedStyle(e).visibility === 'hidden' || scrolls(e)) continue;
+          // nor past the glass panel it sits in (a button poking out of its pill)
+          const box = e.parentElement?.closest('.lg-glass, .lg-glass-strong');
+          if (box && (e.tagName === 'BUTTON' || e.tagName === 'A') && !e.closest('[class*="overflow-x-auto"], .lg-scroll')) {
+            const b = box.getBoundingClientRect();
+            if (r.right > b.right + 1 || r.left < b.left - 1) out.push(`${e.tagName} "${((e as HTMLElement).innerText || e.getAttribute('aria-label') || '').slice(0, 40)}" pokes out of its panel`);
+          }
           if (r.right > W + 1 || r.left < -1) out.push(`${e.tagName} "${((e as HTMLElement).innerText || e.getAttribute('aria-label') || '').slice(0, 40)}" ${Math.round(r.left)}..${Math.round(r.right)}`);
           const el = e as HTMLElement;
           if (e.tagName === 'BUTTON' && el.scrollWidth > el.clientWidth + 2 && getComputedStyle(el).overflow === 'visible' && el.innerText.trim()) out.push(`BUTTON text wider than the button: "${el.innerText.slice(0, 40)}"`);
@@ -48,7 +59,7 @@ for (const lang of LANGS) {
     expect(problems, problems.join('\n')).toEqual([]);
   });
 
-  for (const path of SHOTS) {
+  for (const path of lang === 'ru-360' ? [] : SHOTS) {
     test(`looks the same · ${lang} · ${path}`, async ({ page }) => {
       await open(page, lang, path);
       await page.evaluate(() => document.fonts.ready);

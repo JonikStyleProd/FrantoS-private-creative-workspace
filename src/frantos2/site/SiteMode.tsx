@@ -997,7 +997,7 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
 
       {/* width + actions */}
       <div className={`absolute z-20 ${narrow ? 'inset-x-3 top-[72px] flex justify-center' : 'start-1/2 top-[84px] -translate-x-1/2 rtl:translate-x-1/2'}`}>
-        <Pane className="flex items-center gap-1 rounded-full p-1">
+        <Pane className="flex max-w-full items-center gap-1 overflow-x-auto rounded-full p-1" style={{ scrollbarWidth: 'none' }}>
           {board ? (
             <span className="flex min-h-[38px] items-center gap-1.5 rounded-full bg-white px-3 text-[12.5px] font-bold tabular-nums text-[#11151a]" title={t('Artboard')}>
               <span className="block h-3 rounded-[2px] border-2 border-current" style={{ width: Math.max(6, (12 * board.w) / board.h) }} /> {board.w} × {board.h}
@@ -1007,7 +1007,7 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
             {BPS.map((b) => {
               const Ic = BP_ICON[b.id];
               return (
-                <button key={b.id} type="button" role="radio" aria-checked={bp === b.id} aria-label={`${t(b.label)} ${b.w}`} onClick={() => setBp(b.id)} title={b.id === 'lg' ? `${t(b.label)} · ${b.w}` : `${t(b.label)} · ${b.w} — ${t('changes here apply to this width and narrower')}`} className={`flex min-h-[38px] items-center gap-1.5 rounded-full px-2.5 text-[12.5px] font-bold ${bp === b.id ? (b.id === 'lg' ? 'bg-white text-[#11151a]' : 'lg-dark bg-[#4f8bff] text-white') : 'text-white/80 hover:bg-white/10'}`}>
+                <button key={b.id} type="button" role="radio" aria-checked={bp === b.id} aria-label={`${t(b.label)} ${b.w}`} onClick={() => setBp(b.id)} title={b.id === 'lg' ? `${t(b.label)} · ${b.w}` : `${t(b.label)} · ${b.w} — ${t('changes here apply to this width and narrower')}`} className={`flex min-h-[38px] shrink-0 items-center gap-1.5 rounded-full px-2.5 text-[12.5px] font-bold ${bp === b.id ? (b.id === 'lg' ? 'bg-white text-[#11151a]' : 'lg-dark bg-[#4f8bff] text-white') : 'text-white/80 hover:bg-white/10'}`}>
                   <Ic size={15} /> <span className={narrow ? 'sr-only' : 'hidden 2xl:inline'}>{t(b.label)}</span>
                   <span className="tabular-nums opacity-60 max-sm:hidden">{b.w}</span>
                 </button>
@@ -1016,10 +1016,10 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
           </div>
           )}
           <span className="mx-0.5 h-5 w-px bg-white/20" />
-          <button type="button" onClick={() => (flush(), go(`/site/${p.id}/${pg.id}?w=${bp}`))} className="lg-btn lg-btn-plain min-h-[38px] text-[12.5px]" aria-label={t('Preview')} title={t('Open the live page')}>
+          <button type="button" onClick={() => (flush(), go(`/site/${p.id}/${pg.id}?w=${bp}`))} className={`lg-btn lg-btn-plain min-h-[38px] shrink-0 text-[12.5px] ${narrow ? 'w-[38px] px-0' : ''}`} aria-label={t('Preview')} title={t('Open the live page')}>
             <Eye size={15} /> <span className="max-2xl:hidden">{t('Preview')}</span>
           </button>
-          <button type="button" onClick={() => (playing ? setPlaying(false) : play())} aria-pressed={playing} aria-label={playing ? t('Pause') : t('Play motion')} className="lg-btn lg-btn-plain min-h-[38px] text-[12.5px]" title={t('Play the page’s motion')}>
+          <button type="button" onClick={() => (playing ? setPlaying(false) : play())} aria-pressed={playing} aria-label={playing ? t('Pause') : t('Play motion')} className={`lg-btn lg-btn-plain min-h-[38px] shrink-0 text-[12.5px] ${narrow ? 'w-[38px] px-0' : ''}`} title={t('Play the page’s motion')}>
             {playing ? <Pause size={15} /> : <Play size={15} />} <span className="max-2xl:hidden">{playing ? t('Pause') : t('Play motion')}</span>
           </button>
           {!narrow && (
@@ -1036,14 +1036,14 @@ function PageEditor({ p, stored, onPick, onCreate }: { p: Project; stored: SiteP
               ))}
             </select>
           )}
-          <button type="button" onClick={() => (setChecking((v) => !v), narrow && setSheet('props'))} aria-pressed={checking} aria-label={t('Check')} className={`lg-btn relative min-h-[38px] text-[12.5px] ${checking ? 'lg-btn-primary' : 'lg-btn-plain'}`} title={t('Contrast, finger size, overflow, descriptions, links, headings')}>
+          <button type="button" onClick={() => (setChecking((v) => !v), narrow && setSheet('props'))} aria-pressed={checking} aria-label={t('Check')} className={`lg-btn relative min-h-[38px] shrink-0 text-[12.5px] ${narrow ? 'w-[38px] px-0' : ''} ${checking ? 'lg-btn-primary' : 'lg-btn-plain'}`} title={t('Contrast, finger size, overflow, descriptions, links, headings')}>
             <ShieldCheck size={15} /> <span className="max-2xl:hidden">{t('Check')}</span>
             {issues && issues.length > 0 && <span className="lg-dark absolute -end-0.5 -top-0.5 min-w-[18px] rounded-full bg-[#ff6b6b] px-1 text-center text-[10.5px] font-bold leading-[18px] text-white">{issues.length}</span>}
           </button>
-          <button type="button" onClick={() => (flush(), setExporting(true))} aria-label={t('Export')} className="lg-btn lg-btn-plain min-h-[38px] text-[12.5px]" title={t('HTML, React, PNG, PDF')}>
+          <button type="button" onClick={() => (flush(), setExporting(true))} aria-label={t('Export')} className={`lg-btn lg-btn-plain min-h-[38px] shrink-0 text-[12.5px] ${narrow ? 'w-[38px] px-0' : ''}`} title={t('HTML, React, PNG, PDF')}>
             <Download size={15} /> <span className="max-2xl:hidden">{t('Export')}</span>
           </button>
-          <button type="button" disabled={sending} onClick={toReview} aria-label={t('To review')} className="lg-btn lg-btn-primary min-h-[38px] text-[12.5px] disabled:opacity-60" title={t('A picture of the page becomes a new version for review')}>
+          <button type="button" disabled={sending} onClick={toReview} aria-label={t('To review')} className={`lg-btn lg-btn-primary min-h-[38px] shrink-0 text-[12.5px] disabled:opacity-60 ${narrow ? 'w-[38px] px-0' : ''}`} title={t('A picture of the page becomes a new version for review')}>
             <Send size={14} /> <span className="max-sm:hidden">{sending ? t('Capturing…') : t('To review')}</span>
           </button>
         </Pane>
