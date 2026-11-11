@@ -1,7 +1,7 @@
 // FrantoS service worker: the app shell and demo media work offline.
 // Navigations: network first (fresh deploys win), cached shell as fallback.
 // Static assets (hashed bundles, demo media): cache first.
-const CACHE = 'frantos-v14';
+const CACHE = 'frantos-v15';
 const SHARE = 'frantos-share';
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['/', '/manifest.webmanifest', '/favicon.ico', '/icons/icon-192.png', '/brand/wordmark-gradient.webp', '/brand/mark-gradient.webp', '/brand/jonikstyle-light.webp', '/brand/jonikstyle-dark.webp'])).then(() => self.skipWaiting()));

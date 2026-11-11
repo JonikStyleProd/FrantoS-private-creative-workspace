@@ -191,9 +191,9 @@ export function LoginPage({ next }: { next: string }) {
               <motion.div key={step} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.28, ease }}>
                 <div className="mb-5 flex items-center gap-3">
                   {step === 'password' ? (
-                    <h2 className="flex items-center gap-[0.4em] whitespace-nowrap text-[clamp(17px,5vw,24px)] font-extrabold leading-tight">
+                    <h2 className="flex items-baseline gap-[0.35em] whitespace-nowrap text-[clamp(17px,5vw,24px)] font-extrabold leading-tight">
                       {t('Welcome back to')}
-                      <img src="/brand/wordmark-gradient.webp" alt={t('FrantoS')} draggable={false} className="relative top-[0.04em] h-[1.12em] w-auto" />
+                      <img src={theme === 'light' ? '/brand/wordmark-black.webp' : '/brand/wordmark-white.webp'} alt={t('FrantoS')} draggable={false} className="h-[1.07em] w-auto shrink-0" />
                     </h2>
                   ) : (
                   <>
