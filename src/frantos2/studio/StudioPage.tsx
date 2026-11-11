@@ -13,7 +13,7 @@ import { UploadError } from '../ws/media';
 import { FilePick, upload, useDropZone } from '../ws/uploads';
 import { toast, useMedia } from '../ws/kit';
 import { openPalette } from '../daily/Palette';
-import { Pane, ThemeSwitch } from '../glass/kit';
+import { Pane, ThemeSwitch, useFits } from '../glass/kit';
 import { GlassAccount } from '../glass/account';
 import { createObjectScene, ObjectScene, ViewMode } from './scene';
 import { blobToDataUrl, downscale, ingestHDRI, ingestModel, stillToAsset } from './models';
@@ -211,9 +211,24 @@ function Editor({ p, q }: { p: Project; q: URLSearchParams }) {
 
 function TopBar({ p, o, mode, onMode }: { p: Project; o?: StudioObject; mode: StudioMode; onMode: (m: StudioMode) => void }) {
   const { t } = useI18n();
+  const modes = useFits<HTMLDivElement, HTMLDivElement>();
+  const modeButtons = (labels: boolean) =>
+    MODES.map((m) => (
+      <button
+        key={m.id}
+        type="button"
+        onClick={() => onMode(m.id)}
+        aria-pressed={m.id === mode}
+        title={`${t(m.label)} (${m.key})`}
+        aria-label={t(m.label)}
+        className={`relative flex min-h-[40px] min-w-[34px] shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full text-[13.5px] font-bold transition-colors sm:min-w-[40px] ${labels ? 'px-3.5' : 'px-1.5 sm:px-2.5'} ${m.id === mode ? 'bg-white text-[#11151a]' : 'text-white/75 hover:bg-white/10'}`}
+      >
+        <m.icon size={15} className="shrink-0" /> {labels && <span>{t(m.label)}</span>}
+      </button>
+    ));
   return (
     <header className="absolute inset-x-3 top-3 z-30 flex items-center gap-1.5 sm:inset-x-4 sm:top-4 sm:gap-2">
-      <Pane className="flex min-w-0 max-w-[340px] items-center max-sm:shrink-0 gap-1 rounded-full py-1 ps-1 max-sm:pe-1 sm:pe-4">
+      <Pane className="flex min-w-0 max-w-[150px] shrink items-center gap-1 rounded-full py-1 ps-1 max-sm:shrink-0 max-sm:pe-1 sm:pe-4 lg:max-w-[220px] xl:max-w-[340px]">
         <button type="button" onClick={() => go(`/p/${p.id}`)} className="lg-btn lg-btn-plain lg-icon" aria-label={t('Back to the project')}>
           <ArrowLeft size={18} className="rtl:-scale-x-100" />
         </button>
@@ -222,22 +237,16 @@ function TopBar({ p, o, mode, onMode }: { p: Project; o?: StudioObject; mode: St
         </span>
         <span className="ms-2 hidden whitespace-nowrap text-[12.5px] text-white/65 2xl:inline">{t('Studio')}</span>
       </Pane>
-      <Pane as="nav" aria-label={t('Editor mode')} className="mx-auto flex min-w-0 items-center gap-0.5 overflow-x-auto rounded-full p-1" style={{ scrollbarWidth: 'none' }}>
-        {MODES.map((m) => (
-          <button
-            key={m.id}
-            type="button"
-            onClick={() => onMode(m.id)}
-            aria-pressed={m.id === mode}
-            title={`${t(m.label)} (${m.key})`}
-            aria-label={t(m.label)}
-            className={`relative flex min-h-[40px] min-w-[34px] shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-1.5 text-[13.5px] font-bold sm:min-w-[40px] sm:px-2.5 transition-colors xl:px-4 ${m.id === mode ? 'bg-white text-[#11151a]' : 'text-white/75 hover:bg-white/10'}`}
-          >
-            <m.icon size={15} /> <span className="hidden xl:inline">{t(m.label)}</span>
-          </button>
-        ))}
-      </Pane>
-      <div className="ms-auto flex shrink-0 items-center gap-2 md:ms-0">
+      {/* mode names show when the whole row fits the space between the title and the tools */}
+      <div ref={modes.slot} className="relative flex min-w-0 flex-1 justify-center">
+        <div ref={modes.ghost} aria-hidden className="pointer-events-none invisible absolute start-0 top-0 flex w-max items-center gap-0.5 p-1">
+          {modeButtons(true)}
+        </div>
+        <Pane as="nav" aria-label={t('Editor mode')} className="flex max-w-full items-center gap-0.5 overflow-x-auto rounded-full p-1" style={{ scrollbarWidth: 'none' }}>
+          {modeButtons(modes.fits)}
+        </Pane>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
         <Pane className={`flex items-center gap-1 rounded-full p-1 ${o ? '' : 'max-[399px]:hidden'}`}>
           <button
             type="button"
@@ -250,10 +259,10 @@ function TopBar({ p, o, mode, onMode }: { p: Project; o?: StudioObject; mode: St
           >
             <Undo2 size={17} />
           </button>
-          <button type="button" onClick={openPalette} className="lg-btn lg-btn-plain min-h-[40px] text-[13px] max-md:!hidden" aria-label={t('Search or run a command')}>
-            <Search size={15} /> <span className="text-white/60">⌘K</span>
+          <button type="button" onClick={openPalette} className="lg-btn lg-btn-plain min-h-[40px] text-[13px] max-md:!hidden max-xl:w-10 max-xl:px-0" aria-label={t('Search or run a command')} title={`${t('Search or run a command')} (⌘K)`}>
+            <Search size={15} /> <span className="text-white/60 max-xl:hidden">⌘K</span>
           </button>
-          <span className="max-sm:hidden">
+          <span className="max-lg:hidden">
             <GpuChip />
           </span>
           <span className="max-[399px]:hidden">
@@ -267,7 +276,7 @@ function TopBar({ p, o, mode, onMode }: { p: Project; o?: StudioObject; mode: St
         </Pane>
         {o && (
           <button type="button" onClick={() => go(`/o/${p.id}/${o.id}`)} className="lg-btn lg-btn-primary max-md:!hidden" aria-label={t('Showroom')}>
-            <Eye size={16} /> <span className="hidden lg:inline">{t('Showroom')}</span>
+            <Eye size={16} /> <span className="hidden xl:inline">{t('Showroom')}</span>
           </button>
         )}
         <div className="max-md:hidden">

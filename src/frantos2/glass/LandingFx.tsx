@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform, type MotionValue } from 'framer-motion';
-import { ArrowRight, Box, Film, Image as ImageIcon, Layers } from 'lucide-react';
+import { ArrowRight, Box, Film, Frame, Image as ImageIcon, Layers, LayoutTemplate, Package } from 'lucide-react';
 import { useI18n } from '../i18n';
 import { go } from '../route';
 import { useQuality } from './perf';
@@ -95,12 +95,12 @@ export function LensStage({ src, alt, id }: { src: string; alt: string; id: stri
   );
 }
 
-/* ─────────────────────────── assemble: references → board → object ───────────────────────────
- * A pinned scene driven by scroll. Eight references fall out of a pile into a moodboard,
- * the moodboard folds into the poster, the poster steps aside for the object turning in 3D.
+/* ─────────────────────────── assemble: references → board → the piece ───────────────────────────
+ * A pinned scene driven by scroll, told with the Ritual coffee brand. Eight references fall out of a pile
+ * into a moodboard, the moodboard folds into the poster, the poster steps aside for the finished bag.
  */
-const P = '/projects/form-01/';
-const TILES = ['ref-travertine', 'ref-glaze', 'ref-silk', 'ref-window', 'ref-sketch', 'ref-hotspot', 'form-clay', 'form-v1'].map((n) => `${P}${n}-sm.webp`);
+const R = '/projects/ritual/';
+const TILES = ['roast', 'beans', 'pour', 'window', 'latte', 'coldbrew', 'counter', 'identity'].map((n) => `${R}${n}-sm.webp`);
 const SCATTER = [
   [-0.42, -0.3, -14],
   [0.36, -0.36, 9],
@@ -119,7 +119,6 @@ export function Assemble() {
   const stage = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 1200, h: 800 });
   const [phase, setPhase] = useState(0);
-  const video = useRef<HTMLVideoElement>(null);
   // pages scroll inside the route's own container, not the window
   const scroller = useRef<HTMLElement | null>(null);
   useLayoutEffect(() => {
@@ -136,17 +135,11 @@ export function Assemble() {
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  useEffect(() => {
-    const v = video.current;
-    if (!v) return;
-    if (phase === 2 || reduce) v.play().catch(() => undefined);
-    else v.pause();
-  }, [phase, reduce]);
 
   const steps = [
-    { k: t('Collect'), title: t('Pick up what caught your eye'), text: t('Pictures, stone, a sketch, a light you liked. They land in the project as references.') },
+    { k: t('Collect'), title: t('Pick up what caught your eye'), text: t('A roastery visit, the beans, a morning window, a cup you liked. They land in the project as references.') },
     { k: t('Compose'), title: t('Fold them into one board'), text: t('The palette comes from the references; the board takes the cover, the title and the colours.') },
-    { k: t('Turn it in 3D'), title: t('Put the object in a showroom'), text: t('Materials from the same palette, a stand, a light, a turntable — and a link to send.') },
+    { k: t('Make the piece'), title: t('The board becomes the real thing'), text: t('The bag, the poster, the site — made in the studio from the same palette, and a link to send.') },
   ];
 
   if (reduce)
@@ -154,7 +147,7 @@ export function Assemble() {
       <section className="relative mx-auto grid max-w-[1360px] gap-6 px-5 py-24 sm:px-10 md:grid-cols-3">
         {steps.map((s, i) => (
           <div key={s.k} className="lg-glass overflow-hidden rounded-[26px]">
-            {i === 2 ? <video src={`${P}form-loop.mp4`} poster={`${P}form-loop-poster.webp`} muted loop playsInline className="aspect-[4/5] w-full object-cover" /> : <img src={i === 0 ? TILES[0] : `${P}form-poster-sm.webp`} alt="" className="aspect-[4/5] w-full object-cover" />}
+            <img src={i === 0 ? TILES[1] : i === 1 ? `${R}poster-sm.webp` : `${R}bag-sm.webp`} alt="" className="aspect-[4/5] w-full object-cover" />
             <div className="p-5">
               <p className="lg-label">0{i + 1} · {s.k}</p>
               <p className="mt-2 text-[20px] font-bold">{s.title}</p>
@@ -169,7 +162,7 @@ export function Assemble() {
   const th = tile * 1.25;
   const gap = tile * 0.08;
   return (
-    <section ref={ref} className="relative h-[340vh]" aria-label={t('From references to the object')}>
+    <section ref={ref} className="relative h-[340vh]" aria-label={t('From references to the finished piece')}>
       <div className="sticky top-0 flex h-[100svh] items-center overflow-hidden">
         <div className="lg-stage-bg absolute inset-0" />
         <div className="relative z-10 mx-auto grid h-full w-full max-w-[1360px] grid-cols-1 items-center gap-6 px-5 sm:px-10 lg:grid-cols-[360px_minmax(0,1fr)]">
@@ -195,7 +188,7 @@ export function Assemble() {
               <Tile key={src} src={src} i={i} p={scrollYProgress} size={size} tile={tile} th={th} gap={gap} />
             ))}
             <Poster p={scrollYProgress} size={size} th={th} />
-            <Turntable p={scrollYProgress} size={size} th={th} video={video} />
+            <Turntable p={scrollYProgress} size={size} th={th} />
           </div>
         </div>
       </div>
@@ -234,7 +227,7 @@ function Poster({ p, size, th }: { p: MotionValue<number>; size: { w: number; h:
   const rotate = useTransform(p, [0.72, 0.86], [0, -4]);
   return (
     <motion.img
-      src={`${P}form-poster.webp`}
+      src={`${R}poster.webp`}
       alt=""
       style={{ scale, x, opacity, rotate, width: w, height: h, left: '50%', top: '50%', marginLeft: -w / 2, marginTop: -h / 2 }}
       className="absolute rounded-[8px] object-cover shadow-[0_40px_100px_rgba(0,0,0,.55)]"
@@ -242,30 +235,35 @@ function Poster({ p, size, th }: { p: MotionValue<number>; size: { w: number; h:
   );
 }
 
-function Turntable({ p, size, th, video }: { p: MotionValue<number>; size: { w: number; h: number }; th: number; video: React.RefObject<HTMLVideoElement | null> }) {
+function Turntable({ p, size, th }: { p: MotionValue<number>; size: { w: number; h: number }; th: number }) {
+  const { t } = useI18n();
   const h = Math.min(size.h * 0.8, th * 2.4);
   const w = h * 0.8;
   const opacity = useTransform(p, [0.74, 0.86], [0, 1]);
   const x = useTransform(p, [0.74, 0.9], [w * 0.2, Math.min(size.w * 0.2, w * 0.5)]);
   const scale = useTransform(p, [0.74, 0.9], [0.86, 1]);
+  // the photo settles in slowly as you keep scrolling
+  const zoom = useTransform(p, [0.74, 1], [1.12, 1]);
   return (
     <motion.div style={{ opacity, x, scale, width: w, height: h, left: '50%', top: '50%', marginLeft: -w / 2, marginTop: -h / 2 }} className="absolute overflow-hidden rounded-[22px] shadow-[0_40px_100px_rgba(0,0,0,.55)] ring-1 ring-white/15">
-      <video ref={video} src={`${P}form-loop.mp4`} poster={`${P}form-loop-poster.webp`} muted loop playsInline preload="metadata" className="h-full w-full object-cover" />
+      <motion.img src={`${R}bag.webp`} alt={t('Ritual: the finished bag')} style={{ scale: zoom }} className="h-full w-full object-cover" />
       <span className="lg-glass absolute start-3 top-3 flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-bold">
-        <Box size={13} /> 3D
+        <Package size={13} /> {t('Packaging')}
       </span>
     </motion.div>
   );
 }
 
-/* ─────────────────────────── the studio, in four modes ─────────────────────────── */
+/* ─────────────────────────── the studio, in six modes ─────────────────────────── */
 export function StudioModes() {
   const { t } = useI18n();
   const modes = [
-    { icon: Box, title: t('3D · Object'), text: t('Shape, materials, stands and light. Renders, turntable video, a showroom with AR.'), img: `${P}form-v2-sm.webp`, to: '/s/form-01?o=o-vessel' },
-    { icon: ImageIcon, title: t('Image'), text: t('Crop to every format, grade with looks, cut the background, pick the palette.'), img: `${P}ref-window-sm.webp`, to: '/s/form-01?m=image' },
-    { icon: Layers, title: t('Canvas'), text: t('Boards at real sizes, laid out from the project in one click — then present them.'), img: `${P}form-poster-sm.webp`, to: '/s/form-01?m=canvas' },
-    { icon: Film, title: t('Motion'), text: t('Camera keyframes, titles and sound. Export MP4 or a GIF.'), img: `${P}form-loop-poster.webp`, to: '/s/form-01?m=motion', video: `${P}form-loop.mp4` },
+    { icon: Box, title: t('3D · Object'), text: t('Shape, materials, stands and light. Renders, turntable video, a showroom with AR.'), img: '/projects/halo/hero-sm.webp', to: '/s/halo' },
+    { icon: ImageIcon, title: t('Image'), text: t('Crop to every format, grade with looks, cut the background, pick the palette.'), img: '/projects/casa-arca/bedroom-sm.webp', to: '/s/casa-arca?m=image' },
+    { icon: Layers, title: t('Canvas'), text: t('Boards at real sizes, laid out from the project in one click — then present them.'), img: '/projects/saltwater/shop-sm.webp', to: '/s/saltwater?m=canvas' },
+    { icon: Film, title: t('Motion'), text: t('Camera moves and ready Lottie animations — loaders, a pulse, a tick. MP4, GIF or JSON.'), img: '/projects/velo/tunnel-sm.webp', to: '/s/wavelength?m=motion&k=lottie', video: '/projects/velo/cut-v2.mp4' },
+    { icon: Frame, title: t('Mockups'), text: t('Put the work on a wall, a box, cards or a phone, and render it.'), img: '/projects/ritual/bag-sm.webp', to: '/s/ritual?m=mockup' },
+    { icon: LayoutTemplate, title: t('Site'), text: t('Pages from blocks, motion on a timeline, HTML or React out — and posts that move.'), img: '/projects/halden/s-home-sm.webp', to: '/s/halden?m=site' },
   ];
   return (
     <section className="relative isolate overflow-hidden">
@@ -273,7 +271,7 @@ export function StudioModes() {
       <div className="relative z-10 mx-auto max-w-[1360px] px-5 py-24 sm:px-10 sm:py-32">
         <p className="lg-label">{t('The studio')}</p>
         <h2 className="mt-3 max-w-[900px] text-[clamp(34px,4.6vw,64px)] font-extrabold leading-[1] tracking-[-0.04em]">{t('Make it here, then show it from here.')}</h2>
-        <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {modes.map((m, i) => (
             <ModeCard key={m.title} {...m} i={i} />
           ))}
@@ -284,7 +282,7 @@ export function StudioModes() {
             [t('Objects'), '/objects'],
             [t('Templates'), '/templates'],
             [t('Present boards'), '/p/form-01/deck'],
-            [t('Brand guide'), '/p/form-01/guide'],
+            [t('Brand guide'), '/p/ritual/guide'],
             [t('Portfolio'), '/portfolio'],
           ].map(([l, to]) => (
             <button key={to} type="button" onClick={() => go(to)} className="lg-btn lg-btn-ghost min-h-[42px] text-[14px]">

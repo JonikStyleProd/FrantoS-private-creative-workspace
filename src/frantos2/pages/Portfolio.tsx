@@ -173,7 +173,7 @@ export function PortfolioPage() {
                 </div>
               </>
             )}
-            <button type="button" onClick={() => go('/settings')} className="lg-btn lg-btn-plain h-auto min-h-[34px] whitespace-normal py-1.5 text-start text-[12.5px]">
+            <button type="button" onClick={() => go('/settings')} className="lg-btn lg-btn-plain h-auto min-h-[34px] max-w-full justify-start !whitespace-normal py-1.5 text-start text-[12.5px]">
               {t('Name, address, about and brand → Settings')}
             </button>
           </Pane>

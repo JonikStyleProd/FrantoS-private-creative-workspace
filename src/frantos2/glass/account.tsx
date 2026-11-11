@@ -54,8 +54,8 @@ export function GlassAccount() {
   if (!a.session)
     return (
       <>
-        <button type="button" onClick={() => go(`/login?next=${encodeURIComponent(window.location.hash.replace(/^#/, '') || '/app')}`)} className="lg-btn lg-btn-ghost max-sm:lg-icon" aria-label={t('Sign in')}>
-          <LogIn size={15} /> <span className="max-sm:hidden">{t('Sign in')}</span>
+        <button type="button" onClick={() => go(`/login?next=${encodeURIComponent(window.location.hash.replace(/^#/, '') || '/app')}`)} className="lg-btn lg-btn-ghost max-lg:w-11 max-lg:px-0" aria-label={t('Sign in')} title={t('Sign in')}>
+          <LogIn size={15} /> <span className="max-lg:hidden">{t('Sign in')}</span>
         </button>
         <AnimatePresence>{signin && <GlassSignIn onClose={() => setSignin(false)} />}</AnimatePresence>
       </>

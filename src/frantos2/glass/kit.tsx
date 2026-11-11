@@ -138,3 +138,28 @@ export function useIsNarrow(px = 900) {
   }, [q]);
   return m;
 }
+
+/**
+ * Does a row fit its slot? The slot takes whatever the header leaves (flex-1, min-w-0); an invisible
+ * copy of the full row measures what the row needs. Works at any width, language or font size,
+ * so headers never overlap or push buttons out of their pill.
+ */
+export function useFits<S extends HTMLElement, G extends HTMLElement>() {
+  const slot = React.useRef<S>(null);
+  const ghost = React.useRef<G>(null);
+  const [fits, setFits] = React.useState(true);
+  React.useLayoutEffect(() => {
+    const a = slot.current;
+    const b = ghost.current;
+    if (!a || !b) return;
+    const check = () => setFits(b.scrollWidth <= a.clientWidth + 1);
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(a);
+    ro.observe(b);
+    document.fonts?.ready.then(check).catch(() => undefined);
+    return () => ro.disconnect();
+  }, []);
+  return { slot, ghost, fits };
+}
+

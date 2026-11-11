@@ -7,7 +7,7 @@ import { test, expect, type Page } from '@playwright/test';
  * Update the stored pictures after an intended change: npx playwright test visual --update-snapshots
  */
 const LANGS = ['en', 'ru', 'he'] as const;
-const AUDIT = ['/#/s/halden?m=site', '/#/site/saltwater/saltwater-pg-journal?w=sm', '/#/app', '/#/library', '/#/settings', '/#/templates', '/#/plan', '/#/p/wavelength/handoff', '/#/p/velo/decisions', '/#/p/form-01', '/#/p/form-01/case', '/#/p/ritual/guide', '/#/r/not-a-real-token-123456', '/#/s/ritual?m=motion&k=lottie', '/#/'];
+const AUDIT = ['/#/s/halden?m=site', '/#/site/saltwater/saltwater-pg-journal?w=sm', '/#/app', '/#/library', '/#/settings', '/#/templates', '/#/plan', '/#/p/wavelength/handoff', '/#/p/velo/decisions', '/#/p/form-01', '/#/p/form-01/case', '/#/p/ritual/guide', '/#/r/not-a-real-token-123456', '/#/s/ritual?m=motion&k=lottie', '/#/p/ritual', '/#/p/ritual/review', '/#/p/ritual/materials', '/#/s/ritual', '/#/objects', '/#/portfolio', '/#/'];
 const SHOTS = ['/#/templates', '/#/p/wavelength/handoff'];
 
 async function open(page: Page, lang: string, path: string) {
@@ -25,12 +25,20 @@ async function open(page: Page, lang: string, path: string) {
   await page.waitForTimeout(900);
 }
 
-for (const lang of [...LANGS, 'ru-360'] as const) {
+/** extra sizes, run once: a small phone (on the phone project), a tablet and a small laptop (on desktop) */
+const SIZES: Record<string, { project: string; width: number; height: number }> = {
+  'ru-360': { project: 'phone', width: 360, height: 760 },
+  'ru-820': { project: 'desktop', width: 820, height: 1180 },
+  'he-1024': { project: 'desktop', width: 1024, height: 768 },
+  'ru-1280': { project: 'desktop', width: 1280, height: 800 },
+};
+for (const lang of [...LANGS, ...Object.keys(SIZES)]) {
   test(`nothing spills or gets cut · ${lang}`, async ({ page }, info) => {
-    // ru-360: the longest language on a small phone (360 px), where pills overflow first
-    if (lang === 'ru-360') {
-      test.skip(info.project.name !== 'phone', 'small phone only');
-      await page.setViewportSize({ width: 360, height: 760 });
+    test.setTimeout(150_000);
+    const size = SIZES[lang];
+    if (size) {
+      test.skip(info.project.name !== size.project, `${size.project} only`);
+      await page.setViewportSize({ width: size.width, height: size.height });
     }
     const width = page.viewportSize()!.width;
     const problems: string[] = [];
@@ -59,7 +67,7 @@ for (const lang of [...LANGS, 'ru-360'] as const) {
     expect(problems, problems.join('\n')).toEqual([]);
   });
 
-  for (const path of lang === 'ru-360' ? [] : SHOTS) {
+  for (const path of SIZES[lang] ? [] : SHOTS) {
     test(`looks the same · ${lang} · ${path}`, async ({ page }) => {
       await open(page, lang, path);
       await page.evaluate(() => document.fonts.ready);

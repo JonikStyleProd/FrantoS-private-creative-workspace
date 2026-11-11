@@ -3,14 +3,17 @@ import { test, expect, type Page } from '@playwright/test';
 const fixture = (f: string) => `tests/fixtures/${f}`;
 const isPhone = (page: Page) => (page.viewportSize()?.width ?? 1000) < 800;
 
-test('landing: the four moments play behind the glass and open the same project', async ({ page }) => {
+test('landing: four studios, four moments — each opens its own demo project', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Your work stays in front');
+  await expect(page.locator('img[src="/projects/casa-arca/materials.webp"]').first()).toBeAttached();
   await page.getByRole('tab', { name: /Review/ }).click();
-  if (!isPhone(page)) await expect(page.getByText('Shadow side could go one stop deeper').first()).toBeVisible();
+  if (!isPhone(page)) await expect(page.getByText('The wheel spin is the moment').first()).toBeVisible();
   await page.getByRole('button', { name: 'Open the demo project' }).first().click();
-  await expect(page).toHaveURL(/#\/p\/form-01/);
-  await expect(page.getByRole('tab', { name: /Review/, selected: true })).toBeVisible();
+  await expect(page).toHaveURL(/#\/p\/velo/);
+  // nothing on the landing still sells it as a 3D-object tool first
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'The object in 3D' })).toHaveCount(0);
 });
 
 test('designer: own project, upload, second version, note survives reload', async ({ page }) => {

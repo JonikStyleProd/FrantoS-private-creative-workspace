@@ -425,7 +425,7 @@ function BoardEditor({ p, stored, narrow, onPick, onCreate }: { p: Project; stor
           <textarea id="bd-notes" dir="auto" rows={3} className="lg-input text-[13.5px]" value={b.notes ?? ''} placeholder={t('What to say on this slide. Only you see it in presenter view.')} onChange={(e) => commit({ ...b, notes: e.target.value })} />
           <p className="text-[11.5px] leading-[1.45] text-white/60">{t('Click a layer to edit it. Drag to move, the corner to resize (Shift keeps proportions, Alt turns snapping off). Arrows nudge, Delete removes, ⌘D duplicates.')}</p>
           <div className="grid grid-cols-2 gap-2">
-            <button type="button" onClick={() => setLayouts(true)} disabled={!b.layers.some((l) => l.kind === 'image' || l.kind === 'object')} className="lg-btn lg-btn-ghost h-auto min-h-[38px] whitespace-normal py-1.5 text-[12px] leading-tight disabled:opacity-40">
+            <button type="button" onClick={() => setLayouts(true)} disabled={!b.layers.some((l) => l.kind === 'image' || l.kind === 'object')} className="lg-btn lg-btn-ghost h-auto min-h-[38px] !whitespace-normal py-1.5 text-[12px] leading-tight disabled:opacity-40">
               <LayoutDashboard size={14} className="shrink-0" /> {t('Four layouts')}
             </button>
             <button
@@ -437,7 +437,7 @@ function BoardEditor({ p, stored, narrow, onPick, onCreate }: { p: Project; stor
                 onPick(ws.addBoard(p.id, d));
                 toast(t('Board made from the moodboard'));
               }}
-              className="lg-btn lg-btn-ghost h-auto min-h-[38px] whitespace-normal py-1.5 text-[12px] leading-tight disabled:opacity-40"
+              className="lg-btn lg-btn-ghost h-auto min-h-[38px] !whitespace-normal py-1.5 text-[12px] leading-tight disabled:opacity-40"
             >
               <LayoutTemplate size={14} className="shrink-0" /> {t('From the moodboard')}
             </button>
@@ -516,7 +516,7 @@ function BoardEditor({ p, stored, narrow, onPick, onCreate }: { p: Project; stor
       <p className="lg-label px-1">{t('New board')}</p>
       <div className="grid grid-cols-2 gap-1.5">
         {FORMATS.map((f) => (
-          <button key={f.id} type="button" onClick={() => (onCreate(f), setSheet(null))} className="lg-btn lg-btn-ghost h-auto min-h-[34px] whitespace-normal px-1.5 py-1 text-center text-[11.5px] leading-tight" title={t('A composed first layout, ready to edit')}>
+          <button key={f.id} type="button" onClick={() => (onCreate(f), setSheet(null))} className="lg-btn lg-btn-ghost h-auto min-h-[34px] min-w-0 !whitespace-normal px-1.5 py-1 text-center text-[11.5px] leading-tight" title={t('A composed first layout, ready to edit')}>
             <Wand2 size={12} /> {t(f.label)}
           </button>
         ))}

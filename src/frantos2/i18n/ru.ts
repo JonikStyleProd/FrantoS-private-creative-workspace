@@ -170,7 +170,7 @@ export const ru: Record<string, string> = {
   "comparing": "сравнение",
   "Moodboard": "Мудборд",
   "Materials": "Материалы",
-  "Stories": "Stories",
+  "Stories": "Истории",
   "Case page": "Кейс-страница",
   "Overview": "Обзор",
   "Opening your workspace…": "Открываем ваше пространство…",

@@ -112,7 +112,7 @@ function ProjectHeader({ p, tab }: { p: P; tab: ProjectTab }) {
             <SaveBadge />
           </div>
         </div>
-        <nav className="f2-noscrollbar mx-auto hidden min-w-0 items-center gap-0.5 overflow-x-auto rounded-full p-1 lg-soft lg:flex" role="tablist" aria-label={t('Project')}>
+        <nav className="f2-noscrollbar mx-auto hidden min-w-0 items-center gap-0.5 overflow-x-auto rounded-full p-1 lg-soft xl:flex" role="tablist" aria-label={t('Project')}>
           {TABS().map((tb) => (
             <TabLink key={tb.id} p={p} tb={tb} on={tab === tb.id} open={open} />
           ))}
@@ -140,7 +140,7 @@ function ProjectHeader({ p, tab }: { p: P; tab: ProjectTab }) {
           </button>
         </div>
       </div>
-      <nav className="f2-noscrollbar mt-2 flex gap-1 overflow-x-auto rounded-full p-1 lg-glass lg:hidden" role="tablist" aria-label={t('Project')}>
+      <nav className="f2-noscrollbar mt-2 flex gap-1 overflow-x-auto rounded-full p-1 lg-glass xl:hidden" role="tablist" aria-label={t('Project')}>
         {TABS().map((tb) => (
           <TabLink key={tb.id} p={p} tb={tb} on={tab === tb.id} open={open} />
         ))}

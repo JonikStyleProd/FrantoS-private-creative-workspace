@@ -16,20 +16,22 @@ import './glass.css';
 import { useI18n } from '../i18n';
 import { AUTH_GATE } from '../cloud/config';
 import { go } from '../route';
-import { Backdrop, Credits, GlassLang, Mark, Pane, ThemeSwitch, lgEase } from './kit';
+import { Backdrop, Credits, GlassLang, Mark, Pane, ThemeSwitch, lgEase, useFits } from './kit';
 import { STAGES, STAGE_LABEL, Stage } from './stages';
 import { InstallButton } from './install';
 import { Assemble, LensStage, StudioModes } from './LandingFx';
 
-const P = '/projects/form-01/';
 const AH = '/series/after-hours/';
 
-/** One project, four moments. The landing plays them in order behind the glass. */
-const SCENES: Record<Stage, { src: string; alt: string }> = {
-  collect: { src: `${P}ref-travertine.webp`, alt: 'Travertine plinth, a reference' },
-  make: { src: `${P}form-clay.webp`, alt: 'Clay form study of the vessel' },
-  review: { src: `${P}form-v2.webp`, alt: 'Vessel, second version, in review' },
-  show: { src: `${P}form-poster.webp`, alt: 'FORM / 01 launch poster' },
+/**
+ * Four studios, four moments: an interior board, a brand being made, a film in review, a site going out.
+ * The landing plays them in order behind the glass, so it reads as a place for any creative work.
+ */
+const SCENES: Record<Stage, { src: string; alt: string; project: string }> = {
+  collect: { src: '/projects/casa-arca/materials.webp', alt: 'Casa Arca: the material board — terracotta, travertine, oak, boucle', project: 'casa-arca' },
+  make: { src: '/projects/ritual/identity.webp', alt: 'Ritual: the coffee identity laid out — stamp, sleeve, cups', project: 'ritual' },
+  review: { src: '/projects/velo/wheel.webp', alt: 'Velo: the wheel spin from the launch film', project: 'velo' },
+  show: { src: '/projects/halden/room.webp', alt: 'Halden: the living room from the new site', project: 'halden' },
 };
 const HOLD = 5200;
 
@@ -54,8 +56,22 @@ export function GlassLanding() {
     });
   }, []);
 
+  const links = useFits<HTMLDivElement, HTMLDivElement>();
+  const sectionLinks = (ghost: boolean) => (
+    <>
+      <a href="#how" tabIndex={ghost ? -1 : undefined} className="lg-btn lg-btn-plain whitespace-nowrap">
+        {t('How it works')}
+      </a>
+      <a href="#studio" tabIndex={ghost ? -1 : undefined} className="lg-btn lg-btn-plain whitespace-nowrap">
+        {t('For studios')}
+      </a>
+      <button type="button" tabIndex={ghost ? -1 : undefined} onClick={() => go('/s/ritual')} className="lg-btn lg-btn-plain whitespace-nowrap">
+        {t('Studio')}
+      </button>
+    </>
+  );
   const scene = SCENES[stage];
-  const openDemo = () => go('/p/form-01');
+  const openDemo = () => go(`/p/${scene.project}`);
 
   return (
     <div className="lg min-h-full" dir={dir}>
@@ -65,25 +81,23 @@ export function GlassLanding() {
 
         <header className="relative z-10 px-4 pt-4 sm:px-6 sm:pt-5">
           <Pane as="nav" className="mx-auto flex min-w-0 max-w-[1360px] items-center gap-2 rounded-full py-1.5 pe-1.5 ps-4 sm:ps-5" aria-label={t('Main')}>
-            <Mark />
-            <div className="ms-auto hidden items-center gap-1 md:flex">
-              <a href="#how" className="lg-btn lg-btn-plain">
-                {t('How it works')}
-              </a>
-              <a href="#studio" className="lg-btn lg-btn-plain">
-                {t('For studios')}
-              </a>
-              <button type="button" onClick={() => go('/s/form-01')} className="lg-btn lg-btn-plain">
-                {t('Studio')}
-              </button>
+            <span className="shrink-0">
+              <Mark size={20} />
+            </span>
+            {/* the section links show only when the whole row fits the pill */}
+            <div ref={links.slot} className="relative hidden min-w-0 flex-1 justify-end md:flex">
+              <div ref={links.ghost} aria-hidden className="pointer-events-none invisible absolute end-0 top-0 flex w-max items-center gap-1">
+                {sectionLinks(true)}
+              </div>
+              {links.fits && <div className="flex items-center gap-1">{sectionLinks(false)}</div>}
             </div>
-            <div className="ms-auto flex min-w-0 shrink-0 items-center gap-1.5 md:ms-2">
+            <div className="ms-auto flex shrink-0 items-center gap-1.5 md:ms-2">
               <span className="hidden sm:block">
                 <GlassLang />
               </span>
               <span className="hidden sm:contents">
                 <ThemeSwitch />
-                <InstallButton />
+                <InstallButton compact />
               </span>
               {CLOUD && !signedIn() && (
                 <button type="button" onClick={() => go('/login?next=%2Fapp')} className="lg-btn lg-btn-ghost max-sm:!px-2.5" aria-label={t('Sign in')}>
@@ -119,8 +133,8 @@ export function GlassLanding() {
               <button type="button" onClick={openDemo} className="lg-btn lg-btn-primary min-h-[52px] px-6 text-[15px]">
                 {t('Open the demo project')} <ArrowRight size={17} className="rtl:-scale-x-100" />
               </button>
-              <button type="button" onClick={() => go('/o/form-01/o-vessel')} className="lg-btn lg-btn-ghost min-h-[52px] px-6 text-[15px]">
-                {t('The object in 3D')}
+              <button type="button" onClick={() => go(`/s/${scene.project}`)} className="lg-btn lg-btn-ghost min-h-[52px] px-6 text-[15px]">
+                {t('Open the studio')}
               </button>
               <button type="button" onClick={() => go('/app')} className="lg-btn lg-btn-plain min-h-[52px] px-5 text-[15px]">
                 {t('Start your own')}
@@ -168,21 +182,21 @@ export function GlassLanding() {
       {/* ───────── the studio, four modes ───────── */}
       <StudioModes />
 
-      {/* ───────── one case, told by scrolling ───────── */}
+      {/* ───────── v1 → v2 with the client's words ───────── */}
+      <BeforeAfter />
+
+      {/* ───────── eight demos, eight kinds of work ───────── */}
+      <DemoGallery />
+
+      {/* ───────── one launch, told by scrolling ───────── */}
       <ScrollCase />
 
       {/* ───────── recolour the runner, live ───────── */}
       <Configurator />
 
-      {/* ───────── v1 → v2 with the client's words ───────── */}
-      <BeforeAfter />
-
-      {/* ───────── eight demos ───────── */}
-      <DemoGallery />
-
       {/* ───────── how it works ───────── */}
       <section id="how" className="relative isolate overflow-hidden">
-        <Backdrop src={`${AH}dawn.webp`} tint={0.45} blur />
+        <Backdrop src="/projects/velo/bridge.webp" tint={0.5} blur />
         <div className="relative z-10 mx-auto max-w-[1360px] px-5 py-24 sm:px-10 sm:py-32">
           <h2 className="max-w-[820px] text-[clamp(34px,4.6vw,64px)] font-extrabold leading-[1] tracking-[-0.04em]">{t('One screen per project. Four moments. Nothing hidden in menus.')}</h2>
           <div className="mt-14 grid gap-4 md:grid-cols-3">
@@ -195,7 +209,7 @@ export function GlassLanding() {
 
       {/* ───────── for studios ───────── */}
       <section id="studio" className="relative isolate overflow-hidden">
-        <Backdrop src={`${AH}reflections.webp`} tint={0.5} blur />
+        <Backdrop src="/projects/casa-arca/lobby.webp" tint={0.55} blur />
         <div className="relative z-10 mx-auto grid max-w-[1360px] gap-4 px-5 py-24 sm:px-10 md:grid-cols-3">
           <div className="md:col-span-3">
             <h2 className="text-[clamp(30px,3.6vw,48px)] font-extrabold tracking-[-0.035em]">{t('Yours first, your studio when you want.')}</h2>
@@ -243,26 +257,26 @@ function SceneCard({ stage, onOpen }: { stage: Stage; onOpen: () => void }) {
   if (stage === 'collect')
     return (
       <div className="space-y-3">
-        <p className="lg-label">{t('01 · Collect')}</p>
-        <p className="text-[18px] font-bold">{t('Travertine plinth')}</p>
-        <p className="text-[14px] leading-[1.5] text-white/85">{t('Warm stone with open pores — the base should feel quarried, not cast.')}</p>
+        <p className="lg-label">{t('01 · Collect')} · Casa Arca</p>
+        <p className="text-[18px] font-bold">{t('Material board')}</p>
+        <p className="text-[14px] leading-[1.5] text-white/85">{t('Terracotta, travertine, oak, boucle, brass — the lobby is chosen from this board.')}</p>
         <div className="flex h-7 overflow-hidden rounded-[10px]" aria-label={t('Palette')}>
-          {['#d9c6a8', '#c2a983', '#a8875f', '#e8ddc9', '#8a6b4a'].map((c) => (
+          {['#b85c38', '#efe6d8', '#c9a46a', '#7a8b5a', '#e7b7a6'].map((c) => (
             <span key={c} className="flex-1" style={{ background: c }} />
           ))}
         </div>
-        <p className="text-[12.5px] text-white/70">{t('Shaped → the base of the vessel')}</p>
+        <p className="text-[12.5px] text-white/70">{t('Shaped → the lobby floor and tables')}</p>
       </div>
     );
   if (stage === 'make')
     return (
       <div className="space-y-3">
-        <p className="lg-label">{t('02 · Make')}</p>
-        <p className="text-[18px] font-bold">{t('Form study · clay')}</p>
-        <p className="text-[14px] leading-[1.5] text-white/85">{t('Form first: rounded square, 225° of twist, no material yet.')}</p>
-        <div className="flex gap-2 text-[12.5px]">
-          <span className="rounded-full lg-soft px-3 py-1.5">clay</span>
-          <span className="rounded-full lg-soft px-3 py-1.5">v1</span>
+        <p className="lg-label">{t('02 · Make')} · Ritual</p>
+        <p className="text-[18px] font-bold">{t('Coffee identity')}</p>
+        <p className="text-[14px] leading-[1.5] text-white/85">{t('Forest green and cream: the bag, the poster, the cups and a counter to drink at.')}</p>
+        <div className="flex flex-wrap gap-2 text-[12.5px]">
+          <span className="rounded-full lg-soft px-3 py-1.5">{t('Packaging')}</span>
+          <span className="rounded-full lg-soft px-3 py-1.5">{t('Campaign')}</span>
           <span className="rounded-full bg-white px-3 py-1.5 font-bold text-[#11151a]">v2</span>
         </div>
       </div>
@@ -270,21 +284,21 @@ function SceneCard({ stage, onOpen }: { stage: Stage; onOpen: () => void }) {
   if (stage === 'review')
     return (
       <div className="space-y-3">
-        <p className="lg-label">{t('03 · Review')}</p>
+        <p className="lg-label">{t('03 · Review')} · Velo</p>
         <div className="flex items-start gap-3">
           <span className="lg-pin shrink-0" data-active="true">
             1
           </span>
           <div>
-            <p className="text-[13px] font-bold text-white/80">Mara K. · AD</p>
-            <p className="mt-1 text-[15px] leading-[1.45]">{t('Shadow side could go one stop deeper here — the mass is a bit polite.')}</p>
+            <p className="text-[13px] font-bold text-white/80">Mira S. · {t('Marketing')} · 0:04</p>
+            <p className="mt-1 text-[15px] leading-[1.45]">{t('The wheel spin is the moment — hold it one more beat.')}</p>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <button type="button" onClick={onOpen} className="lg-btn lg-btn-ghost">
             {t('Reply')}
           </button>
-          <button type="button" onClick={onOpen} className="lg-btn lg-btn-primary">
+          <button type="button" onClick={() => go('/p/velo/review')} className="lg-btn lg-btn-primary">
             {t('Open review')}
           </button>
         </div>
@@ -292,11 +306,11 @@ function SceneCard({ stage, onOpen }: { stage: Stage; onOpen: () => void }) {
     );
   return (
     <div className="space-y-3">
-      <p className="lg-label">{t('04 · Show')}</p>
-      <p className="text-[18px] font-bold">{t('FORM / 01 — the story')}</p>
-      <p className="text-[14px] leading-[1.5] text-white/85">{t('Five frames from the first sketch to the launch poster, built from the trail.')}</p>
-      <button type="button" onClick={() => go('/p/form-01/stories/play/0')} className="lg-btn lg-btn-primary w-full">
-        <Play size={15} /> {t('Play the story')}
+      <p className="lg-label">{t('04 · Show')} · Halden</p>
+      <p className="text-[18px] font-bold">{t('A new site for a furniture workshop')}</p>
+      <p className="text-[14px] leading-[1.5] text-white/85">{t('Built in the studio from the same project: pages, motion, a case page — and a post that moves.')}</p>
+      <button type="button" onClick={() => go('/site/halden/halden-pg-home')} className="lg-btn lg-btn-primary w-full">
+        <Play size={15} /> {t('Open the site')}
       </button>
     </div>
   );

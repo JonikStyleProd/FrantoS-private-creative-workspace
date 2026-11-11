@@ -238,14 +238,14 @@ export function BeforeAfter() {
 
 /* ───────── eight demo projects ───────── */
 const DEMOS = [
-  { id: 'form-01', title: 'FORM / 01', kind: 'Object identity', frames: ['/projects/form-01/form-v2-sm.webp', '/projects/form-01/form-clay-sm.webp', '/projects/form-01/form-poster-sm.webp'] },
-  { id: 'stride', title: 'STRIDE', kind: 'Sneaker launch', frames: ['/projects/stride/hero-sm.webp', '/projects/stride/obj/runner-orange.webp', '/projects/stride/obj/runner-mono.webp', '/projects/stride/obj/court-high.webp'] },
-  { id: 'halo', title: 'HALO', kind: 'Audio product', frames: ['/projects/halo/hero-sm.webp', '/projects/halo/colorways-sm.webp', '/projects/halo/buds-sm.webp'] },
-  { id: 'ritual', title: 'Ritual', kind: 'Coffee brand', frames: ['/projects/ritual/identity-sm.webp', '/projects/ritual/bag-sm.webp', '/projects/ritual/latte-sm.webp'] },
-  { id: 'wavelength', title: 'Wavelength', kind: 'Mobile app', frames: ['/projects/wavelength/s-today-sm.webp', '/projects/wavelength/s-welcome-sm.webp', '/projects/wavelength/s-spot-sm.webp'] },
+  { id: 'ritual', title: 'Ritual', kind: 'Coffee brand', frames: ['/projects/ritual/identity-sm.webp', '/projects/ritual/bag-sm.webp', '/projects/ritual/poster-sm.webp', '/projects/ritual/latte-sm.webp'] },
+  { id: 'casa-arca', title: 'Casa Arca', kind: 'Boutique hotel', frames: ['/projects/casa-arca/lobby-sm.webp', '/projects/casa-arca/bedroom-sm.webp', '/projects/casa-arca/pool-sm.webp', '/projects/casa-arca/materials-sm.webp'] },
   { id: 'halden', title: 'Halden', kind: 'Website redesign', frames: ['/projects/halden/s-home-sm.webp', '/projects/halden/s-product-sm.webp', '/projects/halden/room-sm.webp'] },
   { id: 'velo', title: 'Velo', kind: 'Launch film', frames: ['/projects/velo/tunnel-sm.webp', '/projects/velo/street-sm.webp', '/projects/velo/bridge-sm.webp', '/projects/velo/wheel-sm.webp'] },
+  { id: 'wavelength', title: 'Wavelength', kind: 'Mobile app', frames: ['/projects/wavelength/s-today-sm.webp', '/projects/wavelength/s-welcome-sm.webp', '/projects/wavelength/s-spot-sm.webp'] },
   { id: 'saltwater', title: 'Saltwater', kind: 'Bakery identity', frames: ['/projects/saltwater/shop-sm.webp', '/projects/saltwater/bag-sm.webp', '/projects/saltwater/cards-sm.webp'] },
+  { id: 'halo', title: 'HALO', kind: 'Audio product', frames: ['/projects/halo/hero-sm.webp', '/projects/halo/colorways-sm.webp', '/projects/halo/buds-sm.webp'] },
+  { id: 'stride', title: 'STRIDE', kind: 'Sneaker launch', frames: ['/projects/stride/hero-sm.webp', '/projects/stride/obj/runner-orange.webp', '/projects/stride/obj/runner-mono.webp', '/projects/stride/obj/court-high.webp'] },
 ];
 
 function DemoTile({ d, i }: { d: (typeof DEMOS)[number]; i: number }) {

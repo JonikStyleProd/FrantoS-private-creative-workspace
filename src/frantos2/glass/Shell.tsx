@@ -10,7 +10,7 @@ import { ensureLoaded, useWs } from '../ws/store';
 import { openPalette } from '../daily/Palette';
 import { GlassAccount } from './account';
 import { InstallButton } from './install';
-import { Backdrop, Credits, GlassLang, Mark, Pane, ThemeSwitch } from './kit';
+import { Backdrop, Credits, GlassLang, Mark, Pane, ThemeSwitch, useFits } from './kit';
 import { NEWS } from '../pages/news';
 import { SyncBadge } from './SyncBadge';
 
@@ -34,9 +34,12 @@ export function AppHeader({ action }: { action?: React.ReactNode }) {
   const here = '/' + (hash.replace(/^#\/?/, '').split(/[/?]/)[0] ?? '');
   const unseen = NEWS[0] && (state.seenNews ?? 0) < NEWS[0].n;
   useEffect(() => setMenu(false), [hash]);
-  const nav = (vertical = false) =>
+  // section names show when they fit the header itself, not by window width (the header is capped)
+  const { slot, ghost, fits } = useFits<HTMLDivElement, HTMLDivElement>();
+  const nav = (mode: 'icons' | 'labels' | 'menu') =>
     SECTIONS.map((s) => {
       const on = here === s.path;
+      const vertical = mode === 'menu';
       return (
         <button
           key={s.path}
@@ -45,9 +48,10 @@ export function AppHeader({ action }: { action?: React.ReactNode }) {
           aria-current={on ? 'page' : undefined}
           title={t(s.label)}
           aria-label={t(s.label)}
-          className={`flex h-10 shrink-0 items-center gap-2 rounded-full text-[13.5px] font-bold transition-colors ${vertical ? 'w-full justify-start px-3.5' : 'w-10 justify-center min-[1720px]:w-auto min-[1720px]:px-3.5'} ${on ? 'bg-white text-[#11151a]' : 'text-white/75 hover:bg-white/10 hover:text-white'}`}
+          tabIndex={mode === 'labels' && !fits ? -1 : undefined}
+          className={`flex h-10 shrink-0 items-center gap-2 rounded-full text-[13.5px] font-bold transition-colors ${vertical ? 'w-full justify-start px-3.5' : mode === 'labels' ? 'px-3.5' : 'w-10 justify-center'} ${on ? 'bg-white text-[#11151a]' : 'text-white/75 hover:bg-white/10 hover:text-white'}`}
         >
-          <s.icon size={16} className="shrink-0" /> <span className={vertical ? '' : 'hidden whitespace-nowrap min-[1720px]:inline'}>{t(s.label)}</span>
+          <s.icon size={16} className="shrink-0" /> {mode !== 'icons' && <span className="whitespace-nowrap">{t(s.label)}</span>}
         </button>
       );
     });
@@ -57,9 +61,15 @@ export function AppHeader({ action }: { action?: React.ReactNode }) {
         <span className="shrink-0">
           <Mark onClick={() => go('/')} />
         </span>
-        <nav aria-label={t('Sections')} className="mx-auto hidden min-w-0 items-center gap-1 lg:flex">
-          {nav()}
-        </nav>
+        <div ref={slot} className="relative mx-1 hidden min-w-0 flex-1 justify-center lg:flex">
+          {/* measures the row with names; never seen */}
+          <div ref={ghost} aria-hidden className="pointer-events-none invisible absolute start-0 top-0 flex w-max items-center gap-1">
+            {nav('labels')}
+          </div>
+          <nav aria-label={t('Sections')} className="flex min-w-0 items-center gap-1">
+            {nav(fits ? 'labels' : 'icons')}
+          </nav>
+        </div>
         <div className="ms-auto flex shrink-0 items-center gap-1 lg:ms-0">
           <span className="max-sm:hidden">
             <SyncBadge />
@@ -84,7 +94,7 @@ export function AppHeader({ action }: { action?: React.ReactNode }) {
       <AnimatePresence>
         {menu && (
           <Pane strong key="menu" className="lg-pop absolute end-3 top-[72px] z-50 flex w-[min(360px,calc(100vw-24px))] flex-col gap-1 rounded-[26px] p-2 sm:end-6">
-            <div className="flex flex-col gap-1 lg:hidden">{nav(true)}</div>
+            <div className="flex flex-col gap-1 lg:hidden">{nav('menu')}</div>
             <button type="button" onClick={() => go('/new')} className="flex h-11 items-center gap-2 rounded-full px-3.5 text-[13.5px] font-bold hover:bg-white/10">
               <Sparkles size={16} /> {t("What's new")}
               {unseen && <span className="ms-auto h-2 w-2 rounded-full bg-[var(--lg-accent)]" />}

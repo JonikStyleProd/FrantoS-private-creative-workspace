@@ -63,8 +63,8 @@ export function ProjectTools({ p }: { p: Project }) {
   };
   return (
     <div className="relative" ref={box}>
-      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-haspopup="menu" className="lg-glass lg-btn" title={t('Tools')}>
-        <LayoutGrid size={15} /> <span className="hidden md:inline">{t('Tools')}</span>
+      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-haspopup="menu" className="lg-glass lg-btn max-xl:w-11 max-xl:px-0" title={t('Tools')} aria-label={t('Tools')}>
+        <LayoutGrid size={15} /> <span className="hidden xl:inline">{t('Tools')}</span>
       </button>
       <AnimatePresence>
         {open && (

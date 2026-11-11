@@ -157,7 +157,7 @@ function Screen({ p, q }: { p: Project; q: URLSearchParams }) {
 
       {/* top bar */}
       <header className="absolute inset-x-3 top-3 z-40 flex items-center gap-2 sm:inset-x-4 sm:top-4">
-        <Pane className="flex min-w-0 items-center gap-1 rounded-full py-1 pe-4 ps-1">
+        <Pane className="flex min-w-[96px] items-center gap-1 rounded-full py-1 pe-4 ps-1">
           <button type="button" onClick={() => go('/app')} className="lg-btn lg-btn-plain lg-icon" aria-label={t('All projects')}>
             <ArrowLeft size={18} className="rtl:-scale-x-100" />
           </button>
@@ -181,8 +181,8 @@ function Screen({ p, q }: { p: Project; q: URLSearchParams }) {
             <ThemeSwitch />
           </Pane>
           <ProjectTools p={p} />
-          <button type="button" onClick={() => go(`/s/${p.id}`)} className="lg-glass lg-btn">
-            <Box size={15} /> <span className="hidden sm:inline">{t('Studio')}</span>
+          <button type="button" onClick={() => go(`/s/${p.id}`)} className="lg-glass lg-btn max-xl:w-11 max-xl:px-0" aria-label={t('Studio')} title={t('Studio')}>
+            <Box size={15} /> <span className="hidden xl:inline">{t('Studio')}</span>
           </button>
           <ShareButton p={p} item={item} />
           <GlassAccount />
@@ -1102,8 +1102,8 @@ function ShareButton({ p, item }: { p: Project; item?: Item }) {
   };
   return (
     <div className="relative" ref={box}>
-      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="lg-btn lg-btn-primary">
-        <Link2 size={15} /> <span className="hidden sm:inline">{t('Share')}</span>
+      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="lg-btn lg-btn-primary max-lg:w-11 max-lg:px-0" aria-label={t('Share')} title={t('Share')}>
+        <Link2 size={15} /> <span className="hidden lg:inline">{t('Share')}</span>
       </button>
       <AnimatePresence>
         {open && (
