@@ -423,3 +423,20 @@ test('brand intro: every visit opens with the mark, a tap skips it, the step int
   const icon = await page.request.get('/icons/icon-512.png');
   expect(icon.ok()).toBe(true);
 });
+
+test('landing STRIDE case: a swipeable carousel on phones, arrows and progress move one card at a time', async ({ page }) => {
+  test.skip(!isPhone(page), 'the carousel is the phone and tablet layout');
+  await page.goto('/');
+  const car = page.locator('[aria-roledescription="carousel"]');
+  await car.scrollIntoViewIfNeeded();
+  const track = car.locator(':scope > div').first();
+  await expect(car.getByRole('button', { name: 'Previous' })).toBeDisabled();
+  await car.getByRole('button', { name: 'Next' }).click();
+  await expect.poll(() => track.evaluate((el) => Math.round(el.scrollLeft))).toBeGreaterThan(200);
+  await expect(car.locator('[aria-current="step"]')).toHaveAttribute('aria-label', /2 · Materials/);
+  // tap the last bar: straight to the campaign
+  await car.getByRole('button', { name: '4 · Campaign' }).click();
+  await expect(car.getByRole('button', { name: 'Next' })).toBeDisabled();
+  // the words never hide under the picture: every card carries its own text
+  await expect(car.getByRole('heading', { name: 'Launch: the shoe in mid-air' })).toBeInViewport();
+});

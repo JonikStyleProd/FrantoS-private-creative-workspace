@@ -158,7 +158,9 @@ export function Assemble() {
       </section>
     );
 
-  const tile = Math.min(size.w * 0.17, size.h * 0.26, 220);
+  // a phone gets a fuller frame: the board fills the width, the poster and the piece are bigger
+  const narrowStage = size.w < 640;
+  const tile = Math.min(size.w * (narrowStage ? 0.225 : 0.17), size.h * 0.26, 220);
   const th = tile * 1.25;
   const gap = tile * 0.08;
   return (
@@ -187,8 +189,8 @@ export function Assemble() {
             {TILES.map((src, i) => (
               <Tile key={src} src={src} i={i} p={scrollYProgress} size={size} tile={tile} th={th} gap={gap} />
             ))}
-            <Poster p={scrollYProgress} size={size} th={th} />
-            <Turntable p={scrollYProgress} size={size} th={th} />
+            <Poster p={scrollYProgress} size={size} th={th * (narrowStage ? 1.3 : 1)} />
+            <Turntable p={scrollYProgress} size={size} th={th * (narrowStage ? 1.3 : 1)} />
           </div>
         </div>
       </div>

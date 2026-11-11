@@ -42,11 +42,27 @@ export function ScrollCase() {
     refs.current.forEach((r) => r && io.observe(r));
     return () => io.disconnect();
   }, []);
+  const kicker = <p className="text-[13px] font-extrabold tracking-[0.14em] text-[#ff5a1f]">STRIDE · RUN CLUB LAUNCH</p>;
+  const title = <h2 className="mt-3 text-[clamp(32px,5vw,68px)] font-extrabold leading-[0.98] tracking-[-0.04em]">{t('One project, from the first line to the launch.')}</h2>;
+  const open = (
+    <button type="button" onClick={() => go('/p/stride')} className="inline-flex min-h-[52px] items-center gap-2 rounded-full bg-[#1a1716] px-6 text-[15px] font-bold text-[#ffffff]">
+      {t('Open STRIDE')} <ArrowRight size={17} className="rtl:-scale-x-100" />
+    </button>
+  );
   return (
     <section className="relative isolate bg-[#e9e6e1] text-[#1a1716]" aria-label={t('A case, scroll by scroll')}>
-      <div className="mx-auto grid max-w-[1360px] gap-8 px-5 py-24 sm:px-10 lg:grid-cols-2">
-        <div className="sticky top-3 z-10 lg:top-0 lg:flex lg:h-[100svh] lg:items-center">
-          <div className="relative aspect-[4/3] w-full lg:aspect-[4/5] overflow-hidden rounded-[28px] bg-[#d9d6d0] shadow-[0_40px_80px_-40px_rgba(0,0,0,.45)]">
+      {/* phones and tablets: swipe through the steps, each one a picture with its words */}
+      <div className="px-5 py-20 sm:px-10 lg:hidden">
+        {kicker}
+        {title}
+        <StepCarousel />
+        <div className="mt-8">{open}</div>
+      </div>
+
+      {/* desktop: the picture holds still while the words scroll past it */}
+      <div className="mx-auto hidden max-w-[1360px] gap-8 px-10 py-24 lg:grid lg:grid-cols-2">
+        <div className="sticky top-0 z-10 flex h-[100svh] items-center">
+          <div className="relative aspect-[4/5] w-full overflow-hidden rounded-[28px] bg-[#d9d6d0] shadow-[0_40px_80px_-40px_rgba(0,0,0,.45)]">
             {STEPS.map((s, k) => (
               <img key={s.img} src={s.img} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-[opacity,transform] duration-700" style={{ opacity: k === i ? 1 : 0, transform: k === i ? 'scale(1)' : 'scale(1.04)' }} />
             ))}
@@ -58,8 +74,8 @@ export function ScrollCase() {
           </div>
         </div>
         <div>
-          <p className="text-[13px] font-extrabold tracking-[0.14em] text-[#ff5a1f]">STRIDE · RUN CLUB LAUNCH</p>
-          <h2 className="mt-3 text-[clamp(36px,5vw,68px)] font-extrabold leading-[0.98] tracking-[-0.04em]">{t('One project, from the first line to the launch.')}</h2>
+          {kicker}
+          {title}
           {STEPS.map((s, k) => (
             <div key={s.k} ref={(el) => void (refs.current[k] = el)} data-i={k} className="flex min-h-[70svh] flex-col justify-center">
               <p className="text-[13px] font-extrabold tracking-[0.12em] text-[#8a8378]">
@@ -69,12 +85,71 @@ export function ScrollCase() {
               <p className={`mt-3 max-w-[46ch] text-[17px] leading-[1.55] text-[#4a453e] transition-opacity duration-500 ${k === i ? 'opacity-100' : 'opacity-40'}`}>{t(s.text)}</p>
             </div>
           ))}
-          <button type="button" onClick={() => go('/p/stride')} className="mt-2 inline-flex min-h-[52px] items-center gap-2 rounded-full bg-[#1a1716] px-6 text-[15px] font-bold text-[#ffffff]">
-            {t('Open STRIDE')} <ArrowRight size={17} className="rtl:-scale-x-100" />
-          </button>
+          <div className="mt-2">{open}</div>
         </div>
       </div>
     </section>
+  );
+}
+
+/** The STRIDE steps as cards you swipe: snap per card, progress you can tap, arrows for a mouse. */
+function StepCarousel() {
+  const { t, dir } = useI18n();
+  const track = useRef<HTMLDivElement>(null);
+  const [i, setI] = useState(0);
+  const rtl = dir === 'rtl';
+  const onScroll = () => {
+    const el = track.current;
+    if (!el) return;
+    const card = el.firstElementChild as HTMLElement | null;
+    if (!card) return;
+    const step = card.offsetWidth + 12;
+    setI(Math.max(0, Math.min(STEPS.length - 1, Math.round(Math.abs(el.scrollLeft) / step))));
+  };
+  const goTo = (k: number) => {
+    const el = track.current;
+    const card = el?.children[k] as HTMLElement | undefined;
+    if (!el || !card) return;
+    const step = card.offsetWidth + 12;
+    el.scrollTo({ left: (rtl ? -1 : 1) * k * step, behavior: 'smooth' });
+  };
+  return (
+    <div className="mt-8" role="region" aria-roledescription="carousel" aria-label={t('A case, scroll by scroll')}>
+      <div
+        ref={track}
+        onScroll={onScroll}
+        className="-mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth px-5 pb-2 sm:-mx-10 sm:scroll-px-10 sm:px-10 scroll-px-5"
+        style={{ scrollbarWidth: 'none' }}
+      >
+        {STEPS.map((s, k) => (
+          <article key={s.k} aria-label={`${k + 1} / ${STEPS.length}`} className="w-[84%] max-w-[460px] shrink-0 snap-start overflow-hidden rounded-[24px] bg-[#f6f4f0] shadow-[0_24px_50px_-30px_rgba(0,0,0,.45)] sm:w-[60%]">
+            <img src={s.img} alt={t(s.title)} loading="lazy" className="aspect-[4/3] w-full object-cover" />
+            <div className="p-5">
+              <p className="text-[12px] font-extrabold tracking-[0.12em] text-[#8a8378]">
+                {String(k + 1).padStart(2, '0')} · {t(s.k).toUpperCase()}
+              </p>
+              <h3 className="mt-1.5 text-[22px] font-extrabold leading-[1.1] tracking-[-0.02em]">{t(s.title)}</h3>
+              <p className="mt-2 text-[15px] leading-[1.5] text-[#4a453e]">{t(s.text)}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+      <div className="mt-4 flex items-center gap-3">
+        <div className="flex flex-1 gap-1.5">
+          {STEPS.map((s, k) => (
+            <button key={s.k} type="button" onClick={() => goTo(k)} aria-label={`${k + 1} · ${t(s.k)}`} aria-current={k === i ? 'step' : undefined} className="flex h-8 flex-1 items-center">
+              <span className={`h-1 w-full rounded-full transition-colors ${k <= i ? 'bg-[#ff5a1f]' : 'bg-[#1a171626]'}`} />
+            </button>
+          ))}
+        </div>
+        <button type="button" onClick={() => goTo(Math.max(0, i - 1))} disabled={i === 0} aria-label={t('Previous')} className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1a17160f] disabled:opacity-35">
+          <ArrowRight size={17} className="rotate-180 rtl:rotate-0" />
+        </button>
+        <button type="button" onClick={() => goTo(Math.min(STEPS.length - 1, i + 1))} disabled={i === STEPS.length - 1} aria-label={t('Next')} className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1a1716] text-white disabled:opacity-35">
+          <ArrowRight size={17} className="rtl:-scale-x-100" />
+        </button>
+      </div>
+    </div>
   );
 }
 
